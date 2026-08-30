@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'F-CINE',
+      title: 'F-Cine',
       theme: darkTheme,
       routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
