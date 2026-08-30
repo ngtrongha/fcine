@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../../core/cache/image_cache_manager.dart';
+import '../../core/toast/app_toast.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -20,13 +21,13 @@ class _SettingsPageState extends State<SettingsPage> {
       latencyMs = 32 + (DateTime.now().millisecond % 40);
       isRefreshing = false;
     });
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Đã làm mới Gist • ${latencyMs.toStringAsFixed(0)}ms')));
+    if (mounted) AppToast.show(context, message: 'Đã làm mới Gist • ${latencyMs.toStringAsFixed(0)}ms', type: ToastType.success);
   }
 
   Future<void> _clearCache() async {
     await FImageCacheManager.instance.emptyCache();
     await DefaultCacheManager().emptyCache();
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đã xóa bộ nhớ đệm ảnh (100MB)')));
+    if (mounted) AppToast.show(context, message: 'Đã xóa bộ nhớ đệm ảnh (100MB)', type: ToastType.success);
   }
 
   @override

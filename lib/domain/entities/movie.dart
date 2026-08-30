@@ -18,6 +18,7 @@ class Movie {
   final List<String> directors;
   final String? trailerUrl;
   final DateTime? modifiedTime;
+  final double? voteAverage;
   final String sourceId; // kkphim
 
   const Movie({
@@ -40,6 +41,7 @@ class Movie {
     this.directors = const [],
     this.trailerUrl,
     this.modifiedTime,
+    this.voteAverage,
     this.sourceId = 'kkphim',
   });
 

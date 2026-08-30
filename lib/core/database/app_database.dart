@@ -93,7 +93,15 @@ class AppDatabase extends _$AppDatabase {
       (select(watchHistory)..where((t) => t.movieSlug.equals(movieSlug) & t.episodeSlug.equals(episodeSlug) & t.serverName.equals(serverName))).getSingleOrNull();
 
   Future<void> upsertHistory(WatchHistoryCompanion entry) async {
-    await into(watchHistory).insertOnConflictUpdate(entry);
+    // Fix: original `insertOnConflictUpdate` targets PK `id` only.
+    // Table unique is (movie_slug, episode_slug, server_name) -> must target that.
+    await into(watchHistory).insert(
+      entry,
+      onConflict: DoUpdate(
+        (old) => entry,
+        target: [watchHistory.movieSlug, watchHistory.episodeSlug, watchHistory.serverName],
+      ),
+    );
   }
 
   Future<int> deleteHistory(String movieSlug, String episodeSlug, String serverName) =>
@@ -120,7 +128,13 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<Download>> watchAllDownloads() => (select(downloads)..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).watch();
   Future<Download?> getDownload(String movieSlug, String episodeSlug, String serverName) =>
       (select(downloads)..where((t) => t.movieSlug.equals(movieSlug) & t.episodeSlug.equals(episodeSlug) & t.serverName.equals(serverName))).getSingleOrNull();
-  Future<void> upsertDownload(DownloadsCompanion entry) => into(downloads).insertOnConflictUpdate(entry);
+  Future<void> upsertDownload(DownloadsCompanion entry) => into(downloads).insert(
+        entry,
+        onConflict: DoUpdate(
+          (old) => entry,
+          target: [downloads.movieSlug, downloads.episodeSlug, downloads.serverName],
+        ),
+      );
   Future<int> deleteDownload(String movieSlug, String episodeSlug, String serverName) =>
       (delete(downloads)..where((t) => t.movieSlug.equals(movieSlug) & t.episodeSlug.equals(episodeSlug) & t.serverName.equals(serverName))).go();
   Future<int> updateDownloadProgress(int id, int progress, int downloaded) =>

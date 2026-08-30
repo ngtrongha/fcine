@@ -21,11 +21,21 @@ class MovieModel extends Movie {
     super.directors,
     super.trailerUrl,
     super.modifiedTime,
+    super.voteAverage,
     super.sourceId,
   });
 
   factory MovieModel.fromListJson(Map<String, dynamic> json, {String cdn = 'https://phimimg.com'}) {
     String normalize(String? u) => Movie.normalizeImage(u, cdn: cdn);
+    double? parseVote(Map<String, dynamic> j) {
+      final tmdb = j['tmdb'] as Map<String, dynamic>?;
+      final imdb = j['imdb'] as Map<String, dynamic>?;
+      final v = tmdb?['vote_average'] ?? imdb?['vote_average'];
+      if (v == null) return null;
+      final d = (v as num).toDouble();
+      return d > 0 ? d : null;
+    }
+
     return MovieModel(
       id: json['_id']?.toString() ?? json['slug']?.toString() ?? '',
       slug: json['slug'] ?? '',
@@ -48,11 +58,21 @@ class MovieModel extends Movie {
               .toList() ??
           [],
       modifiedTime: json['modified'] != null ? DateTime.tryParse(json['modified']['time'] ?? '') : null,
+      voteAverage: parseVote(json),
     );
   }
 
   factory MovieModel.fromDetailJson(Map<String, dynamic> movieJson, {String cdn = 'https://phimimg.com'}) {
     String normalize(String? u) => Movie.normalizeImage(u, cdn: cdn);
+    double? parseVote(Map<String, dynamic> j) {
+      final tmdb = j['tmdb'] as Map<String, dynamic>?;
+      final imdb = j['imdb'] as Map<String, dynamic>?;
+      final v = tmdb?['vote_average'] ?? imdb?['vote_average'];
+      if (v == null) return null;
+      final d = (v as num).toDouble();
+      return d > 0 ? d : null;
+    }
+
     return MovieModel(
       id: movieJson['_id']?.toString() ?? movieJson['slug'] ?? '',
       slug: movieJson['slug'] ?? '',
@@ -79,6 +99,7 @@ class MovieModel extends Movie {
       actors: (movieJson['actor'] as List?)?.map((e) => e.toString()).toList() ?? [],
       directors: (movieJson['director'] as List?)?.map((e) => e.toString()).toList() ?? [],
       modifiedTime: movieJson['modified'] != null ? DateTime.tryParse(movieJson['modified']['time'] ?? '') : null,
+      voteAverage: parseVote(movieJson),
     );
   }
 }

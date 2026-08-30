@@ -1,9 +1,9 @@
-import 'dart:convert';
+// ignore_for_file: avoid_print
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fcine/core/config/master_config.dart';
 import 'package:fcine/data/datasources/kkphim_remote_datasource.dart';
-import 'package:fcine/domain/entities/movie.dart';
 
 void main() {
   test('KKPhim API - verify endpoints from docs', () async {
