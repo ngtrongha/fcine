@@ -229,12 +229,12 @@ class _DetailPageState extends State<DetailPage> {
               Wrap(spacing: 8, runSpacing: 4, children: [
                 if (_movie.year != null) _InfoChip(label: '${_movie.year}'),
                 if (_movie.quality != null) _InfoChip(label: _movie.quality!),
-                if (_movie.language != null) _InfoChip(label: _movie.language!),
+                if (_movie.lang != null) _InfoChip(label: _movie.lang!),
                 if (_movie.type != null) _InfoChip(label: _movie.type!),
               ]),
               const SizedBox(height: 8),
-              if (_movie.description != null)
-                Text(_movie.description!, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13), maxLines: 5, overflow: TextOverflow.ellipsis),
+              if (_movie.content != null && _movie.content!.isNotEmpty)
+                Text(_movie.content!, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13), maxLines: 5, overflow: TextOverflow.ellipsis),
             ]),
           ),
         ]),
