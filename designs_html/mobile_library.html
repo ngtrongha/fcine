@@ -1,0 +1,202 @@
+﻿<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tủ Phim Của Tôi - F-Cine</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E50914',
+                        secondary: '#FF5252',
+                        tertiary: '#F59E0B',
+                        background: '#080B11',
+                        surface: '#111622',
+                    },
+                    fontFamily: {
+                        headline: ["Be Vietnam Pro", "sans-serif"],
+                        display: ["Be Vietnam Pro", "sans-serif"],
+                        body: ["Be Vietnam Pro", "sans-serif"],
+                        label: ["Be Vietnam Pro", "sans-serif"]
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        lg: "0.75rem",
+                        xl: "1rem",
+                        full: "9999px"
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom Scrollbar for Tabs */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-white font-body antialiased pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#080B11]/80 backdrop-blur-md shadow-none flex items-center justify-between px-6 h-16 w-full">
+<button class="text-white/70 hover:text-[#FF5252] transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<h1 class="font-headline text-xl font-bold tracking-tight text-white">Tủ Phim Của Tôi</h1>
+<div class="flex items-center gap-4">
+<button class="text-sm font-medium text-white/70 hover:text-white transition-colors">Chỉnh Sửa</button>
+<button class="text-[#E50914] hover:text-[#FF5252] transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">search</span>
+</button>
+</div>
+</header>
+<main class="pt-20 px-4 md:px-8 max-w-7xl mx-auto">
+<!-- Segmented Tabs -->
+<div class="flex overflow-x-auto hide-scrollbar gap-2 mb-6 pb-2">
+<button class="whitespace-nowrap px-5 py-2 rounded-full bg-primary text-white font-label text-sm font-medium shadow-[0_0_15px_rgba(229,9,20,0.3)] transition-all">
+                Lịch Sử Xem (12)
+            </button>
+<button class="whitespace-nowrap px-5 py-2 rounded-full bg-surface border border-white/10 text-white/70 hover:text-white hover:bg-surface/80 font-label text-sm font-medium transition-all">
+                Yêu Thích (28)
+            </button>
+<button class="whitespace-nowrap px-5 py-2 rounded-full bg-surface border border-white/10 text-white/70 hover:text-white hover:bg-surface/80 font-label text-sm font-medium transition-all">
+                Đã Tải Xuống (4)
+            </button>
+</div>
+<!-- Watch History List -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-6 mb-8">
+<!-- Card 1 -->
+<article class="group relative flex flex-col sm:flex-row gap-4 bg-surface rounded-xl overflow-hidden border border-white/5 hover:border-white/20 transition-all p-3 sm:p-0">
+<div class="relative w-full sm:w-48 aspect-video sm:aspect-auto sm:h-32 rounded-lg sm:rounded-none overflow-hidden shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Cinematic still from a sci-fi series featuring a glowing green temporal loom against a dark cosmic background, highly detailed, dramatic lighting, dark cinema aesthetic with deep blacks and vibrant neon green accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCnB6psLRnyTlH3mTFiaM53Zsl7GRkwxw_xeAPmTylst5xf0qhrRDLHs0o6SP5z2nb6Wwvf8Eag-gUArFdkr_X5IQ43SXNO-n5U6FeyarqsJcLtplj-E18XzpTC6WyUpiA7WqYQ0HaPJi7WVuEgdxWENuoy_knOZHgV70vFSqBF8sSkzk7_WpEtVXG1wvy-RX7t-4hnacEmGlQteA-SYuI5SFCifCVtOs0Y_A2BEa7zQ-NhrH04CTfHAQf5mgFJfy2gZBj1v8eqCus"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+<button class="absolute inset-0 m-auto w-10 h-10 bg-primary/90 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm shadow-[0_0_15px_rgba(229,9,20,0.5)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<div class="flex flex-col justify-center flex-1 sm:pr-4">
+<h3 class="font-headline font-bold text-lg leading-tight mb-1 line-clamp-2 text-white group-hover:text-primary transition-colors">Loki Mùa 2 - Tập 4</h3>
+<p class="text-xs text-white/50 mb-3 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> Còn 18 phút
+                    </p>
+<div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mb-3">
+<div class="bg-primary h-full rounded-full w-[65%] shadow-[0_0_8px_rgba(229,9,20,0.8)]"></div>
+</div>
+<button class="self-start text-sm font-medium text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-md transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span> Tiếp tục
+                    </button>
+</div>
+</article>
+<!-- Card 2 -->
+<article class="group relative flex flex-col sm:flex-row gap-4 bg-surface rounded-xl overflow-hidden border border-white/5 hover:border-white/20 transition-all p-3 sm:p-0">
+<div class="relative w-full sm:w-48 aspect-video sm:aspect-auto sm:h-32 rounded-lg sm:rounded-none overflow-hidden shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Epic cinematic wide shot of a vast desert landscape with a giant sandworm emerging, orange and amber color grading, high contrast, dark cinema style, dramatic shadows, highly detailed." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzu8khQUOO7hlprnojrzzHGM8ZTQ7se19JZE-7qaAIveL_4kmhTDIXAe1HzfyJhI3eqmMvuZtYRt262xUx6MGvuTPv6_WhAKRbJyG0Me42Fr_IzWbDbQXqhDYkd0l0jMb8_iuDD4IPT34sqX1iRT0-9Lo6t7vZlKFhUozOG__0ulLykOq_fe74qxk18SUcCA3UosEntjhPpSfpUy856FMMt-Wov_gppkgz_H5SqKx8-T1u31ulITAKGsU1dfHLehdcO2IPS5SC_ao"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+<button class="absolute inset-0 m-auto w-10 h-10 bg-primary/90 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm shadow-[0_0_15px_rgba(229,9,20,0.5)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<div class="flex flex-col justify-center flex-1 sm:pr-4">
+<h3 class="font-headline font-bold text-lg leading-tight mb-1 line-clamp-2 text-white group-hover:text-primary transition-colors">Dune: Hành Tinh Cát 2</h3>
+<p class="text-xs text-white/50 mb-3 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> Còn 121 phút
+                    </p>
+<div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mb-3">
+<div class="bg-primary h-full rounded-full w-[28%] shadow-[0_0_8px_rgba(229,9,20,0.8)]"></div>
+</div>
+<button class="self-start text-sm font-medium text-white bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-md transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span> Tiếp tục
+                    </button>
+</div>
+</article>
+<!-- Card 3 -->
+<article class="group relative flex flex-col sm:flex-row gap-4 bg-surface/50 rounded-xl overflow-hidden border border-white/5 hover:border-white/20 transition-all p-3 sm:p-0">
+<div class="relative w-full sm:w-48 aspect-video sm:aspect-auto sm:h-32 rounded-lg sm:rounded-none overflow-hidden shrink-0 opacity-80 group-hover:opacity-100 transition-opacity">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 grayscale group-hover:grayscale-0" data-alt="Cinematic portrait of a man in a 1940s suit silhouetted against a massive atomic explosion, fiery orange and dark grey palette, gritty texture, dark cinema aesthetic, dramatic lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDT-7wOlNaztNvn45Ng9Fl-juXy9jpXVkznoaEmOOtHrwxGtAkhtjeBA3jKYA92bNh68SJEEIoTLgzEDKcmOJG-SPkjMOIPo0Gd1_wJWpSlgSsMhYGjsDrfLAaEDr9q8jocgTAjIw6iwgMj3wpS_h-nOJ9jQLn6u-ormTgxk9QCFrqkBAO9-50EcvM4m3KcLnv52vuxKsiEKfBmAxFIRWaGpcQAjF5kXR-ucwOxgEm8HTmBwHfcnzC259yfHfVZ21yhZ6ev3ZYnbPs"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+</div>
+<div class="flex flex-col justify-center flex-1 sm:pr-4">
+<h3 class="font-headline font-bold text-lg leading-tight mb-1 line-clamp-2 text-white/80 group-hover:text-white transition-colors">Oppenheimer</h3>
+<p class="text-xs text-tertiary mb-3 flex items-center gap-1 font-medium">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Đã xem hết (98%)
+                    </p>
+<div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mb-3">
+<div class="bg-tertiary h-full rounded-full w-[98%]"></div>
+</div>
+<button class="self-start text-sm font-medium text-white/80 bg-white/5 hover:bg-white/15 px-3 py-1.5 rounded-md transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">replay</span> Xem lại
+                    </button>
+</div>
+</article>
+<!-- Card 4 -->
+<article class="group relative flex flex-col sm:flex-row gap-4 bg-surface rounded-xl overflow-hidden border border-white/5 hover:border-white/20 transition-all p-3 sm:p-0">
+<div class="relative w-full sm:w-48 aspect-video sm:aspect-auto sm:h-32 rounded-lg sm:rounded-none overflow-hidden shrink-0">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Vibrant cinematic shot of a pirate ship sailing on a bright blue sea, stylized live-action adaptation, dynamic angle, saturated colors against a dark background, dark cinema presentation." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdHj90zD2DexWfRn_DOEXVRYkJ5MtnHRH38hzTz6ZwyDW5JcUhRyZL0A2G-bBABy5-Vp0OiNYE_Ywej4zRYVhwls0Ki-7E6w-ca8Z2HsUkEssF-LljwMkPpG1oNB7pkLIU_lY9eyM06qSd8jfYNqPK4Jw00YGV4c4BCpfZJxr8Ae3R796EsCQri8RF_Ibl_386n1GJCf1ECSwDw4J8glk6RIvheO44SOVvXbiqJJ3GnLu1vnOYstHpX7T713b7wJblIsKkgRjraLA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+<button class="absolute inset-0 m-auto w-10 h-10 bg-primary/90 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm shadow-[0_0_15px_rgba(229,9,20,0.5)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<div class="flex flex-col justify-center flex-1 sm:pr-4">
+<h3 class="font-headline font-bold text-lg leading-tight mb-1 line-clamp-2 text-white group-hover:text-primary transition-colors">One Piece (Live Action) - Tập 8</h3>
+<p class="text-xs text-white/50 mb-3 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">schedule</span> Còn 5 phút
+                    </p>
+<div class="w-full bg-white/10 h-1.5 rounded-full overflow-hidden mb-3">
+<div class="bg-primary h-full rounded-full w-[90%] shadow-[0_0_8px_rgba(229,9,20,0.8)]"></div>
+</div>
+</div>
+</article>
+</div>
+<!-- Storage Banner -->
+<div class="bg-gradient-to-r from-surface to-surface/40 border border-white/10 rounded-xl p-4 flex items-center justify-between mb-8 shadow-lg">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">save</span>
+</div>
+<div>
+<p class="text-sm font-bold text-white">3.2 GB / 128 GB</p>
+<p class="text-xs text-white/50">4 tập sẵn sàng phát offline</p>
+</div>
+</div>
+<button class="text-white/50 hover:text-white transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md rounded-full backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] bg-[#111622]/60 flex justify-around items-center py-3 px-6 z-50 md:hidden">
+<button class="flex flex-col items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label text-[10px] font-medium mt-1">Trang chủ</span>
+</button>
+<button class="flex flex-col items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined">explore</span>
+<span class="font-label text-[10px] font-medium mt-1">Khám phá</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-[#E50914] text-white rounded-full w-12 h-12 shadow-[0_0_15px_rgba(229,9,20,0.5)] transition-all active:scale-90 duration-150 -mt-4 border-[4px] border-[#080B11]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">video_library</span>
+</button>
+<button class="flex flex-col items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label text-[10px] font-medium mt-1">Cài đặt</span>
+</button>
+</nav>
+</body></html>
+

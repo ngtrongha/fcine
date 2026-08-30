@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>F-Cine - Design System & Interactive Prototype Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" />
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E50914',
+                        secondary: '#FF5252',
+                        tertiary: '#F59E0B',
+                        background: '#080B11',
+                        surface: '#111622',
+                        surfaceVariant: '#1A2130'
+                    },
+                    fontFamily: {
+                        sans: ['Be Vietnam Pro', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .text-glow {
+            text-shadow: 0 0 12px rgba(229, 9, 20, 0.6);
+        }
+        .glass-header {
+            background: rgba(17, 22, 34, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .mobile-frame {
+            width: 390px;
+            height: 844px;
+            border-radius: 44px;
+            box-shadow: 0 0 0 12px #1e293b, 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            position: relative;
+        }
+        .notch {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 28px;
+            background: #1e293b;
+            border-bottom-left-radius: 16px;
+            border-bottom-right-radius: 16px;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body class="bg-background text-white font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="glass-header sticky top-0 z-50 px-6 py-3.5 flex items-center justify-between">
+        <div class="flex items-center gap-6">
+            <div class="flex items-center gap-3">
+                <span class="text-2xl font-black text-primary text-glow tracking-wider">F-CINE</span>
+                <span class="text-xs px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30 font-semibold">HTML PROTOTYPE</span>
+            </div>
+            
+            <!-- Screen Selector Tabs -->
+            <div class="hidden md:flex items-center gap-1 bg-surface rounded-xl p-1 border border-white/5">
+                <button onclick="setScreen('home')" id="tab-home" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-primary text-white">
+                    Trang Chủ
+                </button>
+                <button onclick="setScreen('detail')" id="tab-detail" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-all">
+                    Chi Tiết Phim
+                </button>
+                <button onclick="setScreen('search')" id="tab-search" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-all">
+                    Khám Phá / Search
+                </button>
+                <button onclick="setScreen('player')" id="tab-player" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-all">
+                    Player Video
+                </button>
+                <button onclick="setScreen('library')" id="tab-library" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-all">
+                    Tủ Phim / Lịch Sử
+                </button>
+                <button onclick="setScreen('settings')" id="tab-settings" class="tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-all">
+                    Cài Đặt / Config
+                </button>
+            </div>
+        </div>
+
+        <!-- Device & Action Switchers -->
+        <div class="flex items-center gap-4">
+            <div class="flex items-center bg-surface rounded-xl p-1 border border-white/5">
+                <button onclick="setDevice('desktop')" id="dev-desktop" class="dev-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white/10 text-white">
+                    <span class="material-symbols-outlined text-base">desktop_windows</span>
+                    <span>Desktop</span>
+                </button>
+                <button onclick="setDevice('mobile')" id="dev-mobile" class="dev-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-all">
+                    <span class="material-symbols-outlined text-base">smartphone</span>
+                    <span>Mobile</span>
+                </button>
+            </div>
+
+            <a id="btn-open-raw" href="desktop_home.html" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface hover:bg-surfaceVariant text-xs font-medium border border-white/10 transition-colors">
+                <span class="material-symbols-outlined text-base">open_in_new</span>
+                <span>Mở Tab Riêng</span>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Viewport Container -->
+    <main class="flex-1 flex flex-col items-center justify-center p-4 lg:p-6 overflow-hidden">
+        
+        <!-- Desktop Container -->
+        <div id="container-desktop" class="w-full h-[calc(100vh-100px)] rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-surface">
+            <iframe id="iframe-desktop" src="desktop_home.html" class="w-full h-full border-none"></iframe>
+        </div>
+
+        <!-- Mobile Container -->
+        <div id="container-mobile" class="hidden flex items-center justify-center py-4">
+            <div class="mobile-frame bg-background">
+                <div class="notch"></div>
+                <iframe id="iframe-mobile" src="mobile_home.html" class="w-full h-full border-none pt-4"></iframe>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        let currentScreen = 'home';
+        let currentDevice = 'desktop';
+
+        const screens = {
+            home: { desktop: 'desktop_home.html', mobile: 'mobile_home.html' },
+            detail: { desktop: 'desktop_detail.html', mobile: 'mobile_detail.html' },
+            search: { desktop: 'desktop_search.html', mobile: 'mobile_search.html' },
+            player: { desktop: 'desktop_player.html', mobile: 'mobile_player.html' },
+            library: { desktop: 'desktop_library.html', mobile: 'mobile_library.html' },
+            settings: { desktop: 'desktop_settings.html', mobile: 'mobile_settings.html' }
+        };
+
+        function updateView() {
+            const targetUrl = screens[currentScreen][currentDevice];
+            document.getElementById('iframe-desktop').src = screens[currentScreen]['desktop'];
+            document.getElementById('iframe-mobile').src = screens[currentScreen]['mobile'];
+            document.getElementById('btn-open-raw').href = targetUrl;
+
+            // Update Tab active states
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.className = 'tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-all';
+            });
+            const activeTab = document.getElementById(`tab-${currentScreen}`);
+            if (activeTab) {
+                activeTab.className = 'tab-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary text-white transition-all';
+            }
+
+            // Update Device active states
+            if (currentDevice === 'desktop') {
+                document.getElementById('container-desktop').classList.remove('hidden');
+                document.getElementById('container-mobile').classList.add('hidden');
+                document.getElementById('dev-desktop').className = 'dev-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-white transition-all';
+                document.getElementById('dev-mobile').className = 'dev-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-all';
+            } else {
+                document.getElementById('container-desktop').classList.add('hidden');
+                document.getElementById('container-mobile').classList.remove('hidden');
+                document.getElementById('dev-mobile').className = 'dev-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/10 text-white transition-all';
+                document.getElementById('dev-desktop').className = 'dev-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white/60 hover:text-white transition-all';
+            }
+        }
+
+        function setScreen(s) {
+            currentScreen = s;
+            updateView();
+        }
+
+        function setDevice(d) {
+            currentDevice = d;
+            updateView();
+        }
+    </script>
+</body>
+</html>

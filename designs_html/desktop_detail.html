@@ -1,0 +1,272 @@
+﻿<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dune 2 - F-Cine</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E50914',
+                        secondary: '#FF5252',
+                        tertiary: '#F59E0B',
+                        background: '#080B11',
+                        surface: '#111622',
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Be Vietnam Pro"],
+                        "display": ["Be Vietnam Pro"],
+                        "body": ["Be Vietnam Pro"],
+                        "label": ["Be Vietnam Pro"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Be Vietnam Pro', sans-serif;
+        }
+        .hero-gradient {
+            background: linear-gradient(to top, #080B11 0%, rgba(8,11,17,0.7) 40%, transparent 100%);
+        }
+        .side-gradient {
+            background: linear-gradient(to right, #080B11 0%, rgba(8,11,17,0.3) 100%);
+        }
+    </style>
+</head>
+<body class="bg-background text-white min-h-screen selection:bg-primary selection:text-white pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#080B11]/80 backdrop-blur-md shadow-none transition-all duration-300">
+<div class="flex items-center justify-between px-6 h-16 w-full max-w-7xl mx-auto">
+<div class="flex items-center gap-4">
+<button aria-label="Menu" class="text-white/70 hover:text-[#FF5252] transition-colors active:scale-95 duration-200 hidden md:flex">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<a class="text-2xl font-black text-[#E50914] drop-shadow-[0_0_8px_rgba(229,9,20,0.8)] font-headline tracking-tight active:scale-95 duration-200" href="#">F-Cine</a>
+<!-- Web Nav (Hidden on Mobile) -->
+<nav class="hidden md:flex items-center gap-6 ml-8">
+<a class="text-white/70 hover:text-white font-label text-sm font-medium transition-colors" href="#">Home</a>
+<a class="text-white/70 hover:text-white font-label text-sm font-medium transition-colors" href="#">Explore</a>
+<a class="text-[#E50914] font-label text-sm font-medium" href="#">Video Library</a>
+</nav>
+</div>
+<button aria-label="Search" class="text-white/70 hover:text-[#FF5252] transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined">search</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="w-full relative">
+<!-- Hero Section -->
+<section class="relative w-full h-[60vh] md:h-[80vh] min-h-[500px]">
+<!-- Hero Background -->
+<div class="absolute inset-0 w-full h-full">
+<img alt="Dune 2 Background" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1ULRRJ4R0lKAgEF4i_O504QWxg9lgu6UUPy4PqmZR0y4ChVUYFOmBmwC7Tp0Qr2a3-hVHC4AOkjYIAnDazpr4KYJx74pQ0pfVnAqI9h5CntEGzcUQFGV03BXoymR57ZJvSsYEXCNFYF4I_ePKIx9C7MjntY-2MgtUaTlembYtja_9eSP6xOPQGeI9N8QvwxNymrTbQ8O4fL9edadyY0uwly_gAB_tE4JX6PYf5FtwgOltYpv7wKHnYQMq8"/>
+<!-- Gradients for blending -->
+<div class="absolute inset-0 hero-gradient"></div>
+<div class="absolute inset-0 side-gradient w-1/2"></div>
+</div>
+<!-- Hero Content -->
+<div class="relative z-10 h-full max-w-7xl mx-auto px-6 flex flex-col justify-end pb-12 pt-24">
+<div class="max-w-2xl">
+<!-- Title Logo (Text fallback) -->
+<h1 class="text-5xl md:text-7xl font-black font-display text-white mb-4 tracking-tighter uppercase drop-shadow-lg">Dune: Part Two</h1>
+<!-- Metadata -->
+<div class="flex items-center gap-4 text-sm md:text-base text-white/80 font-medium mb-6 font-label">
+<span class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span> 8.8
+                        </span>
+<span class="w-1 h-1 rounded-full bg-white/40"></span>
+<span>2024</span>
+<span class="w-1 h-1 rounded-full bg-white/40"></span>
+<span>166 min</span>
+<span class="w-1 h-1 rounded-full bg-white/40"></span>
+<span class="px-2 py-0.5 border border-white/30 rounded text-xs">16+</span>
+<span class="w-1 h-1 rounded-full bg-white/40"></span>
+<span>Sci-Fi, Adventure</span>
+</div>
+<!-- Actions -->
+<div class="flex items-center gap-4">
+<button class="flex items-center gap-2 bg-primary hover:bg-secondary text-white px-8 py-3 rounded-lg font-bold transition-colors active:scale-95 duration-200 shadow-[0_0_20px_rgba(229,9,20,0.4)]">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                            Watch Now
+                        </button>
+<button aria-label="Add to List" class="flex items-center justify-center w-12 h-12 rounded-lg bg-surface/80 hover:bg-surface border border-white/10 text-white transition-colors backdrop-blur-md active:scale-95 duration-200 group">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">add</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Content Grid Layout -->
+<section class="max-w-7xl mx-auto px-6 py-8 md:py-12 relative z-20 -mt-10 md:-mt-20">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Main Column (Left) -->
+<div class="lg:col-span-8 flex flex-col gap-10">
+<!-- Synopsis Bento Card -->
+<div class="bg-surface/60 backdrop-blur-xl border border-white/5 rounded-xl p-6 md:p-8 shadow-2xl">
+<h2 class="text-xl font-bold font-headline mb-4 text-white">Storyline</h2>
+<p class="text-white/70 leading-relaxed font-body text-sm md:text-base">
+                            Paul Atreides unites with Chani and the Fremen while on a warpath of revenge against the conspirators who destroyed his family. Facing a choice between the love of his life and the fate of the known universe, he endeavors to prevent a terrible future only he can foresee.
+                        </p>
+</div>
+<!-- Chapters/Episodes -->
+<div>
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-bold font-headline text-white">Chapters</h2>
+<span class="text-sm text-white/50 font-label">10 Parts</span>
+</div>
+<div class="flex flex-col gap-3">
+<!-- Chapter 1 (Active) -->
+<button class="flex items-center gap-4 bg-surface/80 border border-primary/30 rounded-xl p-4 text-left transition-all hover:bg-surface group">
+<div class="relative w-24 h-16 md:w-32 md:h-20 rounded-lg overflow-hidden shrink-0 bg-background">
+<img class="w-full h-full object-cover opacity-80" data-alt="A cinematic, detailed still from a sci-fi movie. Desert landscape at dawn, with a figure walking alone over a massive sand dune. Rich orange and teal colors, moody lighting, highly detailed sand textures. Dark cinema aesthetic, matching a modern sci-fi film." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbNp4OfLe_CoghFbT-vKG9T2BZfZEjgXJdUSCx8x0htNdSXYnvXKikIxb8xRPHYamVODh9Ajvnd_8R1T-zZ0aI63FboKhg2wMO_z1C-D_TAEYbxHlNGQplFUh3y_DOQ1J7V-xMbIdzB96AwA4fBSah8P7Vo0Ff9x-CnoCsJ_fQwI4tOrqVmwORCX6-ol99vdZUBiw8J1nioAJhi_cuqk4_l0YT3FaW-_D8rNi92BxzXs5tG9QKR5Rk"/>
+<div class="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-black/20 transition-colors">
+<span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">play_circle</span>
+</div>
+<!-- Progress Bar -->
+<div class="absolute bottom-0 left-0 w-full h-1 bg-white/20">
+<div class="h-full bg-primary w-1/3"></div>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-bold text-white mb-1 truncate group-hover:text-primary transition-colors">Tập 1: The Desert Planet</h3>
+<p class="text-xs text-white/50 truncate hidden md:block">Arrival on Arrakis and the beginning of the end.</p>
+<span class="text-xs text-primary font-medium mt-1 block">45 min</span>
+</div>
+</button>
+<!-- Chapter 2 -->
+<button class="flex items-center gap-4 bg-surface/40 border border-white/5 rounded-xl p-4 text-left transition-all hover:bg-surface/80 hover:border-white/10 group">
+<div class="relative w-24 h-16 md:w-32 md:h-20 rounded-lg overflow-hidden shrink-0 bg-background">
+<img class="w-full h-full object-cover opacity-60" data-alt="A dark, intense sci-fi scene inside a brutally brutalist architecture structure. Pale, bald figures in black armor. Harsh, contrasting light and deep shadows. Monochromatic with a sinister, oppressive atmosphere. Professional cinema lighting." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvCMpd7FZB5liIpuUCh2b4HwLhZe9boRJUjS9ZzSOOmrBpaFVziR06hoL-RSTbKn1wgiNT7qrB2iFuV-FuLKVEPe_AKDQQFlxP2ZPT7ZPRk7vBM8DLhjbwh6_RiQnJoFl7_-n5VLx3lJVII1lyIKCWEGX3J-4sCGsrJVE_NTG4hohxhKz4gZkZpMOWC6m4bEaPDhYrTbcDfuKB5JDDpti7PPbGWkd2WxZ1tRkoWSruNL6MzkUIEbHu"/>
+<div class="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white text-3xl" style="font-variation-settings: 'FILL' 1;">play_circle</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-bold text-white/80 mb-1 truncate group-hover:text-white transition-colors">Tập 2: The Harkonnen Plot</h3>
+<p class="text-xs text-white/50 truncate hidden md:block">A sinister plan is set into motion on Giedi Prime.</p>
+<span class="text-xs text-white/50 mt-1 block">52 min</span>
+</div>
+</button>
+<!-- Chapter 3 -->
+<button class="flex items-center gap-4 bg-surface/40 border border-white/5 rounded-xl p-4 text-left transition-all hover:bg-surface/80 hover:border-white/10 group">
+<div class="relative w-24 h-16 md:w-32 md:h-20 rounded-lg overflow-hidden shrink-0 bg-background flex items-center justify-center">
+<span class="material-symbols-outlined text-white/20 text-3xl">image</span>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-bold text-white/80 mb-1 truncate group-hover:text-white transition-colors">Tập 3: To Be Continued...</h3>
+<span class="text-xs text-white/50 mt-1 block">48 min</span>
+</div>
+</button>
+</div>
+<button class="w-full mt-4 py-3 text-sm font-medium text-white/50 hover:text-white transition-colors bg-surface/20 rounded-xl hover:bg-surface/40">
+                            Show More Chapters
+                        </button>
+</div>
+</div>
+<!-- Side Column (Right) -->
+<div class="lg:col-span-4 flex flex-col gap-8">
+<!-- Cast & Crew -->
+<div class="bg-surface/30 rounded-xl p-6 border border-white/5">
+<h2 class="text-lg font-bold font-headline mb-4 text-white">Cast &amp; Crew</h2>
+<div class="flex flex-col gap-4">
+<!-- Director -->
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface border border-white/10 overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="A portrait photograph of a middle-aged male film director. He has messy dark hair, glasses, and a serious, focused expression. Shot with dramatic studio lighting against a dark, moody background. Professional cinematic headshot." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsqGL5JvizqymcUD5er_8_ULs_2HABy9cHruojQttagOO39L-4D8zes4FGN1H8aC83RgoG4FKoch-ZeQtGo24hKCZ_yzKDYdTLsuo77T9BxK2Cx5J0jBRg6K7RS1vIM0G3f2mGkIED0ujkHQkW6aD62iSIThOX7NlupJERoWXlwU70uGscv42Ab5qe_U_eB5aobYHjpyuIcRTyypIVlfQKFJMMKoMf-fPdCv7rvwLcUSaNdwjFEt6c"/>
+</div>
+<div>
+<p class="font-medium text-white text-sm">Denis Villeneuve</p>
+<p class="text-xs text-white/50">Director</p>
+</div>
+</div>
+<!-- Cast Members -->
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface border border-white/10 overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="A cinematic portrait of a young male actor with dark curly hair. He is wearing a dark, textured sci-fi suit. Soft, directional light highlighting his features against a warm, sandy-toned background. High-end movie still quality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBIxwAAqK2ju8MoM-98crh6p28KQDb5DGPa6HLIuKNujH9AAkY-muION7M0Q00cVV77UeRyygHHEAsxuIIV7gYxdbqIUlEx2LLNWtu4ynrrfn1V2_BRggH56NFatDDOiZA2tOe_CSqtxrcPmSMUd4g3QSE_L60JJtysoQfiuzMuuzKL7MG0hyHUyry9BIL5m4UVzchktWAlKUsLMW8owup9ZcVTU44u7pIZ0DOUcntEKWlh3mlaBJRb"/>
+</div>
+<div>
+<p class="font-medium text-white text-sm">Timothée Chalamet</p>
+<p class="text-xs text-white/50">Paul Atreides</p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface border border-white/10 overflow-hidden shrink-0">
+<img class="w-full h-full object-cover" data-alt="A striking cinematic portrait of a young female actor with striking blue eyes. She is wearing a distressed, tan sci-fi desert outfit with a hood. Warm, glowing sunset lighting on her face. Desert background. Movie still quality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCWF7vdrADwr6rjPDAThzPGIK1BpLCFpYiRsf1hdEEFNyb8IfV6YQ4dEFO-IgXyesCHdTkCkv1VDxBTwYQ-H66A4dQ1mCrZvhikeqEdibMasp8AWisSfm0M0a8hdKC_f1LX-V5odXLym3Bbx07NiZ3cbvtPSrHN3c2C8kTGnEK2jXHzluwYYTMcoz0cnoPbYU8XIjM9mX6B7IA6xT33DUZOnjE7g814xMemRv83UJghToAuEK34rM5"/>
+</div>
+<div>
+<p class="font-medium text-white text-sm">Zendaya</p>
+<p class="text-xs text-white/50">Chani</p>
+</div>
+</div>
+</div>
+</div>
+<!-- More Like This -->
+<div>
+<h2 class="text-lg font-bold font-headline mb-4 text-white">More Like This</h2>
+<div class="grid grid-cols-2 gap-3">
+<!-- Rec 1 -->
+<a class="group relative rounded-lg overflow-hidden aspect-[2/3] bg-surface" href="#">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A dramatic movie poster image for a space sci-fi film. A vast, glowing nebula in deep space with a tiny spacecraft travelling towards a massive, glowing wormhole. Deep blues, blacks, and bright white starlight. Epic and awe-inspiring atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1Kv2cjZNbqeAgAWu48HpDoAwPjCYUFwKnOF1YHWMAmkgRRYuS9J8T51nFuiSjo9dZULZRYGJ1ckl9Pi0WQcahYXzVUjqX9bteeCmNRCjpaHicdvBbwwV5NXx-tTOUvDrLVZhjdXhGrp8jTSNqjNJNDw7T3wmnkko0pPYdv9wXMV4JV-yuxWFZF5T43pt64ZNXTOO8IKKesdCIHYdpAUH4DgCY2ddYnwNgP3rNucYJV0VajEf2Zn6U"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+<p class="text-sm font-bold text-white">Interstellar</p>
+</div>
+</a>
+<!-- Rec 2 -->
+<a class="group relative rounded-lg overflow-hidden aspect-[2/3] bg-surface" href="#">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A moody, cyberpunk movie poster image. A neon-lit, rainy dystopian cityscape at night. Holographic advertisements glowing in vibrant pink and blue against smoggy, dark grey skyscrapers. A lone figure in a long coat stands in the foreground. Cinematic dark mode." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCGL3L0GZl2vEB27_TYHofv39neJHksjTI_DpspeFBLd_mmcEsB1mm6IN8Ufbi2PKepkpTaWL_aHybVHrmGftarvESanxeUG2uXY2Zv3Y1PN3aKa4MH8LVQaV_ofP79Tb7a12sk0pGaBEsmVdambBpMVwsd_gpLZHZxMj5o4mhw--mkt72Ns58Le4Mc95_MKxXxyEz16fDGxGKH2gvZQmxcwHlKASDD5pfWkwDfMcC78TRm48TFXsnK"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+<p class="text-sm font-bold text-white">Blade Runner 2049</p>
+</div>
+</a>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md rounded-full bg-[#111622]/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] z-50 md:hidden flex justify-around items-center py-3 px-6">
+<a aria-label="home" class="flex items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">home</span>
+</a>
+<a aria-label="explore" class="flex items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">explore</span>
+</a>
+<a aria-label="video_library" class="flex items-center justify-center bg-[#E50914] text-white rounded-full w-12 h-12 shadow-[0_0_15px_rgba(229,9,20,0.5)] active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">video_library</span>
+</a>
+<a aria-label="settings" class="flex items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+</a>
+</nav>
+<script>
+        // Simple script for adding subtle scroll effect to header
+        window.addEventListener('scroll', () => {
+            const header = document.querySelector('header');
+            if (window.scrollY > 50) {
+                header.classList.add('shadow-lg');
+                header.classList.replace('bg-[#080B11]/80', 'bg-[#080B11]/95');
+            } else {
+                header.classList.remove('shadow-lg');
+                header.classList.replace('bg-[#080B11]/95', 'bg-[#080B11]/80');
+            }
+        });
+    </script>
+</body></html>
+

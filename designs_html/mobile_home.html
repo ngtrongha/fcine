@@ -1,0 +1,190 @@
+﻿<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>F-Cine Mobile App</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#E50914',
+                        secondary: '#FF5252',
+                        tertiary: '#F59E0B',
+                        background: '#080B11',
+                        surface: '#111622',
+                    },
+                    fontFamily: {
+                        headline: ["Be Vietnam Pro", "sans-serif"],
+                        display: ["Be Vietnam Pro", "sans-serif"],
+                        body: ["Be Vietnam Pro", "sans-serif"],
+                        label: ["Be Vietnam Pro", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-white font-body antialiased selection:bg-primary/30 selection:text-white min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#080B11]/80 backdrop-blur-md shadow-none flex items-center justify-between px-6 h-16 w-full">
+<button class="text-white/70 hover:text-[#FF5252] transition-colors active:scale-95 duration-200 p-2 -ml-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<div class="text-2xl font-black text-[#E50914] drop-shadow-[0_0_8px_rgba(229,9,20,0.8)] font-headline tracking-tight">F-Cine</div>
+<button class="text-white/70 hover:text-[#FF5252] transition-colors active:scale-95 duration-200 p-2 -mr-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">search</span>
+</button>
+</header>
+<main class="pt-16 px-4 space-y-8">
+<!-- Hero Carousel -->
+<section class="relative w-full aspect-video rounded-xl overflow-hidden shadow-2xl">
+<div class="absolute inset-0 bg-cover bg-center" data-alt="A cinematic widescreen still of a vast desert landscape from a sci-fi epic, featuring massive dunes under a hazy, intense sun. A lone, cloaked figure stands atop a dune, looking out. The color palette is dominated by deep oranges, burnt siennas, and stark shadows against a bright sky, emphasizing scale and adventure." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCmejFCyx27IGzGAbMmYG6o63rTmSmFWHkM0iXxUqNw99p4lI6umDoCMepAZ9clTI9jFRt3SUY1_vEL1HHYozom2t6pdyHzsC46AUisI3jjH27RkpryttKcpGGXSfw2Yfz2pGsQNI8jcVntr1J8kSTVRseDCVmBgMY6jspJGLIn2MYXgfXnjMdzMKFZ6iSx-Kqu57nGG_YH4gH9Vi41juS69RhvUPLp2TD55DrKXXpS-niTa7DO-xkUaJ3nkS01L503udtdSYk_Jwk')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
+<div class="absolute bottom-0 left-0 p-4 w-full flex flex-col justify-end space-y-2">
+<h1 class="font-headline font-bold text-2xl leading-tight text-white drop-shadow-md">Dune: Hành Tinh Cát - Phần 2</h1>
+<div class="flex items-center space-x-3 text-xs text-white/80 font-medium">
+<span class="flex items-center text-tertiary">
+<span class="material-symbols-outlined text-[14px] mr-1" style="font-variation-settings: 'FILL' 1;">star</span>
+                        8.8 / 10
+                    </span>
+<span>2024</span>
+<span class="px-1.5 py-0.5 rounded bg-white/10 backdrop-blur-sm border border-white/5">Khoa Học Viễn Tưởng</span>
+</div>
+<div class="flex items-center space-x-3 pt-2">
+<button class="flex-1 bg-primary hover:bg-secondary text-white font-semibold py-2.5 rounded-lg flex items-center justify-center space-x-1.5 transition-colors shadow-[0_4px_12px_rgba(229,9,20,0.4)] active:scale-95">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+<span>Xem Ngay</span>
+</button>
+<button class="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-2.5 rounded-lg flex items-center justify-center space-x-1.5 transition-colors border border-white/20 backdrop-blur-md active:scale-95">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Danh Sách</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Category Filter Chips -->
+<section class="overflow-x-auto hide-scrollbar -mx-4 px-4 pb-2">
+<div class="flex space-x-2">
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-primary text-white shadow-[0_0_10px_rgba(229,9,20,0.4)] transition-all">Tất Cả</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-surface text-white/70 hover:text-white border border-white/5 hover:bg-white/5 transition-all">Phim Mới</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-surface text-white/70 hover:text-white border border-white/5 hover:bg-white/5 transition-all">Phim Bộ</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-surface text-white/70 hover:text-white border border-white/5 hover:bg-white/5 transition-all">Phim Lẻ</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-surface text-white/70 hover:text-white border border-white/5 hover:bg-white/5 transition-all">Hoạt Hình</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium bg-surface text-white/70 hover:text-white border border-white/5 hover:bg-white/5 transition-all">TV Shows</button>
+</div>
+</section>
+<!-- Tiếp Tục Xem Section -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<h2 class="font-headline font-bold text-lg text-white">Tiếp Tục Xem</h2>
+<button class="text-xs text-white/50 hover:text-white transition-colors">Xem tất cả</button>
+</div>
+<div class="overflow-x-auto hide-scrollbar -mx-4 px-4">
+<div class="flex space-x-4">
+<!-- Continue Watching Card -->
+<div class="w-64 flex-none group cursor-pointer relative">
+<div class="aspect-video rounded-lg overflow-hidden relative bg-surface border border-white/5">
+<div class="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-500" data-alt="A moody, atmospheric shot from a sci-fi fantasy series, showing a male character in an ornate, slightly vintage-looking green and gold outfit, looking intensely at a complex, glowing temporal loom device. Cinematic lighting, dramatic shadows, dark color palette." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAe0wjOWNQorCX5oWvciSYKJGgXxIrB6B-HExP_T6o8Meb7sqJ6sDG_U_LYW8-iYM1ZHi72V5GNR5yrryOcwSDrQ0ppTaCOz-5ADgngceon1s2Vapw7yG_haZq983DtplijY3cF0gKdh4pZGL2zKLW_ZVta3HU3gBR05ayjWn3bVP1dNu6icyZY0jmF4ygXLfODTdwFhREJK8WS6_lTwLiDmkQjwpfcn2vs_TgGb5X5EVKBUXzoBqWmnDI4xVGHnBVAZZA_x4aTX8g')"></div>
+<div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+<div class="w-10 h-10 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="absolute bottom-0 left-0 w-full h-1 bg-white/20">
+<div class="h-full bg-primary w-[65%] shadow-[0_0_8px_rgba(229,9,20,0.8)]"></div>
+</div>
+</div>
+<div class="mt-2 flex justify-between items-start">
+<div>
+<h3 class="text-sm font-semibold text-white/90 truncate w-48">Loki Mùa 2</h3>
+<p class="text-xs text-white/50">Tập 4</p>
+</div>
+<button class="text-white/40 hover:text-white p-1">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Phim Mới Cập Nhật Section -->
+<section class="space-y-3">
+<div class="flex items-center justify-between">
+<h2 class="font-headline font-bold text-lg text-white">Phim Mới Cập Nhật</h2>
+<button class="text-xs text-white/50 hover:text-white transition-colors">Xem tất cả</button>
+</div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<!-- Movie Poster Card 1 -->
+<div class="group cursor-pointer">
+<div class="aspect-[2/3] rounded-lg overflow-hidden relative bg-surface border border-white/5 mb-2">
+<div class="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-500" data-alt="A dramatic movie poster featuring a massive, terrifying monster emerging from a dark, stormy ocean toward a ruined city. The lighting is low-key, illuminated by flashes of lightning and the fiery glow of destruction. Deep blues, blacks, and fiery oranges dominate the moody scene." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBC9PQgdMo0hDcpg_MJ55smGfkvIVbnUFd71YNvRL0VYigF_ar6W_lWHXLjMmBn9XrounA9PeGPWlCHdO75zKY3jHu0dXxM-UmncEZ68GK-589gsLwb6P39eWk3FDUPHW4bApzeUWo_Nmpfl4Gw9B01bOEYLsWuAVoRjv27RduM784mOPrqQHJL4SG6zcMFpKmH3RibVVM0neT1Vp-BJ2GKuwAGudWG45lkpPWg0QgivmjE0P_0XgE6GQaJbqkb8QEvSpN1Xge9oQ0')"></div>
+<div class="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary text-white shadow-sm">HD • Vietsub</div>
+<div class="absolute bottom-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/70 backdrop-blur-md text-tertiary border border-white/10 flex items-center">
+<span class="material-symbols-outlined text-[10px] mr-0.5" style="font-variation-settings: 'FILL' 1;">star</span> 8.4
+                        </div>
+</div>
+<h3 class="text-sm font-semibold text-white/90 truncate group-hover:text-primary transition-colors">Godzilla Minus One</h3>
+<p class="text-xs text-white/50">2023</p>
+</div>
+<!-- Movie Poster Card 2 -->
+<div class="group cursor-pointer">
+<div class="aspect-[2/3] rounded-lg overflow-hidden relative bg-surface border border-white/5 mb-2">
+<div class="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-500" data-alt="A high-contrast movie poster of an assassin in a sleek black suit, holding a weapon, standing in a brightly lit, mirrored room filled with neon reflections. The style is hyper-stylized action cinema, with intense neon pink and blue lighting against deep blacks, creating a slick, modern look." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDlLg8ewxN-ObUYo33CNAcloJnUScAFRyAdd1MBz-ii5f8DEtlfdQ_R3rgQKYfcZivU6_-wR7rYw-haGZ_fFrtR-thKS8SYWfbR9K1zIdAP_EfwESExh1rO8OkuAU-Tprf2OgWTr7KOMlTV3AN9UGuz4JOQcGDcD_B9rQiRsnzbMmDZKmS5_sAHOPsqeBkL_GBL5fcZqYl9qvSFp1XPoKJiyOy-vGjAtquqq_Az5Q16maFX9W-zKf51IZoNwWa5q7ynONiT5cMt68w')"></div>
+<div class="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary text-white shadow-sm">HD • Vietsub</div>
+<div class="absolute bottom-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-black/70 backdrop-blur-md text-tertiary border border-white/10 flex items-center">
+<span class="material-symbols-outlined text-[10px] mr-0.5" style="font-variation-settings: 'FILL' 1;">star</span> 7.9
+                        </div>
+</div>
+<h3 class="text-sm font-semibold text-white/90 truncate group-hover:text-primary transition-colors">Sát Thủ John Wick 4</h3>
+<p class="text-xs text-white/50">2023</p>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md rounded-full bg-[#111622]/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] z-50 flex justify-around items-center py-3 px-6">
+<a class="flex items-center justify-center bg-[#E50914] text-white rounded-full w-12 h-12 shadow-[0_0_15px_rgba(229,9,20,0.5)] active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+</a>
+<a class="flex items-center justify-center text-white/50 hover:text-white transition-all w-12 h-12 active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">explore</span>
+</a>
+<a class="flex items-center justify-center text-white/50 hover:text-white transition-all w-12 h-12 active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">video_library</span>
+</a>
+<a class="flex items-center justify-center text-white/50 hover:text-white transition-all w-12 h-12 active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">settings</span>
+</a>
+</nav>
+</body></html>
+

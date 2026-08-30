@@ -1,0 +1,319 @@
+﻿<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>F-Cine - Explore</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#E50914",
+                        secondary: "#FF5252",
+                        tertiary: "#F59E0B",
+                        background: "#080B11",
+                        surface: "#111622",
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        headline: ["Be Vietnam Pro"],
+                        display: ["Be Vietnam Pro"],
+                        body: ["Be Vietnam Pro"],
+                        label: ["Be Vietnam Pro"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #080B11;
+            color: white;
+            font-family: 'Be Vietnam Pro', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for horizontal scrolling areas */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-[#080B11] text-white min-h-screen pt-20 pb-24 md:pb-8">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#080B11]/80 backdrop-blur-md shadow-none flex items-center justify-between px-6 h-16">
+<div class="flex items-center gap-4">
+<button class="text-white hover:text-[#FF5252] transition-colors active:scale-95 duration-200 p-2 md:hidden">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="text-2xl font-black text-[#E50914] drop-shadow-[0_0_8px_rgba(229,9,20,0.8)] font-headline tracking-tight">F-Cine</h1>
+</div>
+<!-- Desktop Navigation Links (Simulated based on BottomNavBar items) -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-white/70 hover:text-[#FF5252] transition-colors font-label font-medium flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px]">home</span>
+                Home
+            </a>
+<a class="text-[#E50914] font-label font-medium flex items-center gap-2 relative" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">explore</span>
+                Explore
+                <span class="absolute -bottom-5 left-0 w-full h-1 bg-[#E50914] rounded-t-full shadow-[0_0_8px_rgba(229,9,20,0.8)]"></span>
+</a>
+<a class="text-white/70 hover:text-[#FF5252] transition-colors font-label font-medium flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px]">video_library</span>
+                Library
+            </a>
+<a class="text-white/70 hover:text-[#FF5252] transition-colors font-label font-medium flex items-center gap-2" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+                Settings
+            </a>
+</nav>
+<div class="flex items-center gap-4">
+<!-- Search Bar (Desktop) -->
+<div class="hidden md:flex relative items-center">
+<input class="bg-[#111622] border border-white/10 rounded-full py-1.5 px-4 pl-10 text-sm focus:outline-none focus:border-[#E50914] focus:ring-1 focus:ring-[#E50914] w-64 transition-all placeholder:text-white/30 text-white font-body" placeholder="Search movies, genres..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 text-white/50 text-[20px]">search</span>
+</div>
+<button class="text-[#E50914] hover:text-[#FF5252] transition-colors active:scale-95 duration-200 p-2 md:hidden">
+<span class="material-symbols-outlined">search</span>
+</button>
+<!-- User Avatar -->
+<div class="w-8 h-8 rounded-full overflow-hidden border border-white/20 hidden md:block cursor-pointer hover:border-[#E50914] transition-colors">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A cinematic close-up portrait of a person dramatically lit with high-contrast red and blue neon lights, fitting a dark, moody thriller aesthetic. The background is pure black, emphasizing the stylized lighting on the subject's face." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBvpNWgJ6pSe4JtqvdtuQIhEcrs2PH_L6dJUzPjRJeSS_TVlwzwvh0b9LNTVwaqBH_3qtPTerrdstYd8rRabYb4ZwjIjYtj2r28jhOfZHKMpCPLtakQfOlUqMX6u_lXRhhGlJxuSMFYoZIIOP8UFt5Uvoxll5pCbzUP_0dI9DEnnJM6axh94fXeytyBZspbA1TogkjGbaEnsEeew82na8pJZ42GL66PYbX4eUaZvQ5-Y70PHSFA_gif"/>
+</div>
+</div>
+</header>
+<!-- Main Layout Grid -->
+<div class="max-w-[1600px] mx-auto px-4 md:px-8 flex flex-col md:flex-row gap-8 mt-4 md:mt-8">
+<!-- Sidebar Filters (Desktop) / Top Filters (Mobile) -->
+<aside class="w-full md:w-64 flex-shrink-0 flex flex-col gap-6">
+<!-- Search (Mobile Only) -->
+<div class="md:hidden relative w-full mb-2">
+<input class="w-full bg-[#111622] border border-white/10 rounded-lg py-3 px-4 pl-11 text-base focus:outline-none focus:border-[#E50914] text-white font-body" placeholder="Search..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-white/50 text-[22px]">search</span>
+</div>
+<div class="bg-[#111622] rounded-xl border border-white/5 p-5 hidden md:block">
+<h3 class="text-sm font-bold text-white/50 uppercase tracking-wider mb-4 font-headline">Genres</h3>
+<div class="flex flex-col gap-2">
+<label class="flex items-center gap-3 cursor-pointer group">
+<input checked="" class="form-checkbox bg-transparent border-white/20 rounded text-[#E50914] focus:ring-[#E50914] focus:ring-offset-0" type="checkbox"/>
+<span class="text-white/80 group-hover:text-white transition-colors font-body text-sm">Trending Now</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input checked="" class="form-checkbox bg-transparent border-white/20 rounded text-[#E50914] focus:ring-[#E50914] focus:ring-offset-0" type="checkbox"/>
+<span class="text-white/80 group-hover:text-white transition-colors font-body text-sm">Action</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="form-checkbox bg-transparent border-white/20 rounded text-[#E50914] focus:ring-[#E50914] focus:ring-offset-0" type="checkbox"/>
+<span class="text-white/80 group-hover:text-white transition-colors font-body text-sm">Sci-Fi</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="form-checkbox bg-transparent border-white/20 rounded text-[#E50914] focus:ring-[#E50914] focus:ring-offset-0" type="checkbox"/>
+<span class="text-white/80 group-hover:text-white transition-colors font-body text-sm">Drama</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="form-checkbox bg-transparent border-white/20 rounded text-[#E50914] focus:ring-[#E50914] focus:ring-offset-0" type="checkbox"/>
+<span class="text-white/80 group-hover:text-white transition-colors font-body text-sm">Comedy</span>
+</label>
+</div>
+</div>
+<!-- Mobile Horizontal Filter Pills -->
+<div class="md:hidden flex gap-2 overflow-x-auto hide-scrollbar pb-2 w-full">
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-[#E50914] text-white text-sm font-medium font-label">Trending</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-[#111622] border border-white/10 text-white/70 text-sm font-medium font-label">Action</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-[#111622] border border-white/10 text-white/70 text-sm font-medium font-label">Sci-Fi</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-[#111622] border border-white/10 text-white/70 text-sm font-medium font-label">Drama</button>
+<button class="whitespace-nowrap px-4 py-1.5 rounded-full bg-[#111622] border border-white/10 text-white/70 text-sm font-medium font-label">Comedy</button>
+</div>
+<div class="bg-[#111622] rounded-xl border border-white/5 p-5 hidden md:block">
+<h3 class="text-sm font-bold text-white/50 uppercase tracking-wider mb-4 font-headline">Year</h3>
+<select class="w-full bg-[#080B11] border border-white/10 rounded-lg text-white text-sm py-2 px-3 focus:outline-none focus:border-[#E50914] font-body">
+<option>2024</option>
+<option>2023</option>
+<option>2022</option>
+<option>2021 &amp; Older</option>
+</select>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1">
+<div class="flex justify-between items-end mb-6">
+<div>
+<h2 class="text-3xl font-bold font-headline mb-1">Explore</h2>
+<p class="text-white/50 font-body text-sm">Discover the latest blockbusters</p>
+</div>
+<div class="hidden md:flex gap-2">
+<button class="p-2 rounded bg-[#111622] border border-white/10 text-white hover:border-[#E50914] transition-colors">
+<span class="material-symbols-outlined text-[20px]">grid_view</span>
+</button>
+<button class="p-2 rounded bg-transparent border border-transparent text-white/50 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">view_list</span>
+</button>
+</div>
+</div>
+<!-- Bento/Asymmetric Grid for Movies -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+<!-- Featured Poster (Spans 2 cols on Desktop) -->
+<div class="col-span-2 md:col-span-2 lg:col-span-2 row-span-2 group relative rounded-xl overflow-hidden cursor-pointer shadow-lg shadow-black/50">
+<div class="absolute inset-0 bg-gradient-to-t from-[#080B11] via-[#080B11]/40 to-transparent z-10 opacity-90"></div>
+<img alt="Deadpool &amp; Wolverine" class="w-full h-full object-cover aspect-[16/9] md:aspect-auto md:h-full group-hover:scale-105 transition-transform duration-700 ease-out" data-alt="A highly detailed cinematic movie poster showing a rugged anti-hero in a red and black suit standing back-to-back with a fierce mutant possessing metal claws. The background is an explosive, chaotic urban cityscape lit by harsh yellow and orange explosions. Dark cinema style, dramatic shadows, crimson accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBArG-zOy9h866qgTJ7HPdwPZGYXpgdBWAzMeRp0W7FYhcag7PJeUherwIas2HpC2oC_mu1u56INQuESI9B5UfGf5WxV3D44Apf0hcJKq_5rcHq3hOzHRq2mLCv7XZS3y7zD7uKZ-XKVNszaCb4y7pO9omasdbBT4PvV7dxEPTBcrxeiO-_mTc6l1EmIlcstAH0OHZOuUXdFM2ig9rVQx4LyleEN1TcY-17ABvUR_m567vSzLutnfpc"/>
+<div class="absolute bottom-0 left-0 p-4 md:p-6 z-20 w-full">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-[#E50914] text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">Trending</span>
+<span class="text-white/70 text-xs font-medium">2024</span>
+</div>
+<h3 class="text-2xl md:text-3xl font-bold font-headline mb-2 text-white drop-shadow-md">Deadpool &amp; Wolverine</h3>
+<div class="flex items-center gap-3">
+<div class="flex items-center gap-1 text-[#F59E0B]">
+<span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-bold text-sm">8.2</span>
+</div>
+<span class="text-white/50 text-xs">• Action, Sci-Fi</span>
+</div>
+</div>
+<!-- Hover Action -->
+<div class="absolute inset-0 z-30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/40 backdrop-blur-[2px]">
+<button class="bg-[#E50914] text-white rounded-full p-4 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-[0_0_15px_rgba(229,9,20,0.5)] hover:scale-110">
+<span class="material-symbols-outlined text-[28px]" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+</div>
+<!-- Standard Movie Card 1 -->
+<div class="group relative rounded-xl overflow-hidden cursor-pointer bg-[#111622] shadow-lg">
+<div class="absolute inset-0 bg-gradient-to-t from-[#080B11] via-transparent to-transparent z-10 opacity-90"></div>
+<img alt="Furiosa" class="w-full aspect-[2/3] object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="A gritty, post-apocalyptic cinematic poster featuring a fierce female warrior with a shaved head and war paint, driving a heavily modified, rusted battle rig across a barren, sun-scorched desert wasteland. Intense amber and deep red color grading, stark shadows, dark cinema theme." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBp1fbbPhdout-YZhcz91dIOqeVZLjHGo25PJIGUo8bgt8EK0WiyDI2bFhgFpWWl-RnWftZPKXSHw88t8r5pbFjXApDLVHcq2rmNGTB2bPT_joUGBCAcpGuAPPg4yJy7uPjKX6NNCpsaao5tL7omMwmPOchwZ51MSkqXQaQQjzSGYMBA3QztublD5UbnoRalwA1_Wb5_o1HpOz6cYFQUEW7M2QALDuts2fxXA1BmlVKQmBt-edir0MV"/>
+<div class="absolute top-2 right-2 z-20">
+<button class="w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white hover:bg-[#E50914] transition-all">
+<span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+</button>
+</div>
+<div class="absolute bottom-0 left-0 p-3 z-20 w-full">
+<h3 class="text-base font-bold font-headline line-clamp-1 mb-1 text-white">Furiosa</h3>
+<div class="flex justify-between items-center">
+<span class="text-white/50 text-xs font-medium">2024</span>
+<div class="flex items-center gap-1 text-[#F59E0B]">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-bold text-xs">7.9</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Standard Movie Card 2 -->
+<div class="group relative rounded-xl overflow-hidden cursor-pointer bg-[#111622] shadow-lg">
+<div class="absolute inset-0 bg-gradient-to-t from-[#080B11] via-transparent to-transparent z-10 opacity-90"></div>
+<img alt="Civil War" class="w-full aspect-[2/3] object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="A tense, dramatic cinematic poster depicting a dystopian near-future America. Soldiers move through ruins of a recognizable monument under a dark, overcast sky. Muted, desaturated color palette with striking contrasts of deep blacks and sharp reds. Moody thriller atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCViODyxfzIaUluK9hGa1HNhwT6UyvwpvV2PKS4jZ-f2mECJP0Ez_zDvLWJTbhw6Tnmim3cMmPBVXGeB36EYTnHI6CcK-SP3GySYIm44tl3E8yjQmYm6ZEmEUcsvtkao6M58IgQXrEzCDbX79X3ESYLtfQ9zHqcXx2z2oWG9BbbPEnVPRN78OLjvrJC2Cd0UQgo-mhjpo5EFxS-Yu54ef-lO4UYrBXenUA92Pfkm5sg5au1gHoMvsX"/>
+<div class="absolute top-2 right-2 z-20">
+<button class="w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white hover:bg-[#E50914] transition-all">
+<span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+</button>
+</div>
+<div class="absolute bottom-0 left-0 p-3 z-20 w-full">
+<h3 class="text-base font-bold font-headline line-clamp-1 mb-1 text-white">Civil War</h3>
+<div class="flex justify-between items-center">
+<span class="text-white/50 text-xs font-medium">2024</span>
+<div class="flex items-center gap-1 text-[#F59E0B]">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-bold text-xs">7.5</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Standard Movie Card 3 -->
+<div class="group relative rounded-xl overflow-hidden cursor-pointer bg-[#111622] shadow-lg">
+<div class="absolute inset-0 bg-gradient-to-t from-[#080B11] via-transparent to-transparent z-10 opacity-90"></div>
+<img alt="Kingdom of the Planet of the Apes" class="w-full aspect-[2/3] object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="A lush yet ominous cinematic poster showing intelligent apes on horseback traversing a misty, overgrown ruined city. Overcast, atmospheric lighting with rich greens, deep blacks, and subtle glowing accents. Epic, dark cinematic scale." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCq3MVSDVmmZMmj27gWPXCMHA0Rte9N0huaFSs-kTlOG9gTgt3duLw8PHIJ8riGFU8a6KqpwZb71rTcRFNbIcylwlqOE37YllRetQPiJ3NylzDSPsJmZwSDerzgn5y4RAdmdR6MALEMGjFcnPsTZqyzQPxAVHYxGUTFJ1oooHySuYeKLx243CtnD6DCtQy_snrzwptwC0duyjzALL98ZdXScophJwkTJtqBiR3R2qYA820KcSbcN7Mj"/>
+<div class="absolute top-2 right-2 z-20">
+<button class="w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white hover:bg-[#E50914] transition-all">
+<span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+</button>
+</div>
+<div class="absolute bottom-0 left-0 p-3 z-20 w-full">
+<h3 class="text-base font-bold font-headline line-clamp-1 mb-1 text-white">Kingdom of the Planet of the Apes</h3>
+<div class="flex justify-between items-center">
+<span class="text-white/50 text-xs font-medium">2024</span>
+<div class="flex items-center gap-1 text-[#F59E0B]">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-bold text-xs">7.2</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Standard Movie Card 4 -->
+<div class="group relative rounded-xl overflow-hidden cursor-pointer bg-[#111622] shadow-lg">
+<div class="absolute inset-0 bg-gradient-to-t from-[#080B11] via-transparent to-transparent z-10 opacity-90"></div>
+<img alt="Godzilla x Kong" class="w-full aspect-[2/3] object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="A colossal cinematic monster battle poster. A gigantic radioactive lizard glowing with neon pink/purple energy roars at a massive, battle-scarred ape wearing mechanical gauntlets. Destructive city background with neon highlights against deep shadows, dark cinema aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDS9XOsqwSgCYSSAw_OYqo7qPwZ3r8c8-Uq6Olqawxk7zqQFtz2O8a6rxRfZbKxLC3TA9oA0YvT26wzkujvoWvg7BejzpIPpI4JBWTBEmdSlANE7zxMwj9_XqFfOvNpdOJORuKMFdxaoXBA8zmaNZbUxfeGJ_TfnIBXzPlkNM-wjT_lhdYy-TesmYuXD4ir8fQjspRR_izg0tFmDtLV3coB6CnCVOkJeRL15NMBgiZHhnWUU1jjwRUK"/>
+<div class="absolute top-2 right-2 z-20">
+<button class="w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white hover:bg-[#E50914] transition-all">
+<span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+</button>
+</div>
+<div class="absolute bottom-0 left-0 p-3 z-20 w-full">
+<h3 class="text-base font-bold font-headline line-clamp-1 mb-1 text-white">Godzilla x Kong</h3>
+<div class="flex justify-between items-center">
+<span class="text-white/50 text-xs font-medium">2024</span>
+<div class="flex items-center gap-1 text-[#F59E0B]">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-bold text-xs">6.8</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Standard Movie Card 5 -->
+<div class="group relative rounded-xl overflow-hidden cursor-pointer bg-[#111622] shadow-lg hidden md:block">
+<div class="absolute inset-0 bg-gradient-to-t from-[#080B11] via-transparent to-transparent z-10 opacity-90"></div>
+<img alt="The Fall Guy" class="w-full aspect-[2/3] object-cover group-hover:scale-105 transition-transform duration-500 ease-out" data-alt="An action-packed cinematic poster showing a stuntman falling backward away from a massive fiery explosion against a night sky. High contrast lighting, dominant deep blacks and bright orange/red fire effects, capturing a sleek, modern Hollywood action thriller vibe." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZAX7pHcp8CUEmK55QaVbY7n_8_mzmN6NBDpCPknfKx7lRxCo33oZPyzF5RA-fJmapyLsInByxkNfVhTccwT1v0H0V30lh6ocV0-q3SbBHEfpkd-G4d7tXg47BfWV3xeZZVhUJI-naNj1gLK3fwa2kaFC11tGJM7TGXKV82J87ZKnVKmG4Voof-fmC_bvhudXg3b4IXNX5jTwcSVqcxGDZRb_2youdv1ckq1pbsB5kAVmgzp0Hvpky"/>
+<div class="absolute top-2 right-2 z-20">
+<button class="w-8 h-8 rounded-full bg-black/50 backdrop-blur flex items-center justify-center text-white/70 hover:text-white hover:bg-[#E50914] transition-all">
+<span class="material-symbols-outlined text-[18px]">bookmark_add</span>
+</button>
+</div>
+<div class="absolute bottom-0 left-0 p-3 z-20 w-full">
+<h3 class="text-base font-bold font-headline line-clamp-1 mb-1 text-white">The Fall Guy</h3>
+<div class="flex justify-between items-center">
+<span class="text-white/50 text-xs font-medium">2024</span>
+<div class="flex items-center gap-1 text-[#F59E0B]">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-bold text-xs">7.1</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-10 flex justify-center pb-8 md:pb-0">
+<button class="px-6 py-2 rounded-full border border-[#E50914] text-[#E50914] hover:bg-[#E50914] hover:text-white transition-colors font-medium text-sm">Load More</button>
+</div>
+</main>
+</div>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md rounded-full bg-[#111622]/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] z-50 flex justify-around items-center py-3 px-6">
+<button class="flex items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150 flex-col gap-1">
+<span class="material-symbols-outlined text-[24px]">home</span>
+</button>
+<button class="flex items-center justify-center bg-[#E50914] text-white rounded-full w-12 h-12 shadow-[0_0_15px_rgba(229,9,20,0.5)] transition-all active:scale-90 duration-150 flex-col gap-1">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">explore</span>
+</button>
+<button class="flex items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150 flex-col gap-1">
+<span class="material-symbols-outlined text-[24px]">video_library</span>
+</button>
+<button class="flex items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150 flex-col gap-1">
+<span class="material-symbols-outlined text-[24px]">settings</span>
+</button>
+</nav>
+</body></html>
+

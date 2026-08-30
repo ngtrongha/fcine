@@ -1,0 +1,258 @@
+﻿<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>F-Cine - Khám Phá</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#E50914",
+                        secondary: "#FF5252",
+                        tertiary: "#F59E0B",
+                        background: "#080B11",
+                        surface: "#111622",
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        headline: ["Be Vietnam Pro", "sans-serif"],
+                        display: ["Be Vietnam Pro", "sans-serif"],
+                        body: ["Be Vietnam Pro", "sans-serif"],
+                        label: ["Be Vietnam Pro", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Be Vietnam Pro', sans-serif; background-color: #080B11; color: white; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .filled-icon { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        
+        /* Custom scrollbar for horizontal lists */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-white min-h-screen pb-24">
+<!-- Header Section -->
+<header class="sticky top-0 z-40 bg-background/90 backdrop-blur-md pt-4 pb-2 px-4 shadow-md">
+<!-- Search Bar -->
+<div class="flex items-center gap-3 w-full mb-4">
+<div class="flex-1 bg-surface rounded-full flex items-center px-4 py-2.5 border border-white/5 focus-within:border-primary/50 transition-colors">
+<span class="material-symbols-outlined text-white/50 mr-2">search</span>
+<input class="bg-transparent text-white w-full border-none focus:ring-0 outline-none p-0 text-sm font-body placeholder-white/40" placeholder="Tìm kiếm phim, diễn viên..." type="text" value="Hành Động 2024"/>
+<button class="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 ml-2">
+<span class="material-symbols-outlined text-white/70 text-sm">close</span>
+</button>
+</div>
+<button class="w-10 h-10 bg-surface rounded-full flex items-center justify-center border border-white/10 hover:border-white/30 text-white shrink-0 shadow-sm">
+<span class="material-symbols-outlined">tune</span>
+</button>
+</div>
+<!-- Trending Keywords -->
+<div class="flex items-center gap-2 overflow-x-auto hide-scrollbar pb-2">
+<div class="flex items-center gap-1 bg-gradient-to-r from-primary/20 to-primary/5 text-primary px-3 py-1.5 rounded-full whitespace-nowrap border border-primary/20 shrink-0 shadow-[0_0_10px_rgba(229,9,20,0.15)]">
+<span class="text-xs">🔥</span>
+<span class="text-xs font-medium">Xu Hướng:</span>
+</div>
+<button class="bg-surface hover:bg-surface/80 text-white/80 px-4 py-1.5 rounded-full text-xs font-medium border border-white/10 whitespace-nowrap shrink-0 transition-colors">Dune 2</button>
+<button class="bg-surface hover:bg-surface/80 text-white/80 px-4 py-1.5 rounded-full text-xs font-medium border border-white/10 whitespace-nowrap shrink-0 transition-colors">Loki Mùa 2</button>
+<button class="bg-surface hover:bg-surface/80 text-white/80 px-4 py-1.5 rounded-full text-xs font-medium border border-white/10 whitespace-nowrap shrink-0 transition-colors">Oppenheimer</button>
+<button class="bg-surface hover:bg-surface/80 text-white/80 px-4 py-1.5 rounded-full text-xs font-medium border border-white/10 whitespace-nowrap shrink-0 transition-colors">Mai</button>
+<button class="bg-surface hover:bg-surface/80 text-white/80 px-4 py-1.5 rounded-full text-xs font-medium border border-white/10 whitespace-nowrap shrink-0 transition-colors">One Piece</button>
+<button class="bg-surface hover:bg-surface/80 text-white/80 px-4 py-1.5 rounded-full text-xs font-medium border border-white/10 whitespace-nowrap shrink-0 transition-colors">Gặp Lại Chị Bầu</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="px-4 pt-2">
+<!-- Filter Bar -->
+<div class="flex items-center gap-2 overflow-x-auto hide-scrollbar mb-4 pb-1">
+<button class="flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded border border-primary text-xs font-medium whitespace-nowrap shrink-0 shadow-[0_2px_8px_rgba(229,9,20,0.3)]">
+                Hành Động
+                <span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+<button class="flex items-center gap-1 bg-surface text-white/90 px-3 py-1.5 rounded border border-white/10 text-xs font-medium whitespace-nowrap shrink-0">
+                Âu Mỹ
+                <span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+<button class="flex items-center gap-1 bg-surface text-white/90 px-3 py-1.5 rounded border border-white/10 text-xs font-medium whitespace-nowrap shrink-0">
+                2024
+                <span class="material-symbols-outlined text-[14px]">arrow_drop_down</span>
+</button>
+<div class="w-px h-4 bg-white/20 mx-1 shrink-0"></div>
+<button class="flex items-center gap-1 bg-surface text-white/90 px-3 py-1.5 rounded border border-white/10 text-xs font-medium whitespace-nowrap shrink-0">
+<span class="material-symbols-outlined text-[14px]">sort</span>
+                Điểm Cao Nhất
+            </button>
+</div>
+<!-- Result Summary -->
+<p class="text-white/50 text-xs mb-4 font-medium">Tìm thấy 24 kết quả phù hợp</p>
+<!-- Movie Grid -->
+<div class="grid grid-cols-2 gap-4">
+<!-- Movie 1 -->
+<div class="flex flex-col gap-2 group cursor-pointer">
+<div class="relative w-full aspect-[2/3] rounded-lg overflow-hidden border border-white/5 shadow-lg bg-surface">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A highly detailed movie poster for an action film. The lighting is cinematic with vibrant red accents typical of a dark cinema theme. The background is a dark, gritty sci-fi cityscape. The main subjects are heavily stylized action heroes in dynamic poses. Shot in 4K aesthetic, hyper-realistic, moody, #080B11 undertones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzmtRUOF2TNoqIzAJn4eQjVMCj_IglKjs5saXVycwWGbL5JLaHM7wIIeNqPYHAProv7kU2BJMFUvLZNdoZLxfZXBRs-6ojA1KtBvH8G_0ikSUaF4V33gtsF42k43Nia8hFCPceSX0LqI2Yjz6xknFomqhW_wTRgJeSoACb0Fm8vJA7HLuhpxWyD3N7a4-Kvwg8Ff0-tR8PM8ODz5AxiilNOMY2XMpxVZX_mU52aQ2yYQeEsIS9HoBAsiCjsfbGWxwL5rqPTvTxBIM"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent"></div>
+<div class="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white border border-white/10">4K • Vietsub</div>
+<div class="absolute top-2 right-2 flex items-center justify-center w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
+<span class="material-symbols-outlined text-white/80 text-sm">favorite</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline font-semibold text-sm leading-tight text-white/90 line-clamp-1 group-hover:text-primary transition-colors">Deadpool &amp; Wolverine</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-white/50 text-xs">2024</span>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[12px] filled-icon">star</span>
+<span class="text-xs font-bold text-white/90">8.6</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Movie 2 -->
+<div class="flex flex-col gap-2 group cursor-pointer">
+<div class="relative w-full aspect-[2/3] rounded-lg overflow-hidden border border-white/5 shadow-lg bg-surface">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A cinematic movie poster for a dystopian action film set in a wasteland. The lighting is harsh and golden, highlighting rusty vehicles and gritty characters. The overall tone is intense and dark, matching a premium dark cinema UI. Red #E50914 accents appear in explosions or flares. High contrast, hyper-detailed, dramatic shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlbFxaTkU3OcjwReTlJL2612u1sCShC2iX_28bxxfydQAVaayw1RKSr_KOu2_UaUq19mA69aOmX-zVwZhTi2oe9CZsV88GebIN_cTBhtw8Pq6i_e7L_EXygt9UASY348YuGQArmbWcpiHf1TxlCzr0ifNRrNd4AHWA6MGC9xLLuhWPZAhRk2e3QzKUCgjIKP_etTniPAaRY7iEzUdqx4G2NB4DQ5aFRqGshSJi0BZndpBFkV_ZsE1y9o8yQMzhxHQbmmnmQoMGt1M"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent"></div>
+<div class="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white border border-white/10">FHD • Thuyết Minh</div>
+<div class="absolute top-2 right-2 flex items-center justify-center w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
+<span class="material-symbols-outlined text-white/80 text-sm">favorite</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline font-semibold text-sm leading-tight text-white/90 line-clamp-1 group-hover:text-primary transition-colors">Furiosa: A Mad Max Saga</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-white/50 text-xs">2024</span>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[12px] filled-icon">star</span>
+<span class="text-xs font-bold text-white/90">8.1</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Movie 3 -->
+<div class="flex flex-col gap-2 group cursor-pointer">
+<div class="relative w-full aspect-[2/3] rounded-lg overflow-hidden border border-white/5 shadow-lg bg-surface">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A dramatic movie poster depicting a modern civil war. The scene shows soldiers in silhouette against a burning, dark cityscape. Smoke fills the air, illuminated by intense, vibrant red #E50914 explosions and neon lights. The aesthetic is dark cinema, extremely detailed, cinematic lighting, moody and suspenseful, perfect for an action movie app." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBX_piDTUFQrAfsQ0DxkKZtGf7kfFQ9HE1WTWSIMD7O55UCOxSl8Agvx5SIjPmYbYDIpx7pNpJAbj0mu0ioB13ykt61KswmKNiCHW-GuSHU69pZc1SnHIyudS17LGFfiC7sUHDf0YbwBPYuny-_9uzf4wRmh8FNRWyYvizle_ztVZaxccEAhAnac1KbbGgH9QqOhVYKRJqk1TuCjx3aKZb57a6MHBa2VOqKLXlhUy4OGu_BlC63QM-X9onPrgL2fN6j7kQijmO4ODI"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent"></div>
+<div class="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white border border-white/10">HD • Vietsub</div>
+<div class="absolute top-2 right-2 flex items-center justify-center w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
+<span class="material-symbols-outlined text-white/80 text-sm">favorite</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline font-semibold text-sm leading-tight text-white/90 line-clamp-1 group-hover:text-primary transition-colors">Civil War: Ngày Tàn Của Đế Quốc</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-white/50 text-xs">2024</span>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[12px] filled-icon">star</span>
+<span class="text-xs font-bold text-white/90">7.9</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Movie 4 -->
+<div class="flex flex-col gap-2 group cursor-pointer">
+<div class="relative w-full aspect-[2/3] rounded-lg overflow-hidden border border-white/5 shadow-lg bg-surface">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A sweeping, epic movie poster featuring intelligent apes in a post-apocalyptic overgrown ruin. The color palette is dark and moody greens and browns against a deep #080B11 night sky. Cinematic spotlighting focuses on the main ape character holding a red-glowing artifact. Hyper-realistic texture, 4K quality, dark cinematic app aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBtEDuhsq7020aFFpS2_vEsOIBlA1KEUigtug5WTuvC8Jv_rex91SeVg2kmUYmltqbrPh2B58Y_94LskWWOWBmTzpwb28cmuU_28L503ocsaoh6M-W7mncTKP_YJkk9JedZJSb0UrChbfWT8KA13sTlSJw9DT69L0efa2IDLrVuraLpcjhuuIr4wbW5rxDt0UW1dU0C6zpTlO2AYJMKxbgnlEoX47DXew-7ldteQLBD796phdJ-fFa7AUZE1LSLFZeURVq7htc7C9A"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent"></div>
+<div class="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white border border-white/10">4K • Vietsub</div>
+<div class="absolute top-2 right-2 flex items-center justify-center w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
+<span class="material-symbols-outlined text-white/80 text-sm">favorite</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline font-semibold text-sm leading-tight text-white/90 line-clamp-1 group-hover:text-primary transition-colors">Kingdom of the Planet of the Apes</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-white/50 text-xs">2024</span>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[12px] filled-icon">star</span>
+<span class="text-xs font-bold text-white/90">8.0</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Movie 5 -->
+<div class="flex flex-col gap-2 group cursor-pointer">
+<div class="relative w-full aspect-[2/3] rounded-lg overflow-hidden border border-white/5 shadow-lg bg-surface">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A gigantic monster battle movie poster. Colossal titans clash in a neon-lit, destroyed metropolis at night. The lighting features intense neon pinks and vibrant crimson #E50914 contrasting with deep dark #080B11 shadows. Massive scale, dynamic action composition, highly detailed CGI aesthetic suitable for a premium movie streaming UI." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1uBpV31pC48Nz03UFYRCSb6kgjAJMYrpegKmMfWCtVr8vis4RTYfNeku9m55IQWDkZ4wR6lCivQI7r0zKT7RVDzolaOMsTyy9I2V91ScBOZtoxgKyH8G47nVPFiN3Pqtx7hXuTU62Ok5A4r8ltu3ljWBK6TVDLvkouka5drLbZzuVW62DVQW6QegW8YorJV7jqAaGAvDFyxnsKuIvl-teFnDDFMSSFEx59v3sa-ReS46T1TbYLoLOKGMFVsCzJT94c96iLHIL0B8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent"></div>
+<div class="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white border border-white/10">FHD • Vietsub</div>
+<div class="absolute top-2 right-2 flex items-center justify-center w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
+<span class="material-symbols-outlined text-white/80 text-sm">favorite</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline font-semibold text-sm leading-tight text-white/90 line-clamp-1 group-hover:text-primary transition-colors">Godzilla x Kong: Đế Chế Mới</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-white/50 text-xs">2024</span>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[12px] filled-icon">star</span>
+<span class="text-xs font-bold text-white/90">7.8</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Movie 6 -->
+<div class="flex flex-col gap-2 group cursor-pointer">
+<div class="relative w-full aspect-[2/3] rounded-lg overflow-hidden border border-white/5 shadow-lg bg-surface">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="An action-comedy movie poster featuring a stuntman falling from a high building. The backdrop is a dark, cinematic night sky with bright, explosive pyrotechnics in deep red #E50914 and orange. The style is slick, modern Hollywood blockbuster, high energy, sharp focus, perfectly matched to a dark UI theme." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTC5018CgQTX1MzQQH9Dzg4x3vojUyacRsGkmfb8LeRe4J4SOZWzoskrPiyDb3miVAkqTamsLjiYqNGeTOZQ7jxGksHfB5Kfk0fMu0nSiXe0u-UtPfwmiDUTDnESP0z7nliiuqC8s184nUeoxJeKwqTiki4pWZsZzop3MGszD2bOPj4S4Gjvg_xaHLhKAjsGMusWa7daMAUcRczdV6aduHRZmrW0AhvHskQsPWYMLfvkGdYrQwu_sr5pdENTqJaI_2DgmhDlIi9m0"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent"></div>
+<div class="absolute top-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold text-white border border-white/10">HD • Vietsub</div>
+<div class="absolute top-2 right-2 flex items-center justify-center w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm border border-white/10">
+<span class="material-symbols-outlined text-white/80 text-sm">favorite</span>
+</div>
+</div>
+<div>
+<h3 class="font-headline font-semibold text-sm leading-tight text-white/90 line-clamp-1 group-hover:text-primary transition-colors">The Fall Guy: Kẻ Đóng Thế</h3>
+<div class="flex items-center gap-2 mt-1">
+<span class="text-white/50 text-xs">2024</span>
+<div class="flex items-center gap-1 text-tertiary">
+<span class="material-symbols-outlined text-[12px] filled-icon">star</span>
+<span class="text-xs font-bold text-white/90">7.5</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Navigation Bar (Shared Component) -->
+<nav class="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md rounded-full bg-[#111622]/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] z-50 flex justify-around items-center py-3 px-6">
+<!-- Trang Chủ (Inactive) -->
+<a class="flex items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">home</span>
+</a>
+<!-- Khám Phá (Active) -->
+<a class="flex items-center justify-center bg-[#E50914] text-white rounded-full w-12 h-12 shadow-[0_0_15px_rgba(229,9,20,0.5)] active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined filled-icon">explore</span>
+</a>
+<!-- Tủ Phim (Inactive) -->
+<a class="flex items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">video_library</span>
+</a>
+<!-- Cài Đặt (Inactive) -->
+<a class="flex items-center justify-center text-white/50 w-12 h-12 hover:text-white transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+</a>
+</nav>
+</body></html>
+

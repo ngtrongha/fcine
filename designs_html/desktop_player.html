@@ -1,0 +1,207 @@
+﻿<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, orientation=landscape" name="viewport"/>
+<title>Dune: Part Two - Video Player</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            DEFAULT: '#E50914',
+                            container: '#450206',
+                        },
+                        secondary: {
+                            DEFAULT: '#FF5252',
+                        },
+                        tertiary: {
+                            DEFAULT: '#F59E0B',
+                        },
+                        background: '#080B11',
+                        surface: '#111622',
+                        'on-primary': '#ffffff',
+                        'on-primary-container': '#ffb3b6',
+                        'on-background': '#ffffff',
+                        'on-surface': '#e0e0e0',
+                        'on-surface-variant': '#a0a0a0',
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Be Vietnam Pro"],
+                        "display": ["Be Vietnam Pro"],
+                        "body": ["Be Vietnam Pro"],
+                        "label": ["Be Vietnam Pro"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Hide scrollbar for episode list */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body overflow-hidden h-screen w-screen relative">
+<!-- Background Video Scene Placeholder -->
+<div class="absolute inset-0 z-0">
+<img alt="Dune Scene" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida/AEtjO1ULRRJ4R0lKAgEF4i_O504QWxg9lgu6UUPy4PqmZR0y4ChVUYFOmBmwC7Tp0Qr2a3-hVHC4AOkjYIAnDazpr4KYJx74pQ0pfVnAqI9h5CntEGzcUQFGV03BXoymR57ZJvSsYEXCNFYF4I_ePKIx9C7MjntY-2MgtUaTlembYtja_9eSP6xOPQGeI9N8QvwxNymrTbQ8O4fL9edadyY0uwly_gAB_tE4JX6PYf5FtwgOltYpv7wKHnYQMq8"/>
+</div>
+<!-- Main Player Overlay Container -->
+<div class="absolute inset-0 z-10 flex flex-col justify-between bg-black/40">
+<!-- Top Navigation -->
+<header class="w-full z-50 flex justify-between items-center px-6 py-4 bg-gradient-to-b from-black/80 to-transparent">
+<div class="flex items-center gap-4">
+<button class="text-white hover:text-primary transition-colors scale-95 active:duration-150 p-2 rounded-full hover:bg-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-2xl" data-icon="arrow_back">arrow_back</span>
+</button>
+<div class="flex flex-col">
+<h1 class="font-headline font-bold text-white text-lg tracking-tight drop-shadow-md">Dune: Hành Tinh Cát - Phần 2 • Tập 1</h1>
+<div class="flex items-center gap-2 mt-1">
+<span class="bg-green-600/80 text-white text-xs px-2 py-0.5 rounded-full font-medium shadow-sm backdrop-blur-sm">VIP Server 1 (HLS 1080p)</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-white hover:text-primary transition-colors scale-95 active:duration-150 p-2 rounded-full hover:bg-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-xl" data-icon="lock_open">lock_open</span>
+</button>
+<button class="text-white hover:text-primary transition-colors scale-95 active:duration-150 p-2 rounded-full hover:bg-white/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-xl" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<!-- Center Controls & Side Sliders Area -->
+<div class="flex-1 relative flex items-center justify-between px-8">
+<!-- Left Brightness Slider (Glassmorphism) -->
+<div class="h-48 w-10 bg-surface/30 backdrop-blur-md rounded-full border border-white/10 flex flex-col items-center py-4 justify-between shadow-lg">
+<span class="material-symbols-outlined text-white/80 text-sm" data-icon="light_mode">light_mode</span>
+<div class="flex-1 w-full flex items-center justify-center py-2 relative">
+<!-- Fake vertical slider track -->
+<div class="w-1.5 h-full bg-white/20 rounded-full relative">
+<!-- Fill -->
+<div class="absolute bottom-0 left-0 w-full bg-white/80 rounded-full h-[60%]"></div>
+<!-- Thumb -->
+<div class="absolute bottom-[60%] left-1/2 -translate-x-1/2 translate-y-1/2 w-3 h-3 bg-white rounded-full shadow"></div>
+</div>
+</div>
+</div>
+<!-- Center Play/Pause Controls -->
+<div class="flex items-center gap-12 pointer-events-auto">
+<button class="text-white/80 hover:text-white transition-transform hover:scale-110 active:scale-95 flex flex-col items-center">
+<span class="material-symbols-outlined text-5xl" data-icon="replay_10" style="font-variation-settings: 'FILL' 1;">replay_10</span>
+</button>
+<button class="bg-primary/20 p-4 rounded-full backdrop-blur-sm border border-primary/30 transition-transform hover:scale-105 active:scale-95 group shadow-[0_0_30px_rgba(229,9,20,0.4)]">
+<div class="bg-primary text-white w-20 h-20 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(229,9,20,0.6)] group-hover:bg-red-600 transition-colors">
+<span class="material-symbols-outlined text-5xl ml-2" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</div>
+</button>
+<button class="text-white/80 hover:text-white transition-transform hover:scale-110 active:scale-95 flex flex-col items-center">
+<span class="material-symbols-outlined text-5xl" data-icon="forward_10" style="font-variation-settings: 'FILL' 1;">forward_10</span>
+</button>
+</div>
+<!-- Right Volume Slider (Glassmorphism) -->
+<div class="h-48 w-10 bg-surface/30 backdrop-blur-md rounded-full border border-white/10 flex flex-col items-center py-4 justify-between shadow-lg">
+<span class="material-symbols-outlined text-white/80 text-sm" data-icon="volume_up">volume_up</span>
+<div class="flex-1 w-full flex items-center justify-center py-2 relative">
+<!-- Fake vertical slider track -->
+<div class="w-1.5 h-full bg-white/20 rounded-full relative">
+<!-- Fill -->
+<div class="absolute bottom-0 left-0 w-full bg-primary rounded-full h-[80%]"></div>
+<!-- Thumb -->
+<div class="absolute bottom-[80%] left-1/2 -translate-x-1/2 translate-y-1/2 w-3 h-3 bg-white rounded-full shadow"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Bottom Controls Area -->
+<div class="w-full bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-12 pb-6 px-8 flex flex-col gap-4">
+<!-- Seekbar -->
+<div class="flex items-center gap-4 w-full">
+<span class="text-white/90 text-sm font-mono tracking-wider">45:20</span>
+<div class="flex-1 relative h-6 flex items-center group cursor-pointer">
+<!-- Track background -->
+<div class="absolute w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
+<!-- Buffer bar -->
+<div class="absolute left-0 top-0 h-full w-[60%] bg-white/30"></div>
+<!-- Progress bar -->
+<div class="absolute left-0 top-0 h-full w-[35%] bg-primary shadow-[0_0_10px_rgba(229,9,20,0.8)]"></div>
+</div>
+<!-- Playhead -->
+<div class="absolute left-[35%] -translate-x-1/2 w-4 h-4 bg-white rounded-full shadow-md scale-0 group-hover:scale-100 transition-transform duration-200"></div>
+</div>
+<span class="text-white/60 text-sm font-mono tracking-wider">2:46:00</span>
+</div>
+<!-- Action Row -->
+<div class="flex items-center justify-between mt-2">
+<div class="flex items-center gap-6">
+<button class="flex items-center gap-2 text-white/80 hover:text-white transition-colors group">
+<span class="material-symbols-outlined text-xl group-hover:text-primary transition-colors" data-icon="skip_next">skip_next</span>
+<span class="text-sm font-medium">Tập Tiếp</span>
+</button>
+<button class="flex items-center gap-2 text-white/80 hover:text-white transition-colors group">
+<span class="material-symbols-outlined text-xl group-hover:text-primary transition-colors" data-icon="closed_caption">closed_caption</span>
+<span class="text-sm font-medium">Vietsub</span>
+</button>
+<button class="flex items-center gap-2 text-white/80 hover:text-white transition-colors group">
+<span class="material-symbols-outlined text-xl group-hover:text-primary transition-colors" data-icon="high_quality">high_quality</span>
+<span class="text-sm font-medium">1080p (Auto)</span>
+</button>
+</div>
+<div class="flex items-center gap-6">
+<button class="flex items-center gap-2 text-white hover:text-primary transition-colors group">
+<span class="material-symbols-outlined text-xl" data-icon="featured_play_list">featured_play_list</span>
+<span class="text-sm font-medium">Danh Sách Tập</span>
+</button>
+<button class="text-white/80 hover:text-white transition-transform hover:scale-110 active:scale-95">
+<span class="material-symbols-outlined text-2xl" data-icon="fullscreen">fullscreen</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Episode Drawer Preview (Simulating the NavigationDrawer partially open) -->
+<div class="absolute bottom-24 right-8 w-72 bg-surface/80 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl z-20 overflow-hidden transform transition-transform duration-300 translate-y-0 opacity-100">
+<div class="p-3 border-b border-white/5 bg-black/20 flex justify-between items-center">
+<h3 class="text-white/90 text-sm font-semibold tracking-wide">Danh Sách Tập</h3>
+<button class="text-white/50 hover:text-white">
+<span class="material-symbols-outlined text-sm" data-icon="close">close</span>
+</button>
+</div>
+<div class="max-h-48 overflow-y-auto no-scrollbar p-2 flex flex-col gap-1">
+<!-- Active Episode -->
+<button class="w-full text-left px-3 py-2.5 bg-primary/20 text-primary font-bold rounded-lg border border-primary/30 flex items-center justify-between group">
+<span class="text-sm">Tập 1 [Đang phát]</span>
+<span class="material-symbols-outlined text-base animate-pulse" data-icon="graphic_eq">graphic_eq</span>
+</button>
+<!-- Inactive Episodes -->
+<button class="w-full text-left px-3 py-2.5 text-on-surface-variant hover:bg-white/5 hover:text-white rounded-lg transition-colors flex items-center justify-between">
+<span class="text-sm">Tập 2</span>
+<span class="material-symbols-outlined text-base opacity-0 group-hover:opacity-100" data-icon="play_arrow">play_arrow</span>
+</button>
+<button class="w-full text-left px-3 py-2.5 text-on-surface-variant hover:bg-white/5 hover:text-white rounded-lg transition-colors flex items-center justify-between">
+<span class="text-sm">Tập 3</span>
+</button>
+<button class="w-full text-left px-3 py-2.5 text-on-surface-variant hover:bg-white/5 hover:text-white rounded-lg transition-colors flex items-center justify-between">
+<span class="text-sm">Tập 4</span>
+</button>
+</div>
+</div>
+</body></html>
+

@@ -1,0 +1,299 @@
+﻿<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Cài Đặt &amp; Cấu Hình - F-Cine</title>
+<!-- Google Fonts: Be Vietnam Pro -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        background: '#080B11',
+                        surface: '#111622',
+                        primary: '#E50914',
+                        secondary: '#FF5252',
+                        tertiary: '#F59E0B',
+                        success: '#10B981',
+                        surfaceLight: '#1A2133',
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem", // 8px
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    fontFamily: {
+                        "headline": ["Be Vietnam Pro", "sans-serif"],
+                        "display": ["Be Vietnam Pro", "sans-serif"],
+                        "body": ["Be Vietnam Pro", "sans-serif"],
+                        "label": ["Be Vietnam Pro", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom, 1rem);
+        }
+        /* Custom scrollbar for web view */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1A2133;
+            border-radius: 4px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-white font-body min-h-screen flex flex-col pt-16 pb-24 md:pb-0 relative overflow-x-hidden selection:bg-primary/30">
+<!-- Ambient Background Glow -->
+<div class="fixed top-0 left-0 w-full h-64 bg-gradient-to-b from-primary/5 to-transparent pointer-events-none z-0"></div>
+<!-- TopAppBar -->
+<!-- Applying JSON strictly but omitted border-b per prohibition rule -->
+<header class="fixed top-0 w-full z-50 bg-background flex items-center h-16 px-4 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)] md:hidden">
+<button class="text-white/70 hover:bg-white/5 p-2 -ml-2 rounded-full transition-colors duration-200 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<h1 class="font-headline text-xl font-bold text-primary ml-2 tracking-tight">Cài Đặt</h1>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 w-full max-w-2xl mx-auto px-4 py-6 space-y-8 relative z-10">
+<!-- Profile / Membership Card -->
+<section class="bg-surface rounded-lg p-5 relative overflow-hidden shadow-lg shadow-black/20 group cursor-pointer hover:bg-surfaceLight transition-colors duration-300">
+<!-- Decorative Glow -->
+<div class="absolute -right-8 -top-8 w-32 h-32 bg-tertiary/10 rounded-full blur-3xl group-hover:bg-tertiary/20 transition-all duration-500"></div>
+<div class="flex items-center space-x-4 relative z-10">
+<!-- Avatar -->
+<div class="w-16 h-16 rounded-full overflow-hidden border-2 border-tertiary/40 flex-shrink-0 bg-surfaceLight relative">
+<img class="w-full h-full object-cover" data-alt="A cinematic, high-contrast close-up portrait of a mysterious streaming app user avatar set against a deep dark background. The silhouette is illuminated by soft, moody rim lighting in vibrant crimson red and amber gold. The overall aesthetic is ultra-modern, sleek, premium, and fits perfectly within a sophisticated dark-mode digital interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCv6MkhiTrS5-m7w2WhTXx3ng_z5OMWPTW8ibzutpgvYM65PvBUCTZqDh4X94F6z-FmAvCzefTf772QgqCSoSbPqQq4p5aNcdRSqA_7ebTmI30NTd7nEbCQCfgBeqVy78rtvp3rI_jFg93-Sz4t3CPZuh3ItTjjSWgFk0knNKWgOdoBc8bFYKQkA41gKUOxL3K6tJq89CmI8Mzhm7dbxHebg8IUG--ro_pFVZVrcNf7um9oBBQqwgPT_cEqTfYfcFxeOgXukyhi9Tk"/>
+</div>
+<!-- Info -->
+<div class="flex-1">
+<div class="flex items-center space-x-2">
+<h2 class="font-headline text-lg font-bold text-white tracking-wide">F-Cine Member</h2>
+<span class="text-tertiary flex items-center justify-center bg-tertiary/10 p-1 rounded backdrop-blur-sm">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">workspace_premium</span>
+</span>
+</div>
+<p class="text-white/60 text-sm mt-0.5 font-medium">Phiên bản Miễn phí cao cấp</p>
+</div>
+<!-- Chevron -->
+<span class="material-symbols-outlined text-white/30 group-hover:text-white/70 transition-colors">chevron_right</span>
+</div>
+</section>
+<!-- Section 1: Cấu Hình Nguồn Master Config -->
+<section class="space-y-3">
+<h3 class="text-xs font-label text-white/40 uppercase tracking-widest px-1 font-semibold">Cấu Hình Nguồn Master Config</h3>
+<div class="bg-surface rounded-lg overflow-hidden divide-y divide-white/5 shadow-md">
+<!-- Status Tile -->
+<div class="px-4 py-4 flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="p-2 bg-white/5 rounded-lg text-white/70">
+<span class="material-symbols-outlined text-xl">dns</span>
+</div>
+<div>
+<p class="text-white font-medium text-sm">Nguồn Đang Hoạt Động</p>
+<p class="text-white/50 text-xs mt-0.5">GitHub Gist (Config v2.1)</p>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<span class="relative flex h-2.5 w-2.5">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-success"></span>
+</span>
+<span class="text-success bg-success/10 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">45ms</span>
+</div>
+</div>
+<!-- Action Tile -->
+<button class="w-full px-4 py-4 flex items-center justify-between hover:bg-white/[0.02] active:bg-white/[0.05] transition-colors text-left group">
+<div class="flex items-center space-x-3">
+<div class="p-2 bg-white/5 rounded-lg text-white/70 group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-xl">update</span>
+</div>
+<p class="text-white font-medium text-sm">Kiểm Tra Cập Nhật Nguồn Phim</p>
+</div>
+<span class="material-symbols-outlined text-white/40 group-hover:rotate-180 transition-transform duration-500">refresh</span>
+</button>
+<!-- Switch Tile -->
+<div class="px-4 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+<div class="flex items-center space-x-3 pr-4">
+<div class="p-2 bg-white/5 rounded-lg text-white/70">
+<span class="material-symbols-outlined text-xl">security</span>
+</div>
+<div>
+<p class="text-white font-medium text-sm">Tự Động Đổi Domain Dự Phòng</p>
+<p class="text-white/50 text-[11px] mt-0.5 leading-tight">Anti-blocking bảo vệ kết nối</p>
+</div>
+</div>
+<!-- Toggle ON -->
+<button class="w-12 h-6 bg-primary rounded-full relative flex items-center flex-shrink-0 transition-colors shadow-inner shadow-black/20">
+<div class="w-5 h-5 bg-white rounded-full absolute right-0.5 shadow-sm transform transition-transform"></div>
+</button>
+</div>
+</div>
+</section>
+<!-- Section 2: Trình Phát & Phát Lại -->
+<section class="space-y-3">
+<h3 class="text-xs font-label text-white/40 uppercase tracking-widest px-1 font-semibold">Trình Phát &amp; Phát Lại</h3>
+<div class="bg-surface rounded-lg overflow-hidden divide-y divide-white/5 shadow-md">
+<!-- Switch Tile -->
+<div class="px-4 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+<div class="flex items-center space-x-3">
+<div class="p-2 bg-white/5 rounded-lg text-white/70">
+<span class="material-symbols-outlined text-xl">skip_next</span>
+</div>
+<p class="text-white font-medium text-sm">Tự Động Chuyển Tập Tiếp Theo</p>
+</div>
+<!-- Toggle ON -->
+<button class="w-12 h-6 bg-primary rounded-full relative flex items-center flex-shrink-0 transition-colors">
+<div class="w-5 h-5 bg-white rounded-full absolute right-0.5 shadow-sm"></div>
+</button>
+</div>
+<!-- Selector Tile -->
+<button class="w-full px-4 py-4 flex items-center justify-between hover:bg-white/[0.02] active:bg-white/[0.05] transition-colors text-left group">
+<div class="flex items-center space-x-3">
+<div class="p-2 bg-white/5 rounded-lg text-white/70 group-hover:text-white transition-colors">
+<span class="material-symbols-outlined text-xl">high_quality</span>
+</div>
+<div>
+<p class="text-white font-medium text-sm">Chất Lượng Video Mặc Định</p>
+<p class="text-primary text-xs mt-0.5 font-medium">1080p Full HD (Tự động điều chỉnh)</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-white/40">chevron_right</span>
+</button>
+<!-- Switch Tile -->
+<div class="px-4 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+<div class="flex items-center space-x-3">
+<div class="p-2 bg-white/5 rounded-lg text-white/70">
+<span class="material-symbols-outlined text-xl">speed</span>
+</div>
+<div>
+<p class="text-white font-medium text-sm">Tăng Tốc Phần Cứng</p>
+<p class="text-white/50 text-[11px] mt-0.5">Hardware Acceleration</p>
+</div>
+</div>
+<!-- Toggle ON -->
+<button class="w-12 h-6 bg-primary rounded-full relative flex items-center flex-shrink-0 transition-colors">
+<div class="w-5 h-5 bg-white rounded-full absolute right-0.5 shadow-sm"></div>
+</button>
+</div>
+</div>
+</section>
+<!-- Section 3: Bộ Nhớ & Cache -->
+<section class="space-y-3">
+<h3 class="text-xs font-label text-white/40 uppercase tracking-widest px-1 font-semibold">Bộ Nhớ &amp; Cache</h3>
+<div class="bg-surface rounded-lg overflow-hidden divide-y divide-white/5 shadow-md">
+<!-- Storage Tile -->
+<div class="px-4 py-4 flex flex-col space-y-4 hover:bg-white/[0.02] transition-colors">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-3">
+<div class="p-2 bg-white/5 rounded-lg text-white/70">
+<span class="material-symbols-outlined text-xl">folder_open</span>
+</div>
+<div>
+<p class="text-white font-medium text-sm">Bộ Nhớ Đệm Ảnh (Poster Cache)</p>
+<p class="text-white/50 text-xs mt-0.5 font-mono">42.5 MB / 100 MB</p>
+</div>
+</div>
+</div>
+<!-- Storage Bar & Button -->
+<div class="flex items-center space-x-4">
+<div class="flex-1 h-1.5 bg-background rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full w-[42.5%]"></div>
+</div>
+<button class="flex items-center space-x-1 px-3 py-1.5 rounded-md border border-primary/50 text-primary text-xs font-medium hover:bg-primary/10 active:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-[14px]">delete</span>
+<span>Xóa Cache</span>
+</button>
+</div>
+</div>
+<!-- Switch Tile -->
+<div class="px-4 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+<div class="flex items-center space-x-3">
+<div class="p-2 bg-white/5 rounded-lg text-white/70">
+<span class="material-symbols-outlined text-xl">wifi</span>
+</div>
+<p class="text-white font-medium text-sm">Chỉ Tải Xuống Qua Wi-Fi</p>
+</div>
+<!-- Toggle ON -->
+<button class="w-12 h-6 bg-primary rounded-full relative flex items-center flex-shrink-0 transition-colors">
+<div class="w-5 h-5 bg-white rounded-full absolute right-0.5 shadow-sm"></div>
+</button>
+</div>
+</div>
+</section>
+<!-- Section 4: Thông Tin Hệ Thống -->
+<section class="space-y-3 pb-8">
+<h3 class="text-xs font-label text-white/40 uppercase tracking-widest px-1 font-semibold">Thông Tin Ứng Dụng</h3>
+<div class="bg-surface rounded-lg overflow-hidden divide-y divide-white/5 shadow-md">
+<!-- Links -->
+<button class="w-full px-4 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors text-left">
+<p class="text-white font-medium text-sm">Chính sách bảo mật</p>
+<span class="material-symbols-outlined text-white/30 text-sm">open_in_new</span>
+</button>
+<button class="w-full px-4 py-4 flex items-center justify-between hover:bg-white/[0.02] transition-colors text-left">
+<p class="text-white font-medium text-sm">Liên hệ đóng góp</p>
+<span class="material-symbols-outlined text-white/30 text-sm">mail</span>
+</button>
+<!-- Version Label -->
+<div class="px-4 py-5 flex flex-col items-center justify-center opacity-50 bg-background/30">
+<img class="w-8 h-8 opacity-50 mb-2 rounded" data-alt="A small, ultra-minimalist cinematic logo emblem for a premium streaming service, featuring sleek geometric lines in muted grey and faint crimson, glowing subtly against a pure black background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRLOxvhVUF12fsbBycTAKE-rlk4fCGM5v0ZvXP3ZkL89PKF-bE76I2T0cugL-7J_vbFNvKv5VQsBep_U35qMvjGvJKQRyjRiS0Clae7etKWX67j6fXEs-mfCKxkxFW-2-7dhWyxz8BX8p2CwQ1wB70DDYZGeRJ3WAhIiD_0fLWdAhwngxhVCKyNNtwzGJWhwvXd3_jdykKRwASt8XuuGjPbInUaAWZ7MO3QeivJrC3T7xdaF5gLcAn23eptBORUGtk03ZfQ-NmkHU"/>
+<p class="text-xs font-medium tracking-wide">F-Cine v3.0.0</p>
+<p class="text-[10px] mt-1 font-mono">Core Engine Flutter 3.13+ • KKPhim Verified</p>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<!-- Applying JSON styling, active state logic, and shell border ban -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full h-16 flex justify-around items-center px-2 pb-safe bg-surface shadow-[0_-10px_40px_rgba(0,0,0,0.6)] z-50 rounded-t-xl">
+<!-- Inactive: Trang Chủ -->
+<button class="flex flex-col items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 transition-transform w-16 h-full pt-1">
+<span class="material-symbols-outlined text-2xl mb-0.5" style="font-variation-settings: 'FILL' 0;">home</span>
+<span class="font-label text-[10px] font-medium">Trang Chủ</span>
+</button>
+<!-- Inactive: Khám Phá -->
+<button class="flex flex-col items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 transition-transform w-16 h-full pt-1">
+<span class="material-symbols-outlined text-2xl mb-0.5" style="font-variation-settings: 'FILL' 0;">explore</span>
+<span class="font-label text-[10px] font-medium">Khám Phá</span>
+</button>
+<!-- Inactive: Tủ Phim -->
+<button class="flex flex-col items-center justify-center text-white/50 hover:text-white transition-all active:scale-95 transition-transform w-16 h-full pt-1">
+<span class="material-symbols-outlined text-2xl mb-0.5" style="font-variation-settings: 'FILL' 0;">movie</span>
+<span class="font-label text-[10px] font-medium">Tủ Phim</span>
+</button>
+<!-- Active: Cài Đặt -->
+<button class="flex flex-col items-center justify-center text-primary font-bold hover:text-white transition-all active:scale-95 transition-transform w-16 h-full pt-1 relative">
+<!-- Active Indicator Glow -->
+<div class="absolute -top-3 w-8 h-1 bg-primary rounded-full shadow-[0_0_10px_#E50914]"></div>
+<span class="material-symbols-outlined text-2xl mb-0.5" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label text-[10px] font-bold">Cài Đặt</span>
+</button>
+</nav>
+</body></html>
+

@@ -1,0 +1,743 @@
+{
+  "version": 2,
+  "installations": {
+    "generic": {
+      "https://github.com/flutter/skills.git": {
+        "skills": [
+          {
+            "name": "dart-add-unit-test",
+            "installedAt": "2026-08-30T08:47:02.707068Z",
+            "contentHash": "XHNozO7SJFfNpQ1cae9fCQ==",
+            "path": "skills/dart-add-unit-test"
+          },
+          {
+            "name": "dart-build-cli-app",
+            "installedAt": "2026-08-30T08:47:02.718655Z",
+            "contentHash": "ac8mv+zccorYRTmvIht4fg==",
+            "path": "skills/dart-build-cli-app"
+          },
+          {
+            "name": "dart-collect-coverage",
+            "installedAt": "2026-08-30T08:47:02.722694Z",
+            "contentHash": "VMGcWlDBsBWj+q6Ih6NJQQ==",
+            "path": "skills/dart-collect-coverage"
+          },
+          {
+            "name": "dart-fix-runtime-errors",
+            "installedAt": "2026-08-30T08:47:02.725707Z",
+            "contentHash": "0IJ+tQjd9/XXGwrw3m2J6w==",
+            "path": "skills/dart-fix-runtime-errors"
+          },
+          {
+            "name": "dart-generate-test-mocks",
+            "installedAt": "2026-08-30T08:47:02.728695Z",
+            "contentHash": "S+m9MdUQEcBA40SbOTpadg==",
+            "path": "skills/dart-generate-test-mocks"
+          },
+          {
+            "name": "dart-migrate-to-checks-package",
+            "installedAt": "2026-08-30T08:47:02.754795Z",
+            "contentHash": "nXQ04hohNc8SzNKtHuv3uA==",
+            "path": "skills/dart-migrate-to-checks-package"
+          },
+          {
+            "name": "dart-resolve-package-conflicts",
+            "installedAt": "2026-08-30T08:47:02.757796Z",
+            "contentHash": "lsfL9X9SPdcJmCWU6GQIqA==",
+            "path": "skills/dart-resolve-package-conflicts"
+          },
+          {
+            "name": "dart-run-static-analysis",
+            "installedAt": "2026-08-30T08:47:02.760318Z",
+            "contentHash": "Jzq+zgkBoFTPomEmXcg1UA==",
+            "path": "skills/dart-run-static-analysis"
+          },
+          {
+            "name": "dart-setup-ffi-assets",
+            "installedAt": "2026-08-30T08:47:02.773924Z",
+            "contentHash": "7wXeTRVpUG1HbSKxHF4FFA==",
+            "path": "skills/dart-setup-ffi-assets"
+          },
+          {
+            "name": "dart-use-ffigen",
+            "installedAt": "2026-08-30T08:47:02.785061Z",
+            "contentHash": "SKVEdcI+ptDLQjCSY7Mhng==",
+            "path": "skills/dart-use-ffigen"
+          },
+          {
+            "name": "dart-use-pattern-matching",
+            "installedAt": "2026-08-30T08:47:02.788072Z",
+            "contentHash": "iZzq2UFPqo2QBZ2lUbp1pQ==",
+            "path": "skills/dart-use-pattern-matching"
+          },
+          {
+            "name": "dart-use-primary-constructors",
+            "installedAt": "2026-08-30T08:47:02.801654Z",
+            "contentHash": "8C6ICoQfqtLsXY5QVaIigg==",
+            "path": "skills/dart-use-primary-constructors"
+          },
+          {
+            "name": "dart-write-documentation",
+            "installedAt": "2026-08-30T08:47:02.805158Z",
+            "contentHash": "MZrDcWJ34YJ4jhZGFDMcuQ==",
+            "path": "skills/dart-write-documentation"
+          },
+          {
+            "name": "flutter-add-integration-test",
+            "installedAt": "2026-08-30T08:47:02.808696Z",
+            "contentHash": "7+KNouj6v1Q4wpRAZBLrsA==",
+            "path": "skills/flutter-add-integration-test"
+          },
+          {
+            "name": "flutter-add-widget-preview",
+            "installedAt": "2026-08-30T08:47:02.813211Z",
+            "contentHash": "dH4zMGy7E+HZ91IzsnrD1g==",
+            "path": "skills/flutter-add-widget-preview"
+          },
+          {
+            "name": "flutter-add-widget-test",
+            "installedAt": "2026-08-30T08:47:02.816254Z",
+            "contentHash": "3kClm1vrAjexZ6vXV69kKA==",
+            "path": "skills/flutter-add-widget-test"
+          },
+          {
+            "name": "flutter-apply-architecture-best-practices",
+            "installedAt": "2026-08-30T08:47:02.818270Z",
+            "contentHash": "irmacLYIcpinJkUNTbgvzA==",
+            "path": "skills/flutter-apply-architecture-best-practices"
+          },
+          {
+            "name": "flutter-build-responsive-layout",
+            "installedAt": "2026-08-30T08:47:02.821296Z",
+            "contentHash": "b4s61SqPp+6uQLvz0lE+IQ==",
+            "path": "skills/flutter-build-responsive-layout"
+          },
+          {
+            "name": "flutter-fix-layout-issues",
+            "installedAt": "2026-08-30T08:47:02.824292Z",
+            "contentHash": "Raa1JNt8PtTM6lQxIe9P/A==",
+            "path": "skills/flutter-fix-layout-issues"
+          },
+          {
+            "name": "flutter-implement-json-serialization",
+            "installedAt": "2026-08-30T08:47:02.827296Z",
+            "contentHash": "AQLPFrMXySZSY9AigdTIOg==",
+            "path": "skills/flutter-implement-json-serialization"
+          },
+          {
+            "name": "flutter-setup-declarative-routing",
+            "installedAt": "2026-08-30T08:47:02.835331Z",
+            "contentHash": "cR2ESYfTIZBLNYK79Ti5yQ==",
+            "path": "skills/flutter-setup-declarative-routing"
+          },
+          {
+            "name": "flutter-setup-localization",
+            "installedAt": "2026-08-30T08:47:02.840559Z",
+            "contentHash": "5ohu8Piyp0a2VyW0nq2Q8g==",
+            "path": "skills/flutter-setup-localization"
+          },
+          {
+            "name": "flutter-use-http-package",
+            "installedAt": "2026-08-30T08:47:02.845573Z",
+            "contentHash": "zLv/uPtWH727kUIg7H4ygg==",
+            "path": "skills/flutter-use-http-package"
+          }
+        ]
+      },
+      "https://github.com/serverpod/skills-registry.git": {
+        "skills": [
+          {
+            "name": "riverpod-3-0-migration",
+            "installedAt": "2026-08-30T08:47:02.849113Z",
+            "contentHash": "yH/iGHAd0812nMippZK3Iw==",
+            "path": "skills/riverpod/riverpod-3-0-migration"
+          },
+          {
+            "name": "riverpod-auto-dispose",
+            "installedAt": "2026-08-30T08:47:02.852118Z",
+            "contentHash": "rTL7HXJ5Xg7wShgi71mxQg==",
+            "path": "skills/riverpod/riverpod-auto-dispose"
+          },
+          {
+            "name": "riverpod-cancel",
+            "installedAt": "2026-08-30T08:47:02.854121Z",
+            "contentHash": "lBE7xwf1sBJGXPGUqjSj+g==",
+            "path": "skills/riverpod/riverpod-cancel"
+          },
+          {
+            "name": "riverpod-codegen-and-hooks",
+            "installedAt": "2026-08-30T08:47:02.856632Z",
+            "contentHash": "Oehip1W3jN8gg0O7BX4V1Q==",
+            "path": "skills/riverpod/riverpod-codegen-and-hooks"
+          },
+          {
+            "name": "riverpod-consumers",
+            "installedAt": "2026-08-30T08:47:02.859622Z",
+            "contentHash": "zfC+7ekvnOnIStPzjwYVYw==",
+            "path": "skills/riverpod/riverpod-consumers"
+          },
+          {
+            "name": "riverpod-containers",
+            "installedAt": "2026-08-30T08:47:02.861650Z",
+            "contentHash": "ueGJcdgCh6ppcZAfCT/KAQ==",
+            "path": "skills/riverpod/riverpod-containers"
+          },
+          {
+            "name": "riverpod-eager-initialization",
+            "installedAt": "2026-08-30T08:47:02.864135Z",
+            "contentHash": "J2ODBZhz6Zn1bWiC+woxYw==",
+            "path": "skills/riverpod/riverpod-eager-initialization"
+          },
+          {
+            "name": "riverpod-family",
+            "installedAt": "2026-08-30T08:47:02.865643Z",
+            "contentHash": "9DEezjCTmdU0yetwV0BdhQ==",
+            "path": "skills/riverpod/riverpod-family"
+          },
+          {
+            "name": "riverpod-faq-and-practices",
+            "installedAt": "2026-08-30T08:47:02.868676Z",
+            "contentHash": "dGi2E6A9et+jxmSwcmxLYQ==",
+            "path": "skills/riverpod/riverpod-faq-and-practices"
+          },
+          {
+            "name": "riverpod-from-provider",
+            "installedAt": "2026-08-30T08:47:02.871185Z",
+            "contentHash": "N8+HeBkyWx1TPsBz0lRAbA==",
+            "path": "skills/riverpod/riverpod-from-provider"
+          },
+          {
+            "name": "riverpod-getting-started",
+            "installedAt": "2026-08-30T08:47:02.873684Z",
+            "contentHash": "+tgXwkDyD+C+K8VlDcgpdw==",
+            "path": "skills/riverpod/riverpod-getting-started"
+          },
+          {
+            "name": "riverpod-migration",
+            "installedAt": "2026-08-30T08:47:02.881201Z",
+            "contentHash": "KtV/Zrghjq4PcncwR7eHQw==",
+            "path": "skills/riverpod/riverpod-migration"
+          },
+          {
+            "name": "riverpod-mutations",
+            "installedAt": "2026-08-30T08:47:02.884303Z",
+            "contentHash": "SpNfTl8Qk5gHPxmDC2Evmw==",
+            "path": "skills/riverpod/riverpod-mutations"
+          },
+          {
+            "name": "riverpod-observers",
+            "installedAt": "2026-08-30T08:47:02.886803Z",
+            "contentHash": "jUglafapW0IzEcMB5mFd1Q==",
+            "path": "skills/riverpod/riverpod-observers"
+          },
+          {
+            "name": "riverpod-offline",
+            "installedAt": "2026-08-30T08:47:02.889315Z",
+            "contentHash": "9jXnIEJv2TNCUiRoQWKSXg==",
+            "path": "skills/riverpod/riverpod-offline"
+          },
+          {
+            "name": "riverpod-overrides",
+            "installedAt": "2026-08-30T08:47:02.891688Z",
+            "contentHash": "qmaQuTIzut4ni+zlM82Qgg==",
+            "path": "skills/riverpod/riverpod-overrides"
+          },
+          {
+            "name": "riverpod-providers",
+            "installedAt": "2026-08-30T08:47:02.895187Z",
+            "contentHash": "UAUUMPAfFaPHvvJIPvvnlQ==",
+            "path": "skills/riverpod/riverpod-providers"
+          },
+          {
+            "name": "riverpod-pull-to-refresh",
+            "installedAt": "2026-08-30T08:47:02.898125Z",
+            "contentHash": "CgMW9CKfxofjuTsb/QLluQ==",
+            "path": "skills/riverpod/riverpod-pull-to-refresh"
+          },
+          {
+            "name": "riverpod-refs",
+            "installedAt": "2026-08-30T08:47:02.901092Z",
+            "contentHash": "CkKHL8FwBlAjX3hW/Xw7Mg==",
+            "path": "skills/riverpod/riverpod-refs"
+          },
+          {
+            "name": "riverpod-retry",
+            "installedAt": "2026-08-30T08:47:02.903606Z",
+            "contentHash": "RDuyeTpNtxDZO2bwgRZ6KA==",
+            "path": "skills/riverpod/riverpod-retry"
+          },
+          {
+            "name": "riverpod-scoping",
+            "installedAt": "2026-08-30T08:47:02.906092Z",
+            "contentHash": "pAaJg9iDhF5m3lxx3eveGQ==",
+            "path": "skills/riverpod/riverpod-scoping"
+          },
+          {
+            "name": "riverpod-select",
+            "installedAt": "2026-08-30T08:47:02.908601Z",
+            "contentHash": "osTKeZtJlV3Y4vrcPHBKDA==",
+            "path": "skills/riverpod/riverpod-select"
+          },
+          {
+            "name": "riverpod-testing",
+            "installedAt": "2026-08-30T08:47:02.911616Z",
+            "contentHash": "jVeCR8VKxHSF12DjLTUC1A==",
+            "path": "skills/riverpod/riverpod-testing"
+          },
+          {
+            "name": "shadcn_ui-accordion",
+            "installedAt": "2026-08-30T08:47:02.914621Z",
+            "contentHash": "03aR3yN0KHVTm465kgiE/A==",
+            "path": "skills/shadcn_ui/shadcn_ui-accordion"
+          },
+          {
+            "name": "shadcn_ui-alert",
+            "installedAt": "2026-08-30T08:47:02.917159Z",
+            "contentHash": "2T+xEhPPym9hjII5cKH8zA==",
+            "path": "skills/shadcn_ui/shadcn_ui-alert"
+          },
+          {
+            "name": "shadcn_ui-avatar",
+            "installedAt": "2026-08-30T08:47:02.919975Z",
+            "contentHash": "t2/Cf6retxCix4K575rctw==",
+            "path": "skills/shadcn_ui/shadcn_ui-avatar"
+          },
+          {
+            "name": "shadcn_ui-badge",
+            "installedAt": "2026-08-30T08:47:02.921984Z",
+            "contentHash": "Fx9AJDpw2v4U79dJzzalrw==",
+            "path": "skills/shadcn_ui/shadcn_ui-badge"
+          },
+          {
+            "name": "shadcn_ui-breadcrumb",
+            "installedAt": "2026-08-30T08:47:02.924490Z",
+            "contentHash": "ghqw6kGVocE7rLmd9oi5XQ==",
+            "path": "skills/shadcn_ui/shadcn_ui-breadcrumb"
+          },
+          {
+            "name": "shadcn_ui-calendar",
+            "installedAt": "2026-08-30T08:47:02.926490Z",
+            "contentHash": "aAN9NjoOHUsppM1Df8Fhhg==",
+            "path": "skills/shadcn_ui/shadcn_ui-calendar"
+          },
+          {
+            "name": "shadcn_ui-card",
+            "installedAt": "2026-08-30T08:47:02.928502Z",
+            "contentHash": "D7X+dsuFtlKj5YsXGap7nQ==",
+            "path": "skills/shadcn_ui/shadcn_ui-card"
+          },
+          {
+            "name": "shadcn_ui-checkbox",
+            "installedAt": "2026-08-30T08:47:02.931512Z",
+            "contentHash": "qds/cR6z/CYhJU/DlsISlw==",
+            "path": "skills/shadcn_ui/shadcn_ui-checkbox"
+          },
+          {
+            "name": "shadcn_ui-context-menu",
+            "installedAt": "2026-08-30T08:47:02.934012Z",
+            "contentHash": "A4gJCJW+pS0VvN9WuJDqwA==",
+            "path": "skills/shadcn_ui/shadcn_ui-context-menu"
+          },
+          {
+            "name": "shadcn_ui-date-picker",
+            "installedAt": "2026-08-30T08:47:02.936026Z",
+            "contentHash": "JMcy6tC1k6qkpcVvwTgx6g==",
+            "path": "skills/shadcn_ui/shadcn_ui-date-picker"
+          },
+          {
+            "name": "shadcn_ui-decorator",
+            "installedAt": "2026-08-30T08:47:02.938519Z",
+            "contentHash": "DLvvgUoGcLcWbw8CG2klXQ==",
+            "path": "skills/shadcn_ui/shadcn_ui-decorator"
+          },
+          {
+            "name": "shadcn_ui-dialog",
+            "installedAt": "2026-08-30T08:47:02.941546Z",
+            "contentHash": "2Ibn7Wq4lAIwvQUuFvGTaQ==",
+            "path": "skills/shadcn_ui/shadcn_ui-dialog"
+          },
+          {
+            "name": "shadcn_ui-form",
+            "installedAt": "2026-08-30T08:47:02.945047Z",
+            "contentHash": "oU/zV/osMPUtV9+iGXI7Tg==",
+            "path": "skills/shadcn_ui/shadcn_ui-form"
+          },
+          {
+            "name": "shadcn_ui-getting-started",
+            "installedAt": "2026-08-30T08:47:02.947038Z",
+            "contentHash": "u9ff+Y1yJUxXNx84wSzn+Q==",
+            "path": "skills/shadcn_ui/shadcn_ui-getting-started"
+          },
+          {
+            "name": "shadcn_ui-icon-button",
+            "installedAt": "2026-08-30T08:47:02.950081Z",
+            "contentHash": "hZ/T48bL9jqyIXvM2hqekA==",
+            "path": "skills/shadcn_ui/shadcn_ui-icon-button"
+          },
+          {
+            "name": "shadcn_ui-input",
+            "installedAt": "2026-08-30T08:47:02.952618Z",
+            "contentHash": "I6GdcReZesCnRmu9QMHWAg==",
+            "path": "skills/shadcn_ui/shadcn_ui-input"
+          },
+          {
+            "name": "shadcn_ui-input-otp",
+            "installedAt": "2026-08-30T08:47:02.954604Z",
+            "contentHash": "7ZufLdSPxAbAUeoPEN2a+w==",
+            "path": "skills/shadcn_ui/shadcn_ui-input-otp"
+          },
+          {
+            "name": "shadcn_ui-menubar",
+            "installedAt": "2026-08-30T08:47:02.956606Z",
+            "contentHash": "Lg+igax9B3haHp8l1FRGgw==",
+            "path": "skills/shadcn_ui/shadcn_ui-menubar"
+          },
+          {
+            "name": "shadcn_ui-popover",
+            "installedAt": "2026-08-30T08:47:02.958619Z",
+            "contentHash": "vEI4QtuhW6oTv1xQTBdv8g==",
+            "path": "skills/shadcn_ui/shadcn_ui-popover"
+          },
+          {
+            "name": "shadcn_ui-progress",
+            "installedAt": "2026-08-30T08:47:02.961131Z",
+            "contentHash": "7FEptrsGnUWy/YbQoslx1w==",
+            "path": "skills/shadcn_ui/shadcn_ui-progress"
+          },
+          {
+            "name": "shadcn_ui-radio-group",
+            "installedAt": "2026-08-30T08:47:02.964157Z",
+            "contentHash": "x28J83dZbH1jrqZb2A+sRg==",
+            "path": "skills/shadcn_ui/shadcn_ui-radio-group"
+          },
+          {
+            "name": "shadcn_ui-resizable",
+            "installedAt": "2026-08-30T08:47:02.966655Z",
+            "contentHash": "7TVxrlw21NPph66I4agopQ==",
+            "path": "skills/shadcn_ui/shadcn_ui-resizable"
+          },
+          {
+            "name": "shadcn_ui-responsive",
+            "installedAt": "2026-08-30T08:47:02.968664Z",
+            "contentHash": "czJgSjA0H6KHLvEWphZePw==",
+            "path": "skills/shadcn_ui/shadcn_ui-responsive"
+          },
+          {
+            "name": "shadcn_ui-select",
+            "installedAt": "2026-08-30T08:47:02.972182Z",
+            "contentHash": "mbKX10eW/CD0pxzrYlEk3w==",
+            "path": "skills/shadcn_ui/shadcn_ui-select"
+          },
+          {
+            "name": "shadcn_ui-separator",
+            "installedAt": "2026-08-30T08:47:02.975173Z",
+            "contentHash": "YCKOY9hiY5okYBwuiXvYMw==",
+            "path": "skills/shadcn_ui/shadcn_ui-separator"
+          },
+          {
+            "name": "shadcn_ui-sheet",
+            "installedAt": "2026-08-30T08:47:02.978673Z",
+            "contentHash": "kvtv1QDF6HOTIfKoyYA5Gg==",
+            "path": "skills/shadcn_ui/shadcn_ui-sheet"
+          },
+          {
+            "name": "shadcn_ui-slider",
+            "installedAt": "2026-08-30T08:47:02.981192Z",
+            "contentHash": "h1Xg2/YfJg7Bh1u23GwE5w==",
+            "path": "skills/shadcn_ui/shadcn_ui-slider"
+          },
+          {
+            "name": "shadcn_ui-sonner",
+            "installedAt": "2026-08-30T08:47:02.984220Z",
+            "contentHash": "eTBODhC8R+NGazqOYI+oIw==",
+            "path": "skills/shadcn_ui/shadcn_ui-sonner"
+          },
+          {
+            "name": "shadcn_ui-switch",
+            "installedAt": "2026-08-30T08:47:02.986709Z",
+            "contentHash": "FPyU3RBrPXS/llC5IBnm4w==",
+            "path": "skills/shadcn_ui/shadcn_ui-switch"
+          },
+          {
+            "name": "shadcn_ui-table",
+            "installedAt": "2026-08-30T08:47:02.989739Z",
+            "contentHash": "o60a69upgrQt+Zo/41xNQg==",
+            "path": "skills/shadcn_ui/shadcn_ui-table"
+          },
+          {
+            "name": "shadcn_ui-tabs",
+            "installedAt": "2026-08-30T08:47:02.992244Z",
+            "contentHash": "t09DyCDyr5Fb0Mp+o2rOGA==",
+            "path": "skills/shadcn_ui/shadcn_ui-tabs"
+          },
+          {
+            "name": "shadcn_ui-textarea",
+            "installedAt": "2026-08-30T08:47:02.994744Z",
+            "contentHash": "Wl2aeScJU6Qg6RdOfXzeYg==",
+            "path": "skills/shadcn_ui/shadcn_ui-textarea"
+          },
+          {
+            "name": "shadcn_ui-theme",
+            "installedAt": "2026-08-30T08:47:02.996745Z",
+            "contentHash": "smaE4KnCDgsSIvJBLibGUg==",
+            "path": "skills/shadcn_ui/shadcn_ui-theme"
+          },
+          {
+            "name": "shadcn_ui-time-picker",
+            "installedAt": "2026-08-30T08:47:02.999267Z",
+            "contentHash": "5iDUd1OoCGa31QPURPuhGA==",
+            "path": "skills/shadcn_ui/shadcn_ui-time-picker"
+          },
+          {
+            "name": "shadcn_ui-toast",
+            "installedAt": "2026-08-30T08:47:03.001781Z",
+            "contentHash": "9UxvdlWV0XLMIZ4gGpiN2Q==",
+            "path": "skills/shadcn_ui/shadcn_ui-toast"
+          },
+          {
+            "name": "shadcn_ui-tooltip",
+            "installedAt": "2026-08-30T08:47:03.004280Z",
+            "contentHash": "H/301cT4WyLDRjBh3BZp2A==",
+            "path": "skills/shadcn_ui/shadcn_ui-tooltip"
+          },
+          {
+            "name": "shadcn_ui-typography",
+            "installedAt": "2026-08-30T08:47:03.006779Z",
+            "contentHash": "ewkCzxAxryy9mx5hjs/W1A==",
+            "path": "skills/shadcn_ui/shadcn_ui-typography"
+          }
+        ]
+      },
+      "https://github.com/dart-lang/skills.git": {
+        "skills": [
+          {
+            "name": "dart-add-unit-test",
+            "installedAt": "2026-08-30T08:47:03.010791Z",
+            "contentHash": "XHNozO7SJFfNpQ1cae9fCQ==",
+            "path": "skills/dart-add-unit-test"
+          },
+          {
+            "name": "dart-build-cli-app",
+            "installedAt": "2026-08-30T08:47:03.019955Z",
+            "contentHash": "ac8mv+zccorYRTmvIht4fg==",
+            "path": "skills/dart-build-cli-app"
+          },
+          {
+            "name": "dart-collect-coverage",
+            "installedAt": "2026-08-30T08:47:03.022946Z",
+            "contentHash": "VMGcWlDBsBWj+q6Ih6NJQQ==",
+            "path": "skills/dart-collect-coverage"
+          },
+          {
+            "name": "dart-fix-runtime-errors",
+            "installedAt": "2026-08-30T08:47:03.025462Z",
+            "contentHash": "0IJ+tQjd9/XXGwrw3m2J6w==",
+            "path": "skills/dart-fix-runtime-errors"
+          },
+          {
+            "name": "dart-generate-test-mocks",
+            "installedAt": "2026-08-30T08:47:03.028446Z",
+            "contentHash": "S+m9MdUQEcBA40SbOTpadg==",
+            "path": "skills/dart-generate-test-mocks"
+          },
+          {
+            "name": "dart-migrate-to-checks-package",
+            "installedAt": "2026-08-30T08:47:03.039784Z",
+            "contentHash": "nXQ04hohNc8SzNKtHuv3uA==",
+            "path": "skills/dart-migrate-to-checks-package"
+          },
+          {
+            "name": "dart-resolve-package-conflicts",
+            "installedAt": "2026-08-30T08:47:03.044286Z",
+            "contentHash": "lsfL9X9SPdcJmCWU6GQIqA==",
+            "path": "skills/dart-resolve-package-conflicts"
+          },
+          {
+            "name": "dart-run-static-analysis",
+            "installedAt": "2026-08-30T08:47:03.048295Z",
+            "contentHash": "Jzq+zgkBoFTPomEmXcg1UA==",
+            "path": "skills/dart-run-static-analysis"
+          },
+          {
+            "name": "dart-setup-ffi-assets",
+            "installedAt": "2026-08-30T08:47:03.063362Z",
+            "contentHash": "7wXeTRVpUG1HbSKxHF4FFA==",
+            "path": "skills/dart-setup-ffi-assets"
+          },
+          {
+            "name": "dart-use-doc-examples",
+            "installedAt": "2026-08-30T08:47:03.065771Z",
+            "contentHash": "2HVt31+EM4SLl4n3LK0tFQ==",
+            "path": "skills/dart-use-doc-examples"
+          },
+          {
+            "name": "dart-use-ffigen",
+            "installedAt": "2026-08-30T08:47:03.077337Z",
+            "contentHash": "SKVEdcI+ptDLQjCSY7Mhng==",
+            "path": "skills/dart-use-ffigen"
+          },
+          {
+            "name": "dart-use-pattern-matching",
+            "installedAt": "2026-08-30T08:47:03.081915Z",
+            "contentHash": "iZzq2UFPqo2QBZ2lUbp1pQ==",
+            "path": "skills/dart-use-pattern-matching"
+          },
+          {
+            "name": "dart-use-primary-constructors",
+            "installedAt": "2026-08-30T08:47:03.096961Z",
+            "contentHash": "8C6ICoQfqtLsXY5QVaIigg==",
+            "path": "skills/dart-use-primary-constructors"
+          },
+          {
+            "name": "dart-write-documentation",
+            "installedAt": "2026-08-30T08:47:03.099968Z",
+            "contentHash": "MZrDcWJ34YJ4jhZGFDMcuQ==",
+            "path": "skills/dart-write-documentation"
+          }
+        ]
+      },
+      "https://github.com/flutter/agent-plugins.git": {
+        "skills": [
+          {
+            "name": "dart-add-unit-test",
+            "installedAt": "2026-08-30T08:47:03.102979Z",
+            "contentHash": "XHNozO7SJFfNpQ1cae9fCQ==",
+            "path": "skills/dart-add-unit-test"
+          },
+          {
+            "name": "dart-build-cli-app",
+            "installedAt": "2026-08-30T08:47:03.113019Z",
+            "contentHash": "ac8mv+zccorYRTmvIht4fg==",
+            "path": "skills/dart-build-cli-app"
+          },
+          {
+            "name": "dart-collect-coverage",
+            "installedAt": "2026-08-30T08:47:03.116606Z",
+            "contentHash": "VMGcWlDBsBWj+q6Ih6NJQQ==",
+            "path": "skills/dart-collect-coverage"
+          },
+          {
+            "name": "dart-fix-runtime-errors",
+            "installedAt": "2026-08-30T08:47:03.119607Z",
+            "contentHash": "0IJ+tQjd9/XXGwrw3m2J6w==",
+            "path": "skills/dart-fix-runtime-errors"
+          },
+          {
+            "name": "dart-generate-test-mocks",
+            "installedAt": "2026-08-30T08:47:03.122629Z",
+            "contentHash": "S+m9MdUQEcBA40SbOTpadg==",
+            "path": "skills/dart-generate-test-mocks"
+          },
+          {
+            "name": "dart-migrate-to-checks-package",
+            "installedAt": "2026-08-30T08:47:03.137653Z",
+            "contentHash": "nXQ04hohNc8SzNKtHuv3uA==",
+            "path": "skills/dart-migrate-to-checks-package"
+          },
+          {
+            "name": "dart-resolve-package-conflicts",
+            "installedAt": "2026-08-30T08:47:03.143176Z",
+            "contentHash": "lsfL9X9SPdcJmCWU6GQIqA==",
+            "path": "skills/dart-resolve-package-conflicts"
+          },
+          {
+            "name": "dart-run-static-analysis",
+            "installedAt": "2026-08-30T08:47:03.146177Z",
+            "contentHash": "Jzq+zgkBoFTPomEmXcg1UA==",
+            "path": "skills/dart-run-static-analysis"
+          },
+          {
+            "name": "dart-setup-ffi-assets",
+            "installedAt": "2026-08-30T08:47:03.158740Z",
+            "contentHash": "7wXeTRVpUG1HbSKxHF4FFA==",
+            "path": "skills/dart-setup-ffi-assets"
+          },
+          {
+            "name": "dart-use-ffigen",
+            "installedAt": "2026-08-30T08:47:03.167767Z",
+            "contentHash": "SKVEdcI+ptDLQjCSY7Mhng==",
+            "path": "skills/dart-use-ffigen"
+          },
+          {
+            "name": "dart-use-pattern-matching",
+            "installedAt": "2026-08-30T08:47:03.171299Z",
+            "contentHash": "iZzq2UFPqo2QBZ2lUbp1pQ==",
+            "path": "skills/dart-use-pattern-matching"
+          },
+          {
+            "name": "dart-use-primary-constructors",
+            "installedAt": "2026-08-30T08:47:03.187033Z",
+            "contentHash": "8C6ICoQfqtLsXY5QVaIigg==",
+            "path": "skills/dart-use-primary-constructors"
+          },
+          {
+            "name": "dart-write-documentation",
+            "installedAt": "2026-08-30T08:47:03.190545Z",
+            "contentHash": "MZrDcWJ34YJ4jhZGFDMcuQ==",
+            "path": "skills/dart-write-documentation"
+          },
+          {
+            "name": "flutter-add-integration-test",
+            "installedAt": "2026-08-30T08:47:03.193568Z",
+            "contentHash": "7+KNouj6v1Q4wpRAZBLrsA==",
+            "path": "skills/flutter-add-integration-test"
+          },
+          {
+            "name": "flutter-add-widget-preview",
+            "installedAt": "2026-08-30T08:47:03.196553Z",
+            "contentHash": "dH4zMGy7E+HZ91IzsnrD1g==",
+            "path": "skills/flutter-add-widget-preview"
+          },
+          {
+            "name": "flutter-add-widget-test",
+            "installedAt": "2026-08-30T08:47:03.199057Z",
+            "contentHash": "3kClm1vrAjexZ6vXV69kKA==",
+            "path": "skills/flutter-add-widget-test"
+          },
+          {
+            "name": "flutter-apply-architecture-best-practices",
+            "installedAt": "2026-08-30T08:47:03.201562Z",
+            "contentHash": "irmacLYIcpinJkUNTbgvzA==",
+            "path": "skills/flutter-apply-architecture-best-practices"
+          },
+          {
+            "name": "flutter-build-responsive-layout",
+            "installedAt": "2026-08-30T08:47:03.203949Z",
+            "contentHash": "b4s61SqPp+6uQLvz0lE+IQ==",
+            "path": "skills/flutter-build-responsive-layout"
+          },
+          {
+            "name": "flutter-fix-layout-issues",
+            "installedAt": "2026-08-30T08:47:03.206962Z",
+            "contentHash": "Raa1JNt8PtTM6lQxIe9P/A==",
+            "path": "skills/flutter-fix-layout-issues"
+          },
+          {
+            "name": "flutter-implement-json-serialization",
+            "installedAt": "2026-08-30T08:47:03.210458Z",
+            "contentHash": "AQLPFrMXySZSY9AigdTIOg==",
+            "path": "skills/flutter-implement-json-serialization"
+          },
+          {
+            "name": "flutter-setup-declarative-routing",
+            "installedAt": "2026-08-30T08:47:03.220051Z",
+            "contentHash": "cR2ESYfTIZBLNYK79Ti5yQ==",
+            "path": "skills/flutter-setup-declarative-routing"
+          },
+          {
+            "name": "flutter-setup-localization",
+            "installedAt": "2026-08-30T08:47:03.222520Z",
+            "contentHash": "5ohu8Piyp0a2VyW0nq2Q8g==",
+            "path": "skills/flutter-setup-localization"
+          },
+          {
+            "name": "flutter-use-http-package",
+            "installedAt": "2026-08-30T08:47:03.226036Z",
+            "contentHash": "zLv/uPtWH727kUIg7H4ygg==",
+            "path": "skills/flutter-use-http-package"
+          }
+        ]
+      }
+    }
+  }
+}

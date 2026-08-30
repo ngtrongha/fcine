@@ -1,0 +1,354 @@
+﻿<!DOCTYPE html>
+
+<html class="dark" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>F-Cine - Thư Viện</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#E50914",
+                        secondary: "#FF5252",
+                        tertiary: "#F59E0B",
+                        background: "#080B11",
+                        surface: "#111622",
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        full: "9999px"
+                    },
+                    fontFamily: {
+                        headline: ["Be Vietnam Pro", "sans-serif"],
+                        display: ["Be Vietnam Pro", "sans-serif"],
+                        body: ["Be Vietnam Pro", "sans-serif"],
+                        label: ["Be Vietnam Pro", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Be Vietnam Pro', sans-serif; }
+        .glass-panel { background: rgba(17, 22, 34, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .hover-lift { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .hover-lift:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5); }
+        .progress-bar-glow { box-shadow: 0 0 10px rgba(229, 9, 20, 0.5); }
+    </style>
+</head>
+<body class="bg-background text-white min-h-screen flex flex-col antialiased">
+<!-- TopNavBar (From JSON) -->
+<nav class="bg-[#080B11] dark:bg-[#080B11] font-body text-label-md docked full-width top-0 bg-[#080B11] border-b border-surface/10 shadow-xl flex justify-between items-center w-full px-8 h-20 sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<a class="text-2xl font-black tracking-tighter text-[#E50914] dark:text-[#E50914]" href="#">F-Cine</a>
+<div class="hidden md:flex gap-6">
+<a class="text-white/70 hover:text-white transition-colors hover:bg-white/5 transition-all duration-300 active:scale-95 transition-transform px-3 py-2 rounded-lg" href="#">Home</a>
+<a class="text-white/70 hover:text-white transition-colors hover:bg-white/5 transition-all duration-300 active:scale-95 transition-transform px-3 py-2 rounded-lg" href="#">Movies</a>
+<a class="text-white/70 hover:text-white transition-colors hover:bg-white/5 transition-all duration-300 active:scale-95 transition-transform px-3 py-2 rounded-lg" href="#">TV Shows</a>
+<a class="text-white/70 hover:text-white transition-colors hover:bg-white/5 transition-all duration-300 active:scale-95 transition-transform px-3 py-2 rounded-lg" href="#">Originals</a>
+<a class="text-[#E50914] font-bold border-b-2 border-[#E50914] pb-1 px-3 py-2 hover:bg-white/5 transition-all duration-300 active:scale-95 transition-transform" href="#">My List</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+<button class="text-white/70 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5 relative">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span class="absolute top-1 right-2 w-2 h-2 bg-primary rounded-full"></span>
+</button>
+<div class="w-10 h-10 rounded-full bg-surface border border-white/10 overflow-hidden cursor-pointer ml-2">
+<img alt="User Profile Avatar" class="w-full h-full object-cover" data-alt="A cinematic, high-contrast avatar portrait of a modern user in a moody, neon-lit environment, utilizing the F-Cine dark cinema theme colors." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9DRd24KoOA6GezsgIzP543isJ_SmMWg_U9cxerteHe40XpqaCR-6h8Ihki3G4b9Nq4zI34ZXbMksKQPP14R8VItqnHSTT1G8by8XPxz96wIUPjWSjTh8ojdzkCpLFHJdmKroJZvwtTbSRi4-LJS74xI6uO42jKl-aRUoR6-_1I6FcMxB9kqIbiqt_mIznP4K2f4g5wg3Dqhn50ZVY0UN1Xh9WV5sPW0Sp7afvmjnNRNHRKtvQ6ePR"/>
+</div>
+</div>
+</nav>
+<!-- Main Content Layout -->
+<div class="flex flex-1 relative overflow-hidden">
+<!-- SideNavBar (From JSON) -->
+<aside class="hidden lg:flex flex-col bg-[#111622] dark:bg-[#111622] font-body text-label-lg w-64 fixed left-0 top-20 bottom-0 bg-[#111622] border-r border-white/5 shadow-2xl z-40">
+<div class="flex flex-col h-full py-8">
+<div class="px-6 mb-8 hidden">
+<!-- Header hidden as requested by prompt context, focusing on library -->
+<h2 class="text-xl font-black text-[#E50914]">F-Cine</h2>
+<p class="text-xs text-white/50">Premium Cinema</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="text-white/60 flex items-center gap-4 px-6 py-4 hover:bg-white/5 hover:text-white transition-colors active:bg-white/10" href="#">
+<span class="material-symbols-outlined" data-icon="explore">explore</span>
+                        Browse
+                    </a>
+<a class="text-white/60 flex items-center gap-4 px-6 py-4 hover:bg-white/5 hover:text-white transition-colors active:bg-white/10" href="#">
+<span class="material-symbols-outlined" data-icon="trending_up">trending_up</span>
+                        Trending
+                    </a>
+<a class="bg-white/5 text-[#E50914] border-r-4 border-[#E50914] flex items-center gap-4 px-6 py-4 hover:text-white transition-colors active:bg-white/10" href="#">
+<span class="material-symbols-outlined" data-icon="video_library" style="font-variation-settings: 'FILL' 1;">video_library</span>
+                        Library
+                    </a>
+<a class="text-white/60 flex items-center gap-4 px-6 py-4 hover:bg-white/5 hover:text-white transition-colors active:bg-white/10" href="#">
+<span class="material-symbols-outlined" data-icon="bookmark">bookmark</span>
+                        Watchlist
+                    </a>
+<div class="mt-auto pt-8">
+<a class="text-white/60 flex items-center gap-4 px-6 py-4 hover:bg-white/5 hover:text-white transition-colors active:bg-white/10" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+                            Settings
+                        </a>
+</div>
+</nav>
+</div>
+</aside>
+<!-- Main Canvas -->
+<main class="flex-1 lg:ml-64 p-8 overflow-y-auto">
+<!-- Library Header & Filters -->
+<div class="mb-12">
+<h1 class="text-4xl font-headline font-bold mb-6 text-white tracking-tight">Thư Viện Của Tôi</h1>
+<!-- Filter Pills -->
+<div class="flex flex-wrap gap-4">
+<button class="px-6 py-2 rounded-full bg-primary text-white font-medium text-sm hover:bg-primary/90 transition-colors shadow-[0_0_15px_rgba(229,9,20,0.3)] border border-primary">Tất cả</button>
+<button class="px-6 py-2 rounded-full bg-surface text-white/70 font-medium text-sm hover:bg-white/10 hover:text-white transition-colors border border-white/10">Lịch sử</button>
+<button class="px-6 py-2 rounded-full bg-surface text-white/70 font-medium text-sm hover:bg-white/10 hover:text-white transition-colors border border-white/10">Yêu thích</button>
+<button class="px-6 py-2 rounded-full bg-surface text-white/70 font-medium text-sm hover:bg-white/10 hover:text-white transition-colors border border-white/10">Tải xuống</button>
+</div>
+</div>
+<!-- Watch History Section -->
+<section class="mb-16">
+<div class="flex justify-between items-end mb-6">
+<h2 class="text-2xl font-display font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-icon="history">history</span>
+                        Lịch Sử Xem
+                    </h2>
+<a class="text-sm text-white/50 hover:text-primary transition-colors" href="#">Xem tất cả</a>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+<!-- History Card 1 -->
+<div class="glass-panel rounded-xl overflow-hidden group hover-lift relative">
+<div class="relative h-48 w-full overflow-hidden">
+<div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors z-10 duration-300"></div>
+<img class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" data-alt="A wide cinematic shot from a sci-fi thriller movie, featuring a neon-lit futuristic cityscape at night, deep blues and glowing crimson reds reflecting on wet pavement. High-end dark cinema aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOpAWupbYtf6CSI68sA7N1MpgG0ccyKY8Kd42O8AZvfsduVLjeGdGQHK3eR1-ql0lvGGXCI3zIImxeBSZpU_XbevrDiZtuxWzH_8nM4SznZxchcKPhr_oNrdMChbC2P0iAWDoZ7tsZORTHYSTFtzzFCylpGxYeg3VpcPiB7ZnVyxdSBfdd-BEtZAtbHH-1GoSy_VBtIaTVuRpo8pfFqIAaMoJ3BwTzuxIx1rlhmocaA-z4mZ-7bnVC"/>
+<!-- Play Button Overlay -->
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+<button class="w-14 h-14 rounded-full bg-primary/90 text-white flex items-center justify-center backdrop-blur-sm shadow-[0_0_20px_rgba(229,9,20,0.5)] transform scale-90 group-hover:scale-100 transition-transform">
+<span class="material-symbols-outlined text-3xl ml-1" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<!-- Remaining Time Badge -->
+<div class="absolute top-3 right-3 z-20 bg-black/70 backdrop-blur-md px-3 py-1 rounded-md text-xs font-medium text-white/90 border border-white/10">
+                                Còn lại 45p
+                            </div>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-1.5 bg-surface absolute relative top-0 z-20">
+<div class="h-full bg-primary w-[65%] progress-bar-glow rounded-r-full"></div>
+</div>
+<div class="p-5">
+<h3 class="text-lg font-semibold mb-1 text-white line-clamp-1">Kẻ Kiến Tạo (The Creator)</h3>
+<p class="text-sm text-white/50 mb-4">Mùa 1: Tập 4 - Ký ức</p>
+<div class="flex items-center justify-between mt-auto">
+<button class="text-primary text-sm font-semibold hover:text-white transition-colors flex items-center gap-1">
+                                    Tiếp tục
+                                    <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<button class="text-white/40 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- History Card 2 -->
+<div class="glass-panel rounded-xl overflow-hidden group hover-lift relative">
+<div class="relative h-48 w-full overflow-hidden">
+<div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors z-10 duration-300"></div>
+<img class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" data-alt="A dramatic scene from a neo-noir detective film, showing a shadowy figure walking down a foggy, dimly lit alleyway illuminated only by a distant red streetlight. High contrast, cinematic F-Cine style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuASlFV3X8GdzfiIazE7UfHqgiZaM3m3autPCpQG_ee9nGMmpTAxijEYPVdN5rkv3aJqewQ2XWtOiskkutNDiF0FwYF4kBTr-eZe_c4Zeph_HxnVwGGzpBNgg17hytkoIqr4VlwqthgoPhM84mVDutxWGOu0kFQohXrq4u80j5X673_ZfOnxbyQJXlurbzg9_nCi2a1SODrLlGOzesu90MZAhlci8tqdrGUkIJZo0tYZAG9gAXK77KZA"/>
+<!-- Play Button Overlay -->
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+<button class="w-14 h-14 rounded-full bg-white/20 text-white flex items-center justify-center backdrop-blur-md border border-white/30 transform scale-90 group-hover:scale-100 transition-transform">
+<span class="material-symbols-outlined text-3xl ml-1" data-icon="replay">replay</span>
+</button>
+</div>
+</div>
+<!-- Progress Bar (Completed) -->
+<div class="w-full h-1.5 bg-surface absolute relative top-0 z-20">
+<div class="h-full bg-white/40 w-[100%] rounded-r-full"></div>
+</div>
+<div class="p-5">
+<h3 class="text-lg font-semibold mb-1 text-white line-clamp-1">Bóng Tối Thành Phố</h3>
+<p class="text-sm text-white/50 mb-4">Phim lẻ • Đã xem xong</p>
+<div class="flex items-center justify-between mt-auto">
+<button class="text-white/70 text-sm font-semibold hover:text-white transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="replay">replay</span>
+                                    Xem lại
+                                </button>
+<button class="text-white/40 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- History Card 3 -->
+<div class="glass-panel rounded-xl overflow-hidden group hover-lift relative hidden md:block">
+<div class="relative h-48 w-full overflow-hidden">
+<div class="absolute inset-0 bg-black/40 group-hover:bg-transparent transition-colors z-10 duration-300"></div>
+<img class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" data-alt="An epic fantasy battle scene landscape, deep muted tones with flashes of bright gold and crimson magic. Cinematic composition, dark atmosphere." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWuvwSdr29C6YdXaEVZYJ4HepVHRv71ghnyuDxe-R68OimEYfsybTeRCfzCuZnXdSJff9QXcspo4wQEiboGRVXke_qjJMpo9uTziYcRclPVTKaTPiAGVjGIVp8zTmaAOVTJO0o4aHuq7rOPcyMnwaXnOX6nat-jdx_fx9Vx0_WXagDolDpCBtOhqG1V7OC9HxId-RVwzsGHvTlvlvJ7wOY4sjSCjcZf6u4QAAsux5E-flzhHBYAK3_"/>
+<!-- Play Button Overlay -->
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20">
+<button class="w-14 h-14 rounded-full bg-primary/90 text-white flex items-center justify-center backdrop-blur-sm shadow-[0_0_20px_rgba(229,9,20,0.5)] transform scale-90 group-hover:scale-100 transition-transform">
+<span class="material-symbols-outlined text-3xl ml-1" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<!-- Remaining Time Badge -->
+<div class="absolute top-3 right-3 z-20 bg-black/70 backdrop-blur-md px-3 py-1 rounded-md text-xs font-medium text-white/90 border border-white/10">
+                                Còn lại 1h 20m
+                            </div>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-1.5 bg-surface absolute relative top-0 z-20">
+<div class="h-full bg-primary w-[30%] progress-bar-glow rounded-r-full"></div>
+</div>
+<div class="p-5">
+<h3 class="text-lg font-semibold mb-1 text-white line-clamp-1">Vương Quốc Sụp Đổ</h3>
+<p class="text-sm text-white/50 mb-4">Phim lẻ • Bản Director's Cut</p>
+<div class="flex items-center justify-between mt-auto">
+<button class="text-primary text-sm font-semibold hover:text-white transition-colors flex items-center gap-1">
+                                    Tiếp tục
+                                    <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+<button class="text-white/40 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-lg" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Favorites Section (Bento Grid Style) -->
+<section>
+<div class="flex justify-between items-end mb-6">
+<h2 class="text-2xl font-display font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+                        Yêu Thích
+                    </h2>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg bg-surface text-white hover:bg-white/10 transition-colors border border-white/10">
+<span class="material-symbols-outlined text-sm" data-icon="grid_view">grid_view</span>
+</button>
+<button class="p-2 rounded-lg bg-transparent text-white/50 hover:text-white hover:bg-white/5 transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="view_list">view_list</span>
+</button>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+<!-- Feature Movie (Spans 2 cols/2 rows on larger screens) -->
+<div class="col-span-2 row-span-2 group relative rounded-xl overflow-hidden hover-lift h-64 md:h-auto">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" data-alt="A stunning cinematic poster for an action movie, featuring a lone hero standing against a massive, dark industrial backdrop bathed in intense red light. Deep shadows, F-Cine aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBP74uEiFCOJF5CFfle8k3CEZjUDlwPl4pqloi8xuJFdYqv6CqpftT9KDiw0TF79jCk4ZWgA_CXaI0sj3wDf41o9zuN4hmZBJBi1K-6jfWDCUoOoFO15DF0UkPUJW6fBFQDJG6yYzgSNZYPb8VrTAQYSeWAzWLq-vI6W1MCCf1pTxHYsW8tfMiGqf2AcbQvK91-_3u7tjyX_x-mvzy8-Mh--hbsxcCydRJHd4lm900tOBRbPsOAU3Qp"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#080B11] via-[#080B11]/50 to-transparent"></div>
+<div class="absolute top-4 right-4 z-20">
+<button class="w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-secondary border border-white/10 hover:bg-secondary hover:text-white hover:border-transparent transition-all">
+<span class="material-symbols-outlined text-xl" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<div class="absolute bottom-0 left-0 p-6 z-20 w-full">
+<div class="flex items-center gap-2 mb-2">
+<span class="bg-tertiary/20 text-tertiary text-xs font-bold px-2 py-0.5 rounded border border-tertiary/30">HD 4K</span>
+<span class="text-xs text-white/60">2023 • Hành động</span>
+</div>
+<h3 class="text-2xl font-bold text-white mb-2 line-clamp-1">Kẻ Săn Đêm</h3>
+<p class="text-sm text-white/70 line-clamp-2 hidden md:block mb-4">Một thám tử tư đơn độc dấn thân vào thế giới ngầm đầy tội lỗi của thành phố để tìm kiếm sự thật phía sau bóng tối.</p>
+<button class="bg-white text-black px-4 py-2 rounded-lg text-sm font-bold hover:bg-white/90 transition-colors flex items-center gap-2 w-max">
+<span class="material-symbols-outlined text-lg" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span> Xem ngay
+                            </button>
+</div>
+</div>
+<!-- Standard Movie Card -->
+<div class="relative group rounded-xl overflow-hidden hover-lift aspect-[2/3] glass-panel">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" data-alt="A moody, atmospheric movie poster featuring a dense, dark forest with a subtle, glowing crimson portal in the center. Horror/thriller genre style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBTL27cx3ysYiEOOBtIMedUGzhQ44ejAQGpeINUKQwHT34WmdlUmy3ttwXa2WDyQ1aWPGCVhuf0aAPO43PM2HtZU1CqUq7i_LikvWLCJ44f_cWu6sTOa56iSdhusp5xOlQ8gflR4VzLGVnrEtTbBKjtnOdUMbrt_O_jrHYNpvREn4-hV9omOQnYpYPY0INluxzeV5qBXsbe_DJFRQFO6HkekD37bF_o3ZM4jKy0NIl1hzezlNGw8Ea_"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#080B11] via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity"></div>
+<div class="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<button class="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-secondary hover:bg-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 bg-black/40 backdrop-blur-[2px]">
+<button class="w-12 h-12 rounded-full border-2 border-white text-white flex items-center justify-center hover:bg-white hover:text-black transition-colors">
+<span class="material-symbols-outlined text-2xl ml-0.5" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<div class="absolute bottom-0 left-0 p-3 w-full z-20 transform translate-y-2 group-hover:translate-y-0 transition-transform">
+<h3 class="text-sm font-semibold text-white line-clamp-1 shadow-sm">Rừng Thiêng</h3>
+<p class="text-xs text-tertiary flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[10px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span> 8.5
+                            </p>
+</div>
+</div>
+<!-- Standard Movie Card -->
+<div class="relative group rounded-xl overflow-hidden hover-lift aspect-[2/3] glass-panel">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" data-alt="A sleek, minimalist sci-fi movie poster showing a lone astronaut floating in deep space against a backdrop of a massive, dark red nebula. Cinematic, high contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVGMw8QruADLa26VMglBpwjddxJZkRHVy_PdPpXLtKmvjZrtlQjlls4b9ApnZ7H6j86YV4ijeYNUE2eewmdedC55MsGx7mwk5EDfbxgMLu1T7yO0vFipM-KS13Aq48urBRzZF1kLaUNNuNIWfrTViyUqwuRMIrCVqWhGttF5Q8iz4TxSQhl7ont1DQOxOep8jXfNtpvQbrKUbvy0m9ZBIFKLgMKEk7VRr_tfqYtHUBbFWrai5tzcD4"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#080B11] via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity"></div>
+<div class="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<button class="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-secondary hover:bg-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 bg-black/40 backdrop-blur-[2px]">
+<button class="w-12 h-12 rounded-full border-2 border-white text-white flex items-center justify-center hover:bg-white hover:text-black transition-colors">
+<span class="material-symbols-outlined text-2xl ml-0.5" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<div class="absolute bottom-0 left-0 p-3 w-full z-20 transform translate-y-2 group-hover:translate-y-0 transition-transform">
+<h3 class="text-sm font-semibold text-white line-clamp-1 shadow-sm">Khoảng Không</h3>
+<p class="text-xs text-tertiary flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[10px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span> 9.2
+                            </p>
+</div>
+</div>
+<!-- Standard Movie Card -->
+<div class="relative group rounded-xl overflow-hidden hover-lift aspect-[2/3] glass-panel hidden lg:block">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 opacity-80 group-hover:opacity-100" data-alt="A romantic drama poster featuring two silhouettes against a rainy, moody city window at night. Colors are dark blues and soft reds. F-Cine aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBnY--_usuj834h-fHFWtLBv62K__9FhlS2uVG7iQv6RUC2mbucdTlQN9-sc9bvKmJ70E6IrYmnuIhhMuqB5M8BW6XpF95iHaLr5jg2RyoqEPtaMMHYVyaEUzmpt1ohPThqZ-AnSpETcEDqpi-BxuCPh4FpwdGtQPDhfFHYj4-ulFTnuj3AjwH58HYIbn2VgQNSxt8FvbIBcteTpIoxTG8VE8sQ5uCOuq7Zhbq3-ulzIVUQgwGTGc5B"/>
+<div class="absolute inset-0 bg-gradient-to-t from-[#080B11] via-transparent to-transparent opacity-80 group-hover:opacity-100 transition-opacity"></div>
+<div class="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+<button class="w-8 h-8 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-secondary hover:bg-secondary hover:text-white transition-colors">
+<span class="material-symbols-outlined text-sm" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</button>
+</div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 bg-black/40 backdrop-blur-[2px]">
+<button class="w-12 h-12 rounded-full border-2 border-white text-white flex items-center justify-center hover:bg-white hover:text-black transition-colors">
+<span class="material-symbols-outlined text-2xl ml-0.5" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<div class="absolute bottom-0 left-0 p-3 w-full z-20 transform translate-y-2 group-hover:translate-y-0 transition-transform">
+<h3 class="text-sm font-semibold text-white line-clamp-1 shadow-sm">Mưa Đêm</h3>
+<p class="text-xs text-tertiary flex items-center gap-1 mt-1">
+<span class="material-symbols-outlined text-[10px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span> 7.8
+                            </p>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- Footer (From JSON) -->
+<footer class="bg-[#080B11] dark:bg-[#080B11] font-body text-label-sm w-full py-12 mt-auto border-t border-white/5 flat no shadows">
+<div class="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="flex flex-col gap-4">
+<span class="text-lg font-bold text-[#E50914]">F-Cine</span>
+<p class="text-white/40 opacity-80 hover:opacity-100 transition-opacity">© 2024 F-Cine Premium Streaming. All rights reserved.</p>
+</div>
+<div class="flex flex-wrap gap-x-6 gap-y-2 md:justify-end items-center">
+<a class="text-white/40 hover:text-white hover:underline transition-all opacity-80 hover:opacity-100" href="#">Privacy Policy</a>
+<a class="text-white/40 hover:text-white hover:underline transition-all opacity-80 hover:opacity-100" href="#">Terms of Service</a>
+<a class="text-white/40 hover:text-white hover:underline transition-all opacity-80 hover:opacity-100" href="#">Help Center</a>
+<a class="text-white/40 hover:text-white hover:underline transition-all opacity-80 hover:opacity-100" href="#">Contact Us</a>
+</div>
+</div>
+</footer>
+</body></html>
+
