@@ -4,7 +4,7 @@ import '../database/app_database.dart';
 import '../config/master_config.dart';
 import '../config/config_service.dart';
 import '../download/download_service.dart';
-import '../../data/datasources/kkphim_remote_datasource.dart';
+import '../../data/datasources/remote_datasource.dart';
 import '../../data/repositories/movie_repository_impl.dart';
 import '../../data/repositories/history_repository.dart';
 import '../../data/repositories/bookmark_repository.dart';
@@ -30,8 +30,28 @@ Future<void> setupInjection() async {
   final masterConfig = await configService.load();
   getIt.registerSingleton<MasterConfig>(masterConfig);
 
-  final source = masterConfig.sources.firstWhere((s) => s.enabled);
-  final dioForRepo = Dio(BaseOptions(baseUrl: source.baseUrl, headers: source.headers));
-  final ds = KkphimRemoteDataSource(dio: dioForRepo, source: source);
-  getIt.registerSingleton<MovieRepository>(MovieRepositoryImpl(ds));
+  // Create datasources for all enabled sources
+  final datasources = <String, RemoteDataSource>{};
+  for (final source in masterConfig.sources.where((s) => s.enabled)) {
+    final dioForSource = Dio(BaseOptions(
+      baseUrl: source.baseUrl,
+      headers: source.headers,
+    ));
+    datasources[source.id] = RemoteDataSource(dio: dioForSource, source: source);
+  }
+  getIt.registerSingleton<Map<String, RemoteDataSource>>(datasources);
+
+  // Primary datasource (first enabled source)
+  final primarySource = masterConfig.enabledSource;
+  if (primarySource == null) {
+    throw Exception('No enabled source found in config');
+  }
+  final primaryDatasource = datasources[primarySource.id]!;
+  getIt.registerSingleton<RemoteDataSource>(primaryDatasource);
+
+  // Repository with fallback support
+  getIt.registerSingleton<MovieRepository>(MovieRepositoryImpl(
+    primary: primaryDatasource,
+    allDatasources: datasources,
+  ));
 }

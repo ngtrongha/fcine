@@ -4,17 +4,17 @@ class EpisodeModel extends Episode {
   const EpisodeModel({
     required super.name,
     required super.slug,
-    required super.filename,
-    required super.linkM3u8,
-    required super.linkEmbed,
+    super.filename,
+    super.m3u8Url,
+    super.embedUrl,
   });
 
   factory EpisodeModel.fromJson(Map<String, dynamic> json) => EpisodeModel(
         name: json['name'] ?? '',
         slug: json['slug'] ?? '',
-        filename: json['filename'] ?? '',
-        linkM3u8: json['link_m3u8'] ?? '',
-        linkEmbed: json['link_embed'] ?? '',
+        filename: json['filename'],
+        m3u8Url: json['link_m3u8'] ?? json['m3u8'],
+        embedUrl: json['link_embed'] ?? json['embed'],
       );
 }
 

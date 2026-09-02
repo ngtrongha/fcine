@@ -39,21 +39,139 @@
           "list": "$.items",
           "id": "$.slug",
           "title": "$.name",
+          "originalTitle": "$.origin_name",
           "poster": "$.poster_url",
-          "year": "$.year"
+          "thumb": "$.thumb_url",
+          "year": "$.year",
+          "quality": "$.quality",
+          "language": "$.lang",
+          "time": "$.time",
+          "episodeCurrent": "$.episode_current"
+        },
+        "pagination": {
+          "items": "$.items",
+          "totalItems": "$.pagination.totalItems",
+          "totalPages": "$.pagination.totalPages",
+          "currentPage": "$.pagination.currentPage",
+          "itemsPerPage": "$.pagination.totalItemsPerPage"
         },
         "search": {
-          "list": "$.data.items",
-          "pagination": "$.data.params.pagination"
+          "list": "$.items",
+          "totalItems": "$.pagination.totalItems",
+          "totalPages": "$.pagination.totalPages",
+          "currentPage": "$.pagination.currentPage"
         },
         "detail": {
+          "movie": "$.movie",
+          "episodes": "$.episodes",
+          "id": "$.movie._id",
+          "slug": "$.movie.slug",
           "title": "$.movie.name",
-          "plot": "$.movie.content",
-          "episodes": "$.episodes[*].server_data[*]"
+          "originalTitle": "$.movie.origin_name",
+          "poster": "$.movie.poster_url",
+          "thumb": "$.movie.thumb_url",
+          "year": "$.movie.year",
+          "quality": "$.movie.quality",
+          "language": "$.movie.lang",
+          "time": "$.movie.time",
+          "episodeCurrent": "$.movie.episode_current",
+          "type": "$.movie.type",
+          "content": "$.movie.content",
+          "actors": "$.movie.actor",
+          "directors": "$.movie.director",
+          "categories": "$.movie.category",
+          "countries": "$.movie.country"
         },
-        "stream": {
-          "m3u8": "$.episodes[0].server_data[0].link_m3u8",
-          "embed": "$.episodes[0].server_data[0].link_embed"
+        "episodes": {
+          "serverName": "$.server_name",
+          "serverData": "$.server_data",
+          "name": "$.name",
+          "slug": "$.slug",
+          "m3u8": "$.link_m3u8",
+          "embed": "$.link_embed"
+        }
+      },
+      "pagination": {
+        "type": "page_number",
+        "param": "page"
+      }
+    },
+    {
+      "id": "nguonc",
+      "name": "NguonC",
+      "enabled": true,
+      "baseUrl": "https://phim.nguonc.com/api",
+      "fallbackUrls": [],
+      "cdnImage": "https://phim.nguonc.com",
+      "headers": {
+        "accept": "application/json"
+      },
+      "endpoints": {
+        "latest": {
+          "path": "/films/phim-moi-cap-nhat?page={page}",
+          "method": "GET"
+        },
+        "search": {
+          "path": "/films/search?keyword={keyword}&page={page}",
+          "method": "GET"
+        },
+        "detail": {
+          "path": "/film/{slug}",
+          "method": "GET"
+        }
+      },
+      "extractors": {
+        "latest": {
+          "list": "$.items",
+          "id": "$.slug",
+          "title": "$.name",
+          "originalTitle": "$.original_name",
+          "poster": "$.poster_url",
+          "thumb": "$.thumb_url",
+          "year": "$.year",
+          "quality": "$.quality",
+          "language": "$.language",
+          "time": "$.time",
+          "episodeCurrent": "$.current_episode"
+        },
+        "pagination": {
+          "items": "$.items",
+          "totalItems": "$.paginate.total_items",
+          "totalPages": "$.paginate.total_page",
+          "currentPage": "$.paginate.current_page",
+          "itemsPerPage": "$.paginate.items_per_page"
+        },
+        "search": {
+          "list": "$.items",
+          "totalItems": "$.paginate.total_items",
+          "totalPages": "$.paginate.total_page",
+          "currentPage": "$.paginate.current_page"
+        },
+        "detail": {
+          "movie": "$.movie",
+          "episodes": "$.movie.episodes",
+          "id": "$.movie.id",
+          "slug": "$.movie.slug",
+          "title": "$.movie.name",
+          "originalTitle": "$.movie.original_name",
+          "poster": "$.movie.poster_url",
+          "thumb": "$.movie.thumb_url",
+          "year": "$.movie.year",
+          "quality": "$.movie.quality",
+          "language": "$.movie.language",
+          "time": "$.movie.time",
+          "episodeCurrent": "$.movie.current_episode",
+          "content": "$.movie.description",
+          "actors": "$.movie.casts",
+          "directors": "$.movie.director",
+          "categories": "$.movie.category"
+        },
+        "episodes": {
+          "serverName": "$.server_name",
+          "serverData": "$.items",
+          "name": "$.name",
+          "slug": "$.slug",
+          "embed": "$.embed"
         }
       },
       "pagination": {

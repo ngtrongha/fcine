@@ -23,6 +23,8 @@ class MasterConfig {
       );
 
   SourceConfig get kkphim => sources.firstWhere((s) => s.id == 'kkphim');
+  SourceConfig get nguonc => sources.firstWhere((s) => s.id == 'nguonc');
+  SourceConfig? get enabledSource => sources.where((s) => s.enabled).firstOrNull;
 }
 
 class SourceConfig {
@@ -34,6 +36,8 @@ class SourceConfig {
   final String cdnImage;
   final Map<String, String> headers;
   final Endpoints endpoints;
+  final Map<String, dynamic> extractors;
+  final Map<String, dynamic> pagination;
 
   SourceConfig({
     required this.id,
@@ -44,6 +48,8 @@ class SourceConfig {
     required this.cdnImage,
     required this.headers,
     required this.endpoints,
+    this.extractors = const {},
+    this.pagination = const {},
   });
 
   factory SourceConfig.fromJson(Map<String, dynamic> json) => SourceConfig(
@@ -55,7 +61,20 @@ class SourceConfig {
         cdnImage: json['cdnImage'] ?? 'https://phimimg.com',
         headers: Map<String, String>.from(json['headers'] ?? {}),
         endpoints: Endpoints.fromJson(json['endpoints']),
+        extractors: json['extractors'] as Map<String, dynamic>? ?? {},
+        pagination: json['pagination'] as Map<String, dynamic>? ?? {},
       );
+
+  /// Get extractor config for a section (latest, search, detail, episodes)
+  Map<String, dynamic> extractor(String section) {
+    return extractors[section] as Map<String, dynamic>? ?? {};
+  }
+
+  /// Get extractor path for a field
+  String? extractorPath(String section, String field) {
+    final sectionConfig = extractor(section);
+    return sectionConfig[field] as String?;
+  }
 }
 
 class Endpoints {
@@ -114,7 +133,6 @@ class AppSettings {
       AppSettings(searchDebounceMs: 400, requestTimeoutMs: 8000, imageCacheMaxMb: 100, playerHeadersRequired: false);
 }
 
-// Helper để load từ assets
 Future<MasterConfig> loadMasterConfigFromAssets(String jsonStr) async {
   final map = jsonDecode(jsonStr) as Map<String, dynamic>;
   return MasterConfig.fromJson(map);
