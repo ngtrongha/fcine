@@ -6,17 +6,28 @@ import '../pages/library_page.dart';
 import '../pages/settings_page.dart';
 import '../pages/detail_page.dart';
 import '../pages/player_page.dart';
+import '../pages/local_player_page.dart';
 import '../widgets/responsive_scaffold.dart';
+import '../../core/di/injection.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
-final _shellNavigatorHomeKey = GlobalKey<NavigatorState>(debugLabel: 'home');
-final _shellNavigatorSearchKey = GlobalKey<NavigatorState>(debugLabel: 'search');
+final _shellNavigatorVideoKey = GlobalKey<NavigatorState>(debugLabel: 'video');
+final _shellNavigatorOnlineKey = GlobalKey<NavigatorState>(debugLabel: 'online');
 final _shellNavigatorLibraryKey = GlobalKey<NavigatorState>(debugLabel: 'library');
 final _shellNavigatorSettingsKey = GlobalKey<NavigatorState>(debugLabel: 'settings');
 
-final appRouter = GoRouter(
+/// Tab mở đầu động theo cấu hình đã lưu:
+/// - Đã nhập link nguồn phim -> mặc định vào Online (chế độ xem phim).
+/// - Chưa có nguồn -> mặc định vào Video (trình phát tự quét).
+/// Gọi sau [setupInjection] để [hasConfiguredSource] đọc đúng config.
+///
+/// Chưa có nguồn phim -> chặn vào các trang online, đá về tab Video.
+String? _requireSource(BuildContext context, GoRouterState state) =>
+    hasConfiguredSource() ? null : '/';
+
+GoRouter createAppRouter() => GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: '/',
+  initialLocation: hasConfiguredSource() ? '/home' : '/',
   routes: [
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) {
@@ -27,22 +38,37 @@ final appRouter = GoRouter(
         );
       },
       branches: [
+        // Tab 0 (mặc định): Video trên thiết bị — tự quét + phát.
         StatefulShellBranch(
-          navigatorKey: _shellNavigatorHomeKey,
+          navigatorKey: _shellNavigatorVideoKey,
           routes: [
-            GoRoute(path: '/', builder: (context, state) => const HomePage()),
+            GoRoute(path: '/', builder: (context, state) => const LocalPlayerPage()),
           ],
         ),
+        // Tab 1: Kho online (Home + Search cùng 1 nhánh).
         StatefulShellBranch(
-          navigatorKey: _shellNavigatorSearchKey,
+          navigatorKey: _shellNavigatorOnlineKey,
           routes: [
-            GoRoute(path: '/search', builder: (context, state) => const SearchPage()),
+            GoRoute(
+              path: '/home',
+              redirect: _requireSource,
+              builder: (context, state) => const HomePage(),
+            ),
+            GoRoute(
+              path: '/search',
+              redirect: _requireSource,
+              builder: (context, state) => const SearchPage(),
+            ),
           ],
         ),
         StatefulShellBranch(
           navigatorKey: _shellNavigatorLibraryKey,
           routes: [
-            GoRoute(path: '/library', builder: (context, state) => const LibraryPage()),
+            GoRoute(
+              path: '/library',
+              redirect: _requireSource,
+              builder: (context, state) => const LibraryPage(),
+            ),
             // Legacy redirects
             GoRoute(path: '/bookmarks', redirect: (context, state) => '/library'),
             GoRoute(path: '/history', redirect: (context, state) => '/library'),
@@ -74,6 +100,12 @@ final appRouter = GoRouter(
           servers: extra['servers'] as List,
         );
       },
+    ),
+    // Tương thích đường dẫn cũ: /local-player -> tab Video mặc định.
+    GoRoute(
+      path: '/local-player',
+      parentNavigatorKey: _rootNavigatorKey,
+      redirect: (context, state) => '/',
     ),
   ],
 );

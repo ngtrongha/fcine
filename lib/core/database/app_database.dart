@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
@@ -21,8 +22,8 @@ class WatchHistory extends Table {
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {movieSlug, episodeSlug, serverName}
-      ];
+    {movieSlug, episodeSlug, serverName},
+  ];
 }
 
 class Bookmarks extends Table {
@@ -55,42 +56,60 @@ class Downloads extends Table {
   TextColumn get serverName => text().withDefault(const Constant('Vietsub'))();
   TextColumn get remoteM3u8 => text()();
   TextColumn get localM3u8 => text().nullable()();
-  TextColumn get status => text().withDefault(const Constant('pending'))(); // pending, downloading, completed, failed
+  TextColumn get status => text().withDefault(
+    const Constant('pending'),
+  )(); // pending, downloading, completed, failed
   IntColumn get progress => integer().withDefault(const Constant(0))(); // 0-100
   IntColumn get totalSegments => integer().withDefault(const Constant(0))();
-  IntColumn get downloadedSegments => integer().withDefault(const Constant(0))();
+  IntColumn get downloadedSegments =>
+      integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime().nullable()();
 
   @override
   List<Set<Column>> get uniqueKeys => [
-        {movieSlug, episodeSlug, serverName}
-      ];
+    {movieSlug, episodeSlug, serverName},
+  ];
 }
 
 @DriftDatabase(tables: [WatchHistory, Bookmarks, ConfigCache, Downloads])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
+  AppDatabase.forTesting(super.e);
 
   @override
   int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
-        onCreate: (m) async => await m.createAll(),
-        onUpgrade: (m, from, to) async {
-          if (from < 2) {
-            await m.createTable(downloads);
-          }
-        },
-      );
+    onCreate: (m) async => await m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.createTable(downloads);
+      }
+    },
+  );
 
   // --- Watch History ---
-  Future<List<WatchHistoryData>> getAllHistory() => (select(watchHistory)..orderBy([(t) => OrderingTerm.desc(t.updatedAt)])).get();
-  Stream<List<WatchHistoryData>> watchAllHistory() => (select(watchHistory)..orderBy([(t) => OrderingTerm.desc(t.updatedAt)])).watch();
+  Future<List<WatchHistoryData>> getAllHistory() => (select(
+    watchHistory,
+  )..orderBy([(t) => OrderingTerm.desc(t.updatedAt)])).get();
+  Stream<List<WatchHistoryData>> watchAllHistory() => (select(
+    watchHistory,
+  )..orderBy([(t) => OrderingTerm.desc(t.updatedAt)])).watch();
 
-  Future<WatchHistoryData?> getHistory(String movieSlug, String episodeSlug, String serverName) =>
-      (select(watchHistory)..where((t) => t.movieSlug.equals(movieSlug) & t.episodeSlug.equals(episodeSlug) & t.serverName.equals(serverName))).getSingleOrNull();
+  Future<WatchHistoryData?> getHistory(
+    String movieSlug,
+    String episodeSlug,
+    String serverName,
+  ) =>
+      (select(watchHistory)..where(
+            (t) =>
+                t.movieSlug.equals(movieSlug) &
+                t.episodeSlug.equals(episodeSlug) &
+                t.serverName.equals(serverName),
+          ))
+          .getSingleOrNull();
 
   Future<void> upsertHistory(WatchHistoryCompanion entry) async {
     // Fix: original `insertOnConflictUpdate` targets PK `id` only.
@@ -99,48 +118,125 @@ class AppDatabase extends _$AppDatabase {
       entry,
       onConflict: DoUpdate(
         (old) => entry,
-        target: [watchHistory.movieSlug, watchHistory.episodeSlug, watchHistory.serverName],
+        target: [
+          watchHistory.movieSlug,
+          watchHistory.episodeSlug,
+          watchHistory.serverName,
+        ],
       ),
     );
   }
 
-  Future<int> deleteHistory(String movieSlug, String episodeSlug, String serverName) =>
-      (delete(watchHistory)..where((t) => t.movieSlug.equals(movieSlug) & t.episodeSlug.equals(episodeSlug) & t.serverName.equals(serverName))).go();
+  Future<int> deleteHistory(
+    String movieSlug,
+    String episodeSlug,
+    String serverName,
+  ) =>
+      (delete(watchHistory)..where(
+            (t) =>
+                t.movieSlug.equals(movieSlug) &
+                t.episodeSlug.equals(episodeSlug) &
+                t.serverName.equals(serverName),
+          ))
+          .go();
 
   // --- Bookmarks ---
-  Future<List<Bookmark>> getAllBookmarks() => (select(bookmarks)..orderBy([(t) => OrderingTerm.desc(t.addedAt)])).get();
-  Stream<List<Bookmark>> watchAllBookmarks() => (select(bookmarks)..orderBy([(t) => OrderingTerm.desc(t.addedAt)])).watch();
-  Future<Bookmark?> getBookmark(String slug) => (select(bookmarks)..where((t) => t.movieSlug.equals(slug))).getSingleOrNull();
-  Future<void> addBookmark(BookmarksCompanion entry) => into(bookmarks).insertOnConflictUpdate(entry);
-  Future<int> removeBookmark(String slug) => (delete(bookmarks)..where((t) => t.movieSlug.equals(slug))).go();
-  Future<bool> isBookmarked(String slug) async => await getBookmark(slug) != null;
+  Future<List<Bookmark>> getAllBookmarks() =>
+      (select(bookmarks)..orderBy([(t) => OrderingTerm.desc(t.addedAt)])).get();
+  Stream<List<Bookmark>> watchAllBookmarks() => (select(
+    bookmarks,
+  )..orderBy([(t) => OrderingTerm.desc(t.addedAt)])).watch();
+  Future<Bookmark?> getBookmark(String slug) => (select(
+    bookmarks,
+  )..where((t) => t.movieSlug.equals(slug))).getSingleOrNull();
+  Future<void> addBookmark(BookmarksCompanion entry) =>
+      into(bookmarks).insertOnConflictUpdate(entry);
+  Future<int> removeBookmark(String slug) =>
+      (delete(bookmarks)..where((t) => t.movieSlug.equals(slug))).go();
+  Future<bool> isBookmarked(String slug) async =>
+      await getBookmark(slug) != null;
 
   // --- Config Cache ---
   Future<ConfigCacheData?> getLatestConfig() async {
-    final q = select(configCache)..orderBy([(t) => OrderingTerm.desc(t.version)])..limit(1);
+    final q = select(configCache)
+      ..orderBy([(t) => OrderingTerm.desc(t.version)])
+      ..limit(1);
     return q.getSingleOrNull();
   }
 
-  Future<int> saveConfig(String jsonStr, int version) => into(configCache).insert(ConfigCacheCompanion.insert(json: jsonStr, version: version, updatedAt: DateTime.now()));
+  Future<int> saveConfig(String jsonStr, int version) =>
+      into(configCache).insert(
+        ConfigCacheCompanion.insert(
+          json: jsonStr,
+          version: version,
+          updatedAt: DateTime.now(),
+        ),
+      );
+
+  Future<int> clearConfigCache() => delete(configCache).go();
 
   // --- Downloads ---
-  Future<List<Download>> getAllDownloads() => (select(downloads)..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).get();
-  Stream<List<Download>> watchAllDownloads() => (select(downloads)..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).watch();
-  Future<Download?> getDownload(String movieSlug, String episodeSlug, String serverName) =>
-      (select(downloads)..where((t) => t.movieSlug.equals(movieSlug) & t.episodeSlug.equals(episodeSlug) & t.serverName.equals(serverName))).getSingleOrNull();
-  Future<void> upsertDownload(DownloadsCompanion entry) => into(downloads).insert(
+  Future<List<Download>> getAllDownloads() => (select(
+    downloads,
+  )..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).get();
+  Stream<List<Download>> watchAllDownloads() => (select(
+    downloads,
+  )..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).watch();
+  Future<Download?> getDownload(
+    String movieSlug,
+    String episodeSlug,
+    String serverName,
+  ) =>
+      (select(downloads)..where(
+            (t) =>
+                t.movieSlug.equals(movieSlug) &
+                t.episodeSlug.equals(episodeSlug) &
+                t.serverName.equals(serverName),
+          ))
+          .getSingleOrNull();
+  Future<void> upsertDownload(DownloadsCompanion entry) =>
+      into(downloads).insert(
         entry,
         onConflict: DoUpdate(
           (old) => entry,
-          target: [downloads.movieSlug, downloads.episodeSlug, downloads.serverName],
+          target: [
+            downloads.movieSlug,
+            downloads.episodeSlug,
+            downloads.serverName,
+          ],
         ),
       );
-  Future<int> deleteDownload(String movieSlug, String episodeSlug, String serverName) =>
-      (delete(downloads)..where((t) => t.movieSlug.equals(movieSlug) & t.episodeSlug.equals(episodeSlug) & t.serverName.equals(serverName))).go();
+  Future<int> deleteDownload(
+    String movieSlug,
+    String episodeSlug,
+    String serverName,
+  ) =>
+      (delete(downloads)..where(
+            (t) =>
+                t.movieSlug.equals(movieSlug) &
+                t.episodeSlug.equals(episodeSlug) &
+                t.serverName.equals(serverName),
+          ))
+          .go();
   Future<int> updateDownloadProgress(int id, int progress, int downloaded) =>
-      (update(downloads)..where((t) => t.id.equals(id))).write(DownloadsCompanion(progress: Value(progress), downloadedSegments: Value(downloaded), updatedAt: Value(DateTime.now())));
-  Future<int> updateDownloadStatus(int id, String status, {String? localM3u8}) =>
-      (update(downloads)..where((t) => t.id.equals(id))).write(DownloadsCompanion(status: Value(status), localM3u8: Value(localM3u8), updatedAt: Value(DateTime.now())));
+      (update(downloads)..where((t) => t.id.equals(id))).write(
+        DownloadsCompanion(
+          progress: Value(progress),
+          downloadedSegments: Value(downloaded),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+  Future<int> updateDownloadStatus(
+    int id,
+    String status, {
+    String? localM3u8,
+  }) => (update(downloads)..where((t) => t.id.equals(id))).write(
+    DownloadsCompanion(
+      status: Value(status),
+      localM3u8: Value(localM3u8),
+      updatedAt: Value(DateTime.now()),
+    ),
+  );
 }
 
 LazyDatabase _openConnection() {

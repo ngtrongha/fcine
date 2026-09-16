@@ -101,7 +101,7 @@ class PlayerSettingsSheet extends StatelessWidget {
             ),
             ListTile(leading: const Icon(Icons.cast_rounded, color: Colors.white70), title: const Text('Chromecast / AirPlay', style: TextStyle(color: Colors.white)), onTap: () => _popAnd(onCastTap, context)),
             ListTile(leading: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white70), title: const Text('Picture-in-Picture', style: TextStyle(color: Colors.white)), onTap: () => _popAnd(onPipTap, context)),
-            ListTile(leading: const Icon(Icons.open_in_new_rounded, color: Colors.white70), title: const Text('Mở bằng MX / VLC', style: TextStyle(color: Colors.white)), onTap: () => _popAnd(onExternalTap, context)),
+            ListTile(leading: const Icon(Icons.open_in_new_rounded, color: Colors.white70), title: const Text('Mở bằng app ngoài', style: TextStyle(color: Colors.white)), onTap: () => _popAnd(onExternalTap, context)),
             if (introEndMs > 0)
               ListTile(
                 leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),

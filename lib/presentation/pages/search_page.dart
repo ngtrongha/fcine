@@ -7,6 +7,7 @@ import 'package:fcine/presentation/blocs/search/search_bloc.dart';
 import 'package:fcine/presentation/blocs/search/search_event.dart';
 import 'package:fcine/presentation/blocs/search/search_state.dart';
 import 'package:fcine/presentation/theme/app_theme.dart';
+import 'package:fcine/presentation/widgets/no_source_placeholder.dart';
 import 'package:fcine/presentation/widgets/responsive_layout.dart';
 import 'package:fcine/ui/features/search/views/widgets/desktop_sidebar.dart';
 import 'package:fcine/ui/features/search/views/widgets/filter_sheet.dart';
@@ -100,6 +101,12 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (!hasConfiguredSource()) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(child: NoSourcePlaceholder(title: 'Tìm kiếm cần nguồn phim')),
+      );
+    }
     return BlocProvider.value(
       value: _bloc,
       child: BlocConsumer<SearchBloc, SearchState>(
