@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:fcine/core/cache/image_cache_manager.dart';
 import 'package:fcine/presentation/blocs/search/search_state.dart';
+import 'package:fcine/presentation/router/movie_route.dart';
 import 'package:fcine/presentation/theme/app_theme.dart';
 
 class SearchGrid extends StatelessWidget {
@@ -32,7 +33,7 @@ class SearchGrid extends StatelessWidget {
           }
           final m = state.movies[i];
           return GestureDetector(
-            onTap: () => context.push('/movie/${m.slug}'),
+            onTap: () => context.push(movieDetailPath(m.slug, m.sourceId)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Expanded(
                 child: Container(

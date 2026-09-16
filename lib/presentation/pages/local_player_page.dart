@@ -101,7 +101,7 @@ class _LocalPlayerPageState extends State<LocalPlayerPage> {
         LoopMode.values.length - 1,
       )];
     });
-    await _player.setVolume(_volume);
+    await _player.setVolume(_volume * 100);
     await _player.setRate(_rate);
     // Tự mở bài đầu nếu có playlist cũ (nhớ playlist)
     if (_playlist.isNotEmpty) {

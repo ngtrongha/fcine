@@ -86,7 +86,10 @@ GoRouter createAppRouter() => GoRouter(
     GoRoute(
       path: '/movie/:slug',
       parentNavigatorKey: _rootNavigatorKey,
-      builder: (context, state) => DetailPage(slug: state.pathParameters['slug']!),
+      builder: (context, state) => DetailPage(
+        slug: state.pathParameters['slug']!,
+        initialSourceId: state.uri.queryParameters['source'],
+      ),
     ),
     GoRoute(
       path: '/player',

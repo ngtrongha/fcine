@@ -77,6 +77,12 @@ class ProgressService {
     if (!shouldSaveProgress(pos, dur)) return;
     final repo = getIt<HistoryRepository>();
     try {
+      dynamic src;
+      try {
+        src = (movie as dynamic).sourceId;
+      } catch (_) {
+        src = null;
+      }
       await repo.saveProgress(
         movieSlug: movie.slug,
         movieName: movie.name,
@@ -86,6 +92,7 @@ class ProgressService {
         serverName: serverName,
         positionMs: pos.inMilliseconds,
         durationMs: dur.inMilliseconds,
+        sourceId: src is String && src.isNotEmpty ? src : null,
       );
     } catch (_) {}
   }

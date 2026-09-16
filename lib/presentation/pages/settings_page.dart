@@ -94,6 +94,39 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     setState(() => _savingBaseUrl = true);
     try {
+      final source = SourceTemplates.kkphimCompatible(
+        baseUrl: url,
+        name: _baseNameController.text.trim().isEmpty
+            ? null
+            : _baseNameController.text.trim(),
+      );
+      // Probe: API JSON thật (phimapi.com/KKPhim) mới trả items.
+      // Web HTML như motchilltv.zip sẽ trả rỗng -> chặn, gợi ý thêm ở mục Web.
+      try {
+        final probe = RemoteDataSource(
+          dio: Dio(BaseOptions(baseUrl: source.baseUrl, headers: source.headers)),
+          source: source,
+        );
+        final res = await probe
+            .getLatest(page: 1)
+            .timeout(const Duration(seconds: 25));
+        if (res.movies.isEmpty) {
+          throw Exception(
+            'Nguồn không trả danh sách JSON. '
+            'Nếu là web phim (vd motchilltv.zip), hãy thêm ở mục '
+            '"Web phim bất kỳ" preset DooPlay, không phải mục API.',
+          );
+        }
+      } catch (e) {
+        final msg = e.toString().replaceFirst('Exception: ', '');
+        // Dio trả HTML thay vì JSON cũng rớt vào đây.
+        if (msg.contains('Web phim bất kỳ')) rethrow;
+        throw Exception(
+          'Không lấy được danh sách API ($msg). '
+          'Nếu là web phim (vd motchilltv.zip), hãy thêm ở mục '
+          '"Web phim bất kỳ" preset DooPlay.',
+        );
+      }
       final cfg = await getIt<ConfigService>().saveBaseUrl(
         url,
         name: _baseNameController.text.trim().isEmpty ? null : _baseNameController.text.trim(),
@@ -592,13 +625,23 @@ class _SourceTestDialogState extends State<_SourceTestDialog> {
           .timeout(const Duration(seconds: 25));
       final movies = (latest as dynamic).movies as List;
       if (movies.isEmpty) {
-        _log('B1 danh sách: Lỗi (rỗng)');
+        if (!s.isWeb) {
+          _log('B1 danh sách: Lỗi (rỗng) — nguồn đang là API mà web này trả HTML.');
+          _log('Gợi ý: Xóa nguồn này, thêm lại ở "Web phim bất kỳ" preset DooPlay.');
+        } else {
+          _log('B1 danh sách: Lỗi (rỗng)');
+        }
       } else {
         first = movies.first;
         _log('B1 danh sách: OK (${movies.length} phim)');
       }
     } catch (e) {
-      _log('B1 danh sách: Lỗi $e');
+      if (!s.isWeb) {
+        _log('B1 danh sách: Lỗi $e');
+        _log('Gợi ý: nếu là motchilltv.zip, đó là WEB không phải API — thêm lại ở "Web phim bất kỳ".');
+      } else {
+        _log('B1 danh sách: Lỗi $e');
+      }
     }
     if (first == null) {
       if (mounted) setState(() => _done = true);

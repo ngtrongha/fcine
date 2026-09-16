@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fcine/core/di/injection.dart';
 import 'package:fcine/core/toast/app_toast.dart';
-import 'package:fcine/domain/repositories/movie_repository.dart';
 import 'package:fcine/presentation/blocs/search/search_bloc.dart';
 import 'package:fcine/presentation/blocs/search/search_event.dart';
 import 'package:fcine/presentation/blocs/search/search_state.dart';
@@ -65,7 +64,7 @@ class _SearchPageState extends State<SearchPage> {
   @override
   void initState() {
     super.initState();
-    _bloc = SearchBloc(repository: getIt<MovieRepository>());
+    _bloc = SearchBloc();
     _scrollController.addListener(_onScroll);
   }
 

@@ -110,5 +110,71 @@ void main() {
         expect(selectedServer, equals(currentServer));
       },
     );
+    testWidgets(
+      'DesktopEpisodeList groups episodes by server tabs',
+      (WidgetTester tester) async {
+        final multi = <Map<String, dynamic>>[
+          for (int i = 1; i <= 3; i++)
+            {
+              'ep': Episode(
+                name: 'Tập $i',
+                slug: 'tap-$i',
+                m3u8Url: 'https://example.com/a$i.m3u8',
+              ),
+              'server': 'Vietsub #1',
+            },
+          for (int i = 1; i <= 2; i++)
+            {
+              'ep': Episode(
+                name: 'Tập $i',
+                slug: 'tap-$i',
+                m3u8Url: 'https://example.com/b$i.m3u8',
+              ),
+              'server': 'Vietsub #2',
+            },
+        ];
+        dynamic selectedEp;
+        String? selectedServer;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 380,
+                height: 400,
+                child: DesktopEpisodeList(
+                  flatEpisodes: multi,
+                  currentEpisode: multi[4]['ep'],
+                  currentServer: 'Vietsub #2',
+                  onSelectEpisode: (ep, s) async {
+                    selectedEp = ep;
+                    selectedServer = s;
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        // Tab mặc định bám theo server đang phát + hiện số tập mỗi tab.
+        expect(find.text('Vietsub #1 (3)'), findsOneWidget);
+        expect(find.text('Vietsub #2 (2)'), findsOneWidget);
+        // Tab #2 đang chọn nên chỉ hiện 2 tập của nó (Tập 1/2 trùng tên
+        // với tab #1 nhưng thuộc server khác).
+        expect(find.text('Tập 3'), findsNothing);
+
+        // Chạm tập trong tab đang chọn -> trả đúng server của tab.
+        await tester.tap(find.text('Tập 1').first);
+        await tester.pump();
+        expect(selectedServer, equals('Vietsub #2'));
+
+        // Đổi sang tab #1 -> danh sách lọc theo tab.
+        await tester.tap(find.text('Vietsub #1 (3)'));
+        await tester.pumpAndSettle();
+        expect(find.text('Tập 3'), findsOneWidget);
+      },
+    );
   });
 }

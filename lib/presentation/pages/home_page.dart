@@ -18,7 +18,7 @@ import '../../core/di/injection.dart';
 import '../../core/database/app_database.dart';
 import '../../core/config/config_service.dart';
 import '../../core/config/master_config.dart';
-import '../../domain/repositories/movie_repository.dart';
+import '../router/movie_route.dart';
 import '../../ui/features/home/views/widgets/source_picker_button.dart';
 
 class HomePage extends StatefulWidget {
@@ -28,23 +28,33 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late HomeBloc _bloc;
+  late final HomeBloc _bloc;
   late final AppDatabase _db;
   final ScrollController _scrollController = ScrollController();
   List<WatchHistoryData> _history = [];
   String? _activeSourceId;
+  late int _loadedConfigVersion;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    final repo = getIt<MovieRepository>();
     _db = getIt<AppDatabase>();
-    _bloc = HomeBloc(repository: repo)..add(const HomeInitialLoad());
+    _bloc = HomeBloc()..add(const HomeInitialLoad());
+    _loadedConfigVersion = _configVersion();
     _loadActiveSource();
     _scrollController.addListener(_onScroll);
     _db.watchAllHistory().listen((list) {
       if (mounted) setState(() => _history = list);
     });
+  }
+
+  int _configVersion() {
+    try {
+      return getIt<MasterConfig>().version;
+    } catch (_) {
+      return -1;
+    }
   }
 
   Future<void> _loadActiveSource() async {
@@ -54,14 +64,16 @@ class _HomePageState extends State<HomePage> {
     } catch (_) {}
   }
 
-  /// Đổi nguồn trên top bar: lưu lựa chọn, rebuild DI (primary mới),
-  /// dựng lại bloc với repository mới rồi tải lại feed giữ nguyên category.
+  /// Đổi nguồn trên top bar: lưu lựa chọn, rebuild DI (primary mới)
+  /// rồi tải lại feed giữ nguyên category.
   Future<void> _onSourceSelected(String id) async {
     if (id == _activeSourceId) return;
     try {
       await getIt<ConfigService>().setActiveSourceId(id);
       await refreshSources();
-      await _recreateBloc();
+      _activeSourceId = id;
+      _loadedConfigVersion = _configVersion();
+      _bloc.add(const HomeRefresh());
       if (mounted) {
         final s = getIt<MasterConfig>()
             .enabledSources
@@ -72,6 +84,7 @@ class _HomePageState extends State<HomePage> {
           message: 'Đã chuyển nguồn: ${s == null ? id : sourceDisplayName(s)}',
           type: ToastType.success,
         );
+        setState(() {});
       }
     } catch (e) {
       if (mounted) {
@@ -84,20 +97,68 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _recreateBloc() async {
-    final category = _bloc.state.selectedCategory;
-    final old = _bloc;
-    try {
-      await old.clear();
-    } catch (_) {}
-    await old.close();
-    if (!mounted) return;
-    try {
-      _activeSourceId = await getIt<ConfigService>().getActiveSourceId();
-    } catch (_) {}
-    _bloc = HomeBloc(repository: getIt<MovieRepository>())
-      ..add(HomeCategoryChanged(category));
-    setState(() {});
+  void _onSearchChanged(String query) {
+    setState(() => _searchQuery = query);
+  }
+
+  void _onSearchCleared() {
+    setState(() => _searchQuery = '');
+  }
+
+  /// Xây dựng lưới phim với lọc tìm kiếm client-side.
+  Widget _buildMovieGrid(BuildContext context, HomeState state, bool isDesktop) {
+    // Lọc client-side theo từ khóa tìm kiếm
+    final filteredMovies = state.movies
+        .where((m) => m.name
+            .toLowerCase()
+            .contains(_searchQuery.toLowerCase()))
+        .toList();
+
+    // Khi đang tìm kiếm, không cần loadingMore (lọc local, không load thêm từ API)
+    final showLoadingMore = _searchQuery.isEmpty &&
+        state.status == HomeStatus.loadingMore;
+
+    // Tạo delegate riêng để tránh nested parentheses phức tạp
+    final delegate = SliverChildBuilderDelegate(
+      (context, index) {
+        if (index >= filteredMovies.length) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(8),
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+            ),
+          );
+        }
+        final movie = filteredMovies[index];
+        return MovieCard(
+          posterUrl: movie.posterUrl,
+          name: movie.name,
+          year: movie.year,
+          quality: movie.quality,
+          lang: movie.lang,
+          voteAverage: movie.voteAverage,
+          onTap: () => context.push(
+            movieDetailPath(movie.slug, movie.sourceId),
+          ),
+        );
+      },
+      childCount: filteredMovies.length + (showLoadingMore ? 1 : 0),
+    );
+
+    final grid = SliverGrid(
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: getAdaptiveCrossAxisCount(context, mobile: 2, tablet: 3, desktop: 5),
+        childAspectRatio: getAdaptiveAspectRatio(context, mobile: 0.62, desktop: 0.65),
+        crossAxisSpacing: isDesktop ? 16 : 12,
+        mainAxisSpacing: isDesktop ? 16 : 12,
+      ),
+      delegate: delegate,
+    );
+
+    return SliverPadding(
+      padding: EdgeInsets.fromLTRB(isDesktop ? 32 : 16, 0, isDesktop ? 32 : 16, 24),
+      sliver: grid,
+    );
   }
 
   void _onScroll() {
@@ -122,7 +183,12 @@ class _HomePageState extends State<HomePage> {
     if (!hasConfiguredSource()) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: HomeAppBar(onSearchTap: () => context.push('/search')),
+        appBar: HomeAppBar(
+          onSearchTap: () => context.push('/search'),
+          searchQuery: _searchQuery,
+          onSearchChanged: _onSearchChanged,
+          onSearchCleared: _onSearchCleared,
+        ),
         body: RefreshIndicator(
           onRefresh: () async {
             await refreshSources();
@@ -146,10 +212,13 @@ class _HomePageState extends State<HomePage> {
         ),
       );
     }
-    // Vừa thêm nguồn sau khi ở chế độ player-only → tải lại.
-    if (_bloc.state.status == HomeStatus.failure && _bloc.state.movies.isEmpty) {
+    // Config nguồn đổi version (thêm/xóa nguồn ở tab khác trong khi
+    // trang này vẫn sống) -> tải lại feed 1 lần với repository mới.
+    // Thay thế vòng retry trong build cũ (vừa thừa vừa có thể lặp vô hạn).
+    if (_loadedConfigVersion != _configVersion()) {
+      _loadedConfigVersion = _configVersion();
       Future.microtask(() {
-        if (mounted) _bloc.add(const HomeInitialLoad());
+        if (mounted) _bloc.add(const HomeRefresh());
       });
     }
     return BlocProvider.value(
@@ -157,7 +226,7 @@ class _HomePageState extends State<HomePage> {
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: PreferredSize(
-          preferredSize: const Size.fromHeight(64),
+          preferredSize: Size.fromHeight(_searchQuery.isNotEmpty ? 104 : 64),
           child: BlocBuilder<HomeBloc, HomeState>(
             builder: (context, state) => HomeAppBar(
               onSearchTap: () => context.push('/search'),
@@ -168,6 +237,9 @@ class _HomePageState extends State<HomePage> {
               activeSourceId: _activeSourceId,
               onSourceSelected: _onSourceSelected,
               onManageSources: () => context.go('/settings'),
+              searchQuery: _searchQuery,
+              onSearchChanged: _onSearchChanged,
+              onSearchCleared: _onSearchCleared,
             ),
           ),
         ),
@@ -193,12 +265,25 @@ class _HomePageState extends State<HomePage> {
                           ? Container(height: isDesktop ? 520 : 220, decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)), child: const Center(child: CircularProgressIndicator(color: AppColors.primary)))
                           : BannerCarousel(
                               movies: state.movies,
-                              onTap: (slug) => context.push('/movie/$slug'),
+                              onTap: (slug) {
+                                final movie = state.movies
+                                    .cast<dynamic>()
+                                    .firstWhere(
+                                      (m) => m.slug == slug,
+                                      orElse: () => null,
+                                    );
+                                context.push(
+                                  movieDetailPath(
+                                    slug,
+                                    movie?.sourceId as String?,
+                                  ),
+                                );
+                              },
                               onAddToList: (slug) async {
                                 final movie = state.movies.cast<dynamic>().firstWhere((m) => m.slug == slug, orElse: () => null);
                                 if (movie == null) return;
                                 final bookmarkRepo = getIt<BookmarkRepository>();
-                                await bookmarkRepo.toggleBookmark(movieSlug: movie.slug, movieName: movie.name, posterUrl: movie.posterUrl, year: movie.year);
+                                await bookmarkRepo.toggleBookmark(movieSlug: movie.slug, movieName: movie.name, posterUrl: movie.posterUrl, year: movie.year, sourceId: movie.sourceId as String?);
                                 if (context.mounted) AppToast.show(context, message: 'Đã thêm vào Tủ Phim', type: ToastType.success);
                               },
                             ),
@@ -279,33 +364,11 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                     )
-                  else
-                    SliverPadding(
-                      padding: EdgeInsets.fromLTRB(isDesktop ? 32 : 16, 0, isDesktop ? 32 : 16, 24),
-                      sliver: SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: getAdaptiveCrossAxisCount(context, mobile: 2, tablet: 3, desktop: 5),
-                          childAspectRatio: getAdaptiveAspectRatio(context, mobile: 0.62, desktop: 0.65),
-                          crossAxisSpacing: isDesktop ? 16 : 12,
-                          mainAxisSpacing: isDesktop ? 16 : 12,
-                        ),
-                        delegate: SliverChildBuilderDelegate((context, i) {
-                          if (i >= state.movies.length) {
-                            return const Center(child: Padding(padding: EdgeInsets.all(8), child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)));
-                          }
-                          final m = state.movies[i];
-                          return MovieCard(
-                            posterUrl: m.posterUrl,
-                            name: m.name,
-                            year: m.year,
-                            quality: m.quality,
-                            lang: m.lang,
-                            voteAverage: m.voteAverage,
-                            onTap: () => context.push('/movie/${m.slug}'),
-                          );
-                        }, childCount: state.movies.length + (state.status == HomeStatus.loadingMore ? 1 : 0)),
+else
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(isDesktop ? 32 : 16, 0, isDesktop ? 32 : 16, 24),
+                        sliver: _buildMovieGrid(context, state, isDesktop),
                       ),
-                    ),
                   if (state.status == HomeStatus.loadingMore)
                     const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator(color: AppColors.primary)))),
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),

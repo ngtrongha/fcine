@@ -1,4 +1,5 @@
 import 'package:fcine/core/cache/image_cache_manager.dart';
+import 'package:fcine/presentation/router/movie_route.dart';
 import 'package:fcine/presentation/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -56,7 +57,9 @@ class ContinueWatchingSection extends StatelessWidget {
                   ? (h.positionMs / h.durationMs).clamp(0.0, 1.0)
                   : 0.0;
               return GestureDetector(
-                onTap: () => context.push('/movie/${h.movieSlug}'),
+                onTap: () => context.push(
+                  movieDetailPath(h.movieSlug, h.sourceId as String?),
+                ),
                 child: SizedBox(
                   width: isDesktop ? 320 : 256,
                   child: Column(

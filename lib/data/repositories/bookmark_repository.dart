@@ -16,6 +16,7 @@ class BookmarkRepository {
     String? posterUrl,
     int? year,
     String? dataJson,
+    String? sourceId,
   }) async {
     final exists = await isBookmarked(movieSlug);
     if (exists) {
@@ -26,6 +27,7 @@ class BookmarkRepository {
         movieName: Value(movieName),
         posterUrl: Value(posterUrl),
         year: Value(year),
+        sourceId: Value(sourceId ?? 'kkphim'),
         addedAt: Value(DateTime.now()),
         dataJson: Value(dataJson),
       ));

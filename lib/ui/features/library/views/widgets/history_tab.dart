@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../../core/cache/image_cache_manager.dart';
 import '../../../../../core/database/app_database.dart';
+import '../../../../../presentation/router/movie_route.dart';
 
 class HistoryTab extends StatelessWidget {
   final List<WatchHistoryData> items;
@@ -27,7 +28,7 @@ class HistoryTab extends StatelessWidget {
         final h = items[i];
         final progress = h.durationMs > 0 ? (h.positionMs / h.durationMs).clamp(0.0, 1.0) : 0.0;
         return InkWell(
-          onTap: () => context.push('/movie/${h.movieSlug}'),
+          onTap: () => context.push(movieDetailPath(h.movieSlug, h.sourceId)),
           borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: const EdgeInsets.all(10),

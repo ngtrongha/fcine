@@ -58,6 +58,24 @@ class WebScraperDataSource extends RemoteDataSource {
         );
         if (res.statusCode == 200 && res.data is String) {
           final html = res.data as String;
+          // Soft-404: web WP đá về trang chủ (VD slug API gọi nhầm lên
+          // nguồn WEB). Parse trang chủ sẽ ra phim rác "Full" không link,
+          // nên báo 404 luôn để lớp trên fallback sang nguồn khác.
+          final reqUri = Uri.tryParse(url);
+          final wantDetail = reqUri != null &&
+              reqUri.path != '/' &&
+              reqUri.path.isNotEmpty;
+          final finalUri = res.realUri;
+          if (wantDetail &&
+              (finalUri.path == '/' || finalUri.path.isEmpty) &&
+              !finalUri.hasQuery) {
+            lastErr = DioException(
+              requestOptions: res.requestOptions,
+              response: res,
+              error: 'Phim không tồn tại trên nguồn này (404)',
+            );
+            continue;
+          }
           if (_looksLikeChallenge(html)) {
             lastErr = DioException(
               requestOptions: res.requestOptions,
@@ -313,7 +331,13 @@ class WebScraperDataSource extends RemoteDataSource {
         '/${parsed.section}/${parsed.slug}/',
       );
     }
-    return WebScraper.absUrl(source.baseUrl, '/$slug');
+    // Slug trơn (thường là slug API đi lạc): vẫn thêm trailing slash
+    // để WordPress không redirect về trang chủ (soft-404).
+    final plain = slug.startsWith('/') ? slug : '/$slug';
+    return WebScraper.absUrl(
+      source.baseUrl,
+      plain.endsWith('/') ? plain : '$plain/',
+    );
   }
 
   @override

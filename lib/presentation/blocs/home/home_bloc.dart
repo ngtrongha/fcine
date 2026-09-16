@@ -1,11 +1,18 @@
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 import 'package:replay_bloc/replay_bloc.dart';
+import '../../../core/di/injection.dart';
 import '../../../domain/repositories/movie_repository.dart';
 import 'home_event.dart';
 import 'home_state.dart';
 
 class HomeBloc extends HydratedBloc<HomeEvent, HomeState> with ReplayBlocMixin<HomeEvent, HomeState> {
-  final MovieRepository repository;
+  /// Repository override (cho test). Production để null để luôn resolve
+  /// repository MỚI NHẤT từ getIt — tránh giữ repo cũ sau khi thêm/xóa
+  /// nguồn (các tab shell sống suốt vòng đời app).
+  final MovieRepository? _overrideRepository;
+
+  MovieRepository get _repo =>
+      _overrideRepository ?? getIt<MovieRepository>();
   static const Map<String, String> categoryToType = {
     'Tất Cả': 'latest',
     'Phim Mới': 'latest',
@@ -15,7 +22,9 @@ class HomeBloc extends HydratedBloc<HomeEvent, HomeState> with ReplayBlocMixin<H
     'TV Shows': 'tv-shows',
   };
 
-  HomeBloc({required this.repository}) : super(const HomeState()) {
+  HomeBloc({MovieRepository? repository})
+      : _overrideRepository = repository,
+        super(const HomeState()) {
     on<HomeInitialLoad>(_onInitialLoad);
     on<HomeCategoryChanged>(_onCategoryChanged);
     on<HomeLoadMore>(_onLoadMore);
@@ -28,7 +37,7 @@ class HomeBloc extends HydratedBloc<HomeEvent, HomeState> with ReplayBlocMixin<H
     emit(state.copyWith(status: HomeStatus.loading));
     try {
       final type = categoryToType[state.selectedCategory] ?? 'latest';
-      final res = type == 'latest' ? await repository.getLatest(page: 1) : await repository.getListByType(type, page: 1);
+      final res = type == 'latest' ? await _repo.getLatest(page: 1) : await _repo.getListByType(type, page: 1);
       emit(state.copyWith(status: HomeStatus.success, movies: res.movies, page: 1, hasMore: 1 < res.pagination.totalPages));
     } catch (e) {
       emit(state.copyWith(status: HomeStatus.failure, errorMessage: e.toString()));
@@ -39,7 +48,7 @@ class HomeBloc extends HydratedBloc<HomeEvent, HomeState> with ReplayBlocMixin<H
     emit(state.copyWith(selectedCategory: event.category, status: HomeStatus.loading, movies: [], page: 1, hasMore: true));
     try {
       final type = categoryToType[event.category] ?? 'latest';
-      final res = type == 'latest' ? await repository.getLatest(page: 1) : await repository.getListByType(type, page: 1);
+      final res = type == 'latest' ? await _repo.getLatest(page: 1) : await _repo.getListByType(type, page: 1);
       emit(state.copyWith(status: HomeStatus.success, movies: res.movies, page: 1, hasMore: 1 < res.pagination.totalPages));
     } catch (e) {
       emit(state.copyWith(status: HomeStatus.failure, errorMessage: e.toString()));
@@ -52,7 +61,7 @@ class HomeBloc extends HydratedBloc<HomeEvent, HomeState> with ReplayBlocMixin<H
     try {
       final nextPage = state.page + 1;
       final type = categoryToType[state.selectedCategory] ?? 'latest';
-      final res = type == 'latest' ? await repository.getLatest(page: nextPage) : await repository.getListByType(type, page: nextPage);
+      final res = type == 'latest' ? await _repo.getLatest(page: nextPage) : await _repo.getListByType(type, page: nextPage);
       emit(state.copyWith(status: HomeStatus.success, movies: [...state.movies, ...res.movies], page: nextPage, hasMore: nextPage < res.pagination.totalPages));
     } catch (e) {
       emit(state.copyWith(status: HomeStatus.failure, errorMessage: e.toString()));
@@ -63,7 +72,7 @@ class HomeBloc extends HydratedBloc<HomeEvent, HomeState> with ReplayBlocMixin<H
     emit(state.copyWith(status: HomeStatus.loading));
     try {
       final type = categoryToType[state.selectedCategory] ?? 'latest';
-      final res = type == 'latest' ? await repository.getLatest(page: 1) : await repository.getListByType(type, page: 1);
+      final res = type == 'latest' ? await _repo.getLatest(page: 1) : await _repo.getListByType(type, page: 1);
       emit(state.copyWith(status: HomeStatus.success, movies: res.movies, page: 1, hasMore: 1 < res.pagination.totalPages));
     } catch (e) {
       emit(state.copyWith(status: HomeStatus.failure, errorMessage: e.toString()));

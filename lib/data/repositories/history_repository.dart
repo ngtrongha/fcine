@@ -17,6 +17,7 @@ class HistoryRepository {
     required String serverName,
     required int positionMs,
     required int durationMs,
+    String? sourceId,
   }) {
     return db.upsertHistory(WatchHistoryCompanion(
       movieSlug: Value(movieSlug),
@@ -27,6 +28,7 @@ class HistoryRepository {
       serverName: Value(serverName),
       positionMs: Value(positionMs),
       durationMs: Value(durationMs),
+      sourceId: Value(sourceId ?? 'kkphim'),
       updatedAt: Value(DateTime.now()),
     ));
   }

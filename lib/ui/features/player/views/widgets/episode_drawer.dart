@@ -32,12 +32,46 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
   final FocusNode _currentFocusNode = FocusNode();
   final GlobalKey _currentKey = GlobalKey();
 
+  /// Server đang xem trong tab (mặc định bám theo tập đang phát).
+  late String _tab;
+
   static const double _estimatedItemHeight = 44.0;
   static const double _estimatedViewportHeight = 160.0;
+
+  /// Các server theo thứ tự xuất hiện trong danh sách.
+  List<String> get _tabs {
+    final out = <String>[];
+    for (final item in widget.flatEpisodes) {
+      final s = (item['server'] as String?) ?? '';
+      if (!out.contains(s)) out.add(s);
+    }
+    return out;
+  }
+
+  bool get _hasTabs => _tabs.length > 1;
+
+  /// Tập hiển thị: lọc theo tab server đang chọn (1 server -> giữ nguyên).
+  List get _visibleItems {
+    if (!_hasTabs) return widget.flatEpisodes;
+    return widget.flatEpisodes
+        .where((i) => ((i['server'] as String?) ?? '') == _tab)
+        .toList();
+  }
+
+  int _countOf(String server) => widget.flatEpisodes
+      .where((i) => ((i['server'] as String?) ?? '') == server)
+      .length;
+
+  String _initialTab() {
+    final tabs = _tabs;
+    if (tabs.contains(widget.currentServer)) return widget.currentServer;
+    return tabs.isEmpty ? '' : tabs.first;
+  }
 
   @override
   void initState() {
     super.initState();
+    _tab = _initialTab();
     final currentIndex = _findCurrentIndex();
     double initialOffset = 0.0;
     if (currentIndex > 0) {
@@ -70,6 +104,11 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
   @override
   void didUpdateWidget(covariant EpisodeDrawer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // Phát sang server khác (auto-next / đổi server): tab bám theo.
+    if (widget.currentServer != oldWidget.currentServer &&
+        _tabs.contains(widget.currentServer)) {
+      setState(() => _tab = widget.currentServer);
+    }
     if (widget.currentEpisode.slug != oldWidget.currentEpisode.slug ||
         widget.currentServer != oldWidget.currentServer) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -87,9 +126,10 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
   }
 
   int _findCurrentIndex() {
+    final items = _visibleItems;
     int slugMatch = -1;
-    for (int i = 0; i < widget.flatEpisodes.length; i++) {
-      final item = widget.flatEpisodes[i];
+    for (int i = 0; i < items.length; i++) {
+      final item = items[i];
       final ep = item['ep'];
       final bool matchSlug = ep.slug == widget.currentEpisode.slug;
       final bool matchServer = item['server'] == widget.currentServer;
@@ -97,6 +137,52 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
       if (matchSlug && slugMatch == -1) slugMatch = i;
     }
     return slugMatch;
+  }
+
+  void _switchTab(String server) {
+    if (_tab == server) return;
+    setState(() => _tab = server);
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+  }
+
+  Widget _buildServerTabs() {
+    if (!_hasTabs) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: _tabs.map((t) {
+            final selected = t == _tab;
+            return Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: ChoiceChip(
+                label: Text(
+                  '$t (${_countOf(t)})',
+                  style: TextStyle(
+                    color: selected ? Colors.white : const Color(0xFF94A3B8),
+                    fontSize: 11,
+                    fontWeight:
+                        selected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                selected: selected,
+                onSelected: (_) => _switchTab(t),
+                selectedColor: AppColors.primary,
+                backgroundColor: const Color(0xFF1E293B),
+                side: BorderSide(
+                  color: selected
+                      ? AppColors.primary
+                      : const Color(0xFF334155),
+                ),
+                showCheckmark: false,
+                padding: EdgeInsets.zero,
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
   }
 
   Widget _buildHeader() {
@@ -130,6 +216,7 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final items = _visibleItems;
     final currentIndex = _findCurrentIndex();
     return Container(
       width: 280,
@@ -146,13 +233,14 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
         children: [
           _buildHeader(),
           const Divider(height: 1, color: Color(0xFF1E293B)),
+          _buildServerTabs(),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(8),
-              itemCount: widget.flatEpisodes.length,
+              itemCount: items.length,
               itemBuilder: (context, i) {
-                final item = widget.flatEpisodes[i];
+                final item = items[i];
                 final isCurrent = (i == currentIndex);
                 return _EpisodeDrawerTile(
                   key: isCurrent ? _currentKey : null,

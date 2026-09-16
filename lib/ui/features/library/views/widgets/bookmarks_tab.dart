@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../../../core/cache/image_cache_manager.dart';
 import '../../../../../core/database/app_database.dart';
+import '../../../../../presentation/router/movie_route.dart';
 
 class BookmarksTab extends StatelessWidget {
   final List<Bookmark> items;
@@ -18,7 +19,7 @@ class BookmarksTab extends StatelessWidget {
       itemBuilder: (context, i) {
         final b = items[i];
         return GestureDetector(
-          onTap: () => context.push('/movie/${b.movieSlug}'),
+          onTap: () => context.push(movieDetailPath(b.movieSlug, b.sourceId)),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(8), child: b.posterUrl != null ? CachedNetworkImage(cacheManager: FImageCacheManager.instance, imageUrl: b.posterUrl!, fit: BoxFit.cover, width: double.infinity) : Container(color: const Color(0xFF1A2130)))),
             const SizedBox(height: 6),

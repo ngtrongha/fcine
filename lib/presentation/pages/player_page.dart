@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:floating/floating.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -56,6 +57,16 @@ class _PlayerPageState extends State<PlayerPage> {
       isPlaying = true,
       _muted = false;
   Timer? hideTimer, saveTimer;
+  final List<StreamSubscription> _playerSubs = [];
+
+  /// Tập + server ĐANG phát (khác widget.episode/widget.serverName sau
+  /// khi tự động chuyển tập — widget không đổi vì không push trang mới).
+  /// Mọi lưu resume/tra cứu history đều dùng 2 field này.
+  late dynamic _episode;
+  late String _serverName;
+
+  /// Chung key với tab Video để 2 trình phát đồng bộ âm lượng thiết bị.
+  static const _kVolumeKey = 'vlc_volume';
   Duration position = Duration.zero, duration = Duration.zero;
   double playbackSpeed = 1.0,
       _horizontalDragAccum = 0,
@@ -82,8 +93,8 @@ class _PlayerPageState extends State<PlayerPage> {
   int get currentIndex {
     final l = flatEpisodes;
     for (int i = 0; i < l.length; i++) {
-      if (l[i]['ep'].slug == widget.episode.slug &&
-          l[i]['server'] == widget.serverName) {
+      if (l[i]['ep'].slug == _episode.slug &&
+          l[i]['server'] == _serverName) {
         return i;
       }
     }
@@ -102,9 +113,12 @@ class _PlayerPageState extends State<PlayerPage> {
   @override
   void initState() {
     super.initState();
+    _episode = widget.episode;
+    _serverName = widget.serverName;
     player = Player();
     controller = VideoController(player);
     WakelockPlus.enable();
+    _restoreVolume();
     _initPlayer();
     _listenPlayer();
     _startSaveTimer();
@@ -113,8 +127,30 @@ class _PlayerPageState extends State<PlayerPage> {
     _loadIntro();
   }
 
+  /// Khôi phục âm lượng đã lưu (chung với tab Video) rồi đẩy vào player,
+  /// để mở phim mới không bị reset về 100%.
+  Future<void> _restoreVolume() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final v = (prefs.getDouble(_kVolumeKey) ?? 1.0).clamp(0.0, 1.0);
+      if (!mounted) return;
+      setState(() {
+        _volume = v;
+        _muted = v == 0;
+      });
+      await player.setVolume(v * 100);
+    } catch (_) {}
+  }
+
+  Future<void> _persistVolume(double v) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble(_kVolumeKey, v.clamp(0.0, 1.0));
+    } catch (_) {}
+  }
+
   Future<void> _loadQualities([String? url]) async {
-    final m3u8 = url ?? (widget.episode.linkM3u8 as String? ?? '');
+    final m3u8 = url ?? (_episode.linkM3u8 as String? ?? '');
     if (m3u8.isEmpty || !m3u8.contains('.m3u8')) return;
     setState(() => _loadingQualities = true);
     try {
@@ -208,7 +244,7 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   Future<void> _openExternal() async {
-    final url = widget.episode.linkM3u8 as String;
+    final url = _episode.linkM3u8 as String;
     if (url.isEmpty) return;
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
@@ -281,13 +317,15 @@ class _PlayerPageState extends State<PlayerPage> {
     if (e.logicalKey == LogicalKeyboardKey.arrowUp) {
       final v = (_volume + 0.05).clamp(0.0, 1.0);
       setState(() => _volume = v);
-      player.setVolume(v);
+      player.setVolume(v * 100);
+      _persistVolume(v);
       return KeyEventResult.handled;
     }
     if (e.logicalKey == LogicalKeyboardKey.arrowDown) {
       final v = (_volume - 0.05).clamp(0.0, 1.0);
       setState(() => _volume = v);
-      player.setVolume(v);
+      player.setVolume(v * 100);
+      _persistVolume(v);
       return KeyEventResult.handled;
     }
     if (e.logicalKey == LogicalKeyboardKey.keyF) {
@@ -296,7 +334,7 @@ class _PlayerPageState extends State<PlayerPage> {
     }
     if (e.logicalKey == LogicalKeyboardKey.keyM) {
       setState(() => _muted = !_muted);
-      player.setVolume(_muted ? 0 : _volume);
+      player.setVolume(_muted ? 0 : _volume * 100);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -334,11 +372,11 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   Future<void> _initPlayer() async {
-    String m3u8 = (widget.episode.linkM3u8 as String?) ?? '';
+    String m3u8 = (_episode.linkM3u8 as String?) ?? '';
     // Nguồn web: tập chỉ có URL trang tập -> băm lấy link phát (lazy).
     if (m3u8.isEmpty) {
       final web = _webSource();
-      final page = (widget.episode.slug as String?) ?? '';
+      final page = (_episode.slug as String?) ?? '';
       if (web == null || page.isEmpty) {
         setState(() => playerError = 'Link m3u8 rỗng - thử đổi server khác');
         return;
@@ -347,7 +385,7 @@ class _PlayerPageState extends State<PlayerPage> {
         _resolvingStream = true;
         playerError = null;
       });
-      final url = await _resolveEpisodeUrl(widget.episode, widget.serverName);
+      final url = await _resolveEpisodeUrl(_episode, _serverName);
       if (!mounted) return;
       setState(() => _resolvingStream = false);
       if (url == null || url.isEmpty) {
@@ -362,8 +400,8 @@ class _PlayerPageState extends State<PlayerPage> {
     try {
       final local = await getIt<DownloadService>().getLocalPath(
         widget.movie.slug,
-        widget.episode.slug,
-        widget.serverName,
+        _episode.slug,
+        _serverName,
       );
       if (local != null) {
         m3u8 = Uri.file(local).toString();
@@ -377,12 +415,32 @@ class _PlayerPageState extends State<PlayerPage> {
       }
     } catch (_) {}
     try {
-      final ex = await getIt<HistoryRepository>().db.getHistory(
+      final historyDb = getIt<HistoryRepository>().db;
+      final ex = await historyDb.getHistory(
         widget.movie.slug,
-        widget.episode.slug,
-        widget.serverName,
+        _episode.slug,
+        _serverName,
       );
-      final start = ex?.positionMs ?? 0;
+      var start = ex?.positionMs ?? 0;
+      // Không khớp exact (đổi tên server / mở từ nguồn khác cùng slug tập):
+      // dùng lại vị trí của cùng tập đó thay vì xem từ đầu.
+      if (start <= 5000) {
+        try {
+          String base(String s) => s.contains('~') ? s.split('~').last : s;
+          final wantMovie = base(widget.movie.slug as String? ?? '');
+          final rows = await historyDb.getAllHistory();
+          final sameEp = rows
+              .where(
+                (h) =>
+                    (h.movieSlug == widget.movie.slug ||
+                        base(h.movieSlug) == wantMovie) &&
+                    h.episodeSlug == _episode.slug &&
+                    h.positionMs > 5000,
+              )
+              .firstOrNull;
+          if (sameEp != null) start = sameEp.positionMs;
+        } catch (_) {}
+      }
       await player.open(Media(m3u8), play: true);
       if (start > 5000) {
         await player.seek(Duration(milliseconds: start));
@@ -413,10 +471,10 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   Future<void> _switchServer() async {
-    final cur = widget.episode.name;
+    final cur = _episode.name;
     final web = _webSource();
     for (final s in widget.servers) {
-      if (s.serverName == widget.serverName) continue;
+      if (s.serverName == _serverName) continue;
       for (final ep in s.episodes) {
         final hasUrl = ((ep.linkM3u8 as String?) ?? '').isNotEmpty;
         final webPlayable = web != null &&
@@ -450,7 +508,8 @@ class _PlayerPageState extends State<PlayerPage> {
   void _reportError() {
     if (kDebugMode) {
       print(
-        '[REPORT] Broken link: ${widget.movie.slug} - ${widget.episode.slug} (${widget.serverName}) -> ${widget.episode.linkM3u8}',
+        '[REPORT] Broken link: ${widget.movie.slug} - ${_episode.slug} ($_serverName) -> '
+        '${_episode.linkM3u8}',
       );
     }
     if (mounted) {
@@ -464,28 +523,68 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   void _listenPlayer() {
-    player.stream.position.listen((p) {
-      setState(() => position = p);
-      _checkSkipIntro();
-    });
-    player.stream.duration.listen(
-      (d) => setState(() {
-        duration = d;
-        if (d.inMilliseconds > 0) playerError = null;
+    // Giữ subscriptions để cancel ở dispose: media_kit vẫn bắn event
+    // sau khi trang đóng (đổi tập/back) gây setState after dispose.
+    _playerSubs.add(
+      player.stream.position.listen((p) {
+        if (!mounted) return;
+        setState(() => position = p);
+        _checkSkipIntro();
       }),
     );
-    player.stream.playing.listen((v) => setState(() => isPlaying = v));
-    player.stream.completed.listen((c) {
-      if (c) _playNext();
-    });
-    player.stream.error.listen((e) {
-      if (mounted && !_hasTriedFallback) {
-        _hasTriedFallback = true;
-        setState(() => playerError = e.isNotEmpty ? e : 'Lỗi luồng stream');
-      }
-    });
-    player.stream.tracks.listen((t) => setState(() => _tracks = t));
-    player.stream.track.listen((t) => setState(() => _currentTrack = t));
+    _playerSubs.add(
+      player.stream.duration.listen(
+        (d) {
+          if (!mounted) return;
+          setState(() {
+            duration = d;
+            if (d.inMilliseconds > 0) playerError = null;
+          });
+        },
+      ),
+    );
+    _playerSubs.add(
+      player.stream.playing.listen((v) {
+        if (!mounted) return;
+        setState(() => isPlaying = v);
+      }),
+    );
+    _playerSubs.add(
+      player.stream.completed.listen((c) {
+        if (c && mounted) _onCompleted();
+      }),
+    );
+    _playerSubs.add(
+      player.stream.error.listen((e) {
+        if (mounted && !_hasTriedFallback) {
+          _hasTriedFallback = true;
+          setState(() => playerError = e.isNotEmpty ? e : 'Lỗi luồng stream');
+        }
+      }),
+    );
+    _playerSubs.add(
+      player.stream.tracks.listen((t) {
+        if (!mounted) return;
+        setState(() => _tracks = t);
+      }),
+    );
+    _playerSubs.add(
+      player.stream.track.listen((t) {
+        if (!mounted) return;
+        setState(() => _currentTrack = t);
+      }),
+    );
+    // Đồng bộ slider với volume thực của player (thang mpv 0-100):
+    // thay đổi từ phím cứng/OSD/mpv đều phản ánh lên UI + lưu lại.
+    _playerSubs.add(
+      player.stream.volume.listen((v) {
+        if (!mounted || _muted) return;
+        final nv = (v / 100.0).clamp(0.0, 1.0);
+        if ((nv - _volume).abs() < 0.005) return;
+        setState(() => _volume = nv);
+        _persistVolume(nv);
+      }),
+    );
   }
 
   void _startSaveTimer() => saveTimer = Timer.periodic(
@@ -494,11 +593,26 @@ class _PlayerPageState extends State<PlayerPage> {
   );
   Future<void> _saveProgress() => ProgressService.save(
     movie: widget.movie,
-    episode: widget.episode,
-    serverName: widget.serverName,
+    episode: _episode,
+    serverName: _serverName,
     pos: position,
     dur: duration,
   );
+
+  /// Tập vừa xem xong: xóa dòng resume của nó (xem lại sẽ phát từ đầu)
+  /// rồi mới tự chuyển tập — nếu không, tập cũ kẹt lại vị trí 90%+.
+  Future<void> _onCompleted() async {
+    if (duration.inMilliseconds <= 0) return;
+    try {
+      await getIt<HistoryRepository>().deleteProgress(
+        widget.movie.slug,
+        _episode.slug,
+        _serverName,
+      );
+    } catch (_) {}
+    await _playNext();
+  }
+
   Future<void> _playNext() async {
     final idx = currentIndex, list = flatEpisodes;
     if (idx + 1 >= list.length) {
@@ -526,6 +640,17 @@ class _PlayerPageState extends State<PlayerPage> {
       return;
     }
     await player.open(Media(url!), play: true);
+    if (!mounted) return;
+    // Đổi state sang tập mới: resume/title/drawer/highlight sau này
+    // bám đúng tập đang phát (trước đây kẹt ở tập cũ).
+    setState(() {
+      _episode = ep;
+      _serverName = next['server'] as String? ?? _serverName;
+      _hasSkippedIntro = false;
+      _qualities = [];
+      _selectedQualityUrl = null;
+    });
+    await _loadQualities(url);
     if (!mounted) return;
     AppToast.show(
       context,
@@ -580,7 +705,12 @@ class _PlayerPageState extends State<PlayerPage> {
   void dispose() {
     hideTimer?.cancel();
     saveTimer?.cancel();
+    for (final s in _playerSubs) {
+      s.cancel();
+    }
+    _playerSubs.clear();
     _saveProgress();
+    _persistVolume(_muted ? 0 : _volume);
     player.dispose();
     WakelockPlus.disable();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -602,7 +732,7 @@ class _PlayerPageState extends State<PlayerPage> {
       muted: _muted,
       onToggleMute: () {
         setState(() => _muted = !_muted);
-        player.setVolume(_muted ? 0 : _volume);
+        player.setVolume(_muted ? 0 : _volume * 100);
       },
       loadingQualities: _loadingQualities,
       qualities: _qualities,
@@ -709,8 +839,8 @@ class _PlayerPageState extends State<PlayerPage> {
                   left: 0,
                   right: 0,
                   child: PlayerTopBar(
-                    title: '${widget.movie.name} • ${widget.episode.name}',
-                    serverName: widget.serverName,
+                    title: '${widget.movie.name} • ${_episode.name}',
+                    serverName: _serverName,
                     onBack: () => Navigator.pop(context),
                     onSettings: _showSettingsSheet,
                   ),
@@ -729,7 +859,8 @@ class _PlayerPageState extends State<PlayerPage> {
                     onVolumeChanged: (v) {
                       setState(() => _volume = v);
                       setState(() => _muted = v == 0);
-                      player.setVolume(v);
+                      player.setVolume(v * 100);
+                      _persistVolume(v);
                     },
                   ),
                 ),
@@ -776,8 +907,8 @@ class _PlayerPageState extends State<PlayerPage> {
                   right: 16,
                   child: EpisodeDrawer(
                     flatEpisodes: flatEpisodes,
-                    currentEpisode: widget.episode,
-                    currentServer: widget.serverName,
+                    currentEpisode: _episode,
+                    currentServer: _serverName,
                     onClose: () {
                       setState(() => _showEpisodeDrawer = false);
                       _resetHideTimer();
@@ -806,6 +937,26 @@ class _PlayerPageState extends State<PlayerPage> {
     );
   }
 
+  /// Tiêu đề player: "Tên phim - Tập 1/Full - Vietsub/Thuyết minh".
+  /// Bỏ qua phần rỗng để không thừa dấu "-" (VD tập lỗi thiếu tên).
+  String _playerTitle() {
+    String part(dynamic v) {
+      try {
+        final s = v?.toString().trim() ?? '';
+        return s == 'null' ? '' : s;
+      } catch (_) {
+        return '';
+      }
+    }
+
+    final parts = <String>[
+      part(widget.movie.name),
+      part(_episode.name),
+      part(_serverName),
+    ].where((e) => e.isNotEmpty).toList();
+    return parts.join(' - ');
+  }
+
   Widget _buildDesktop() => Focus(
     autofocus: true,
     onKeyEvent: (n, e) => _handleKey(e),
@@ -830,8 +981,8 @@ class _PlayerPageState extends State<PlayerPage> {
       isFullscreen: isFullscreen,
       onToggleFullscreen: _toggleFullscreen,
       flatEpisodes: flatEpisodes,
-      currentEpisode: widget.episode,
-      currentServer: widget.serverName,
+      currentEpisode: _episode,
+      currentServer: _serverName,
       onSelectEpisode: (ep, s) async {
         await _saveProgress();
         if (mounted) {
@@ -848,14 +999,14 @@ class _PlayerPageState extends State<PlayerPage> {
           );
         }
       },
-      title: '${widget.movie.name} - ${widget.episode.name}',
+      title: _playerTitle(),
       onCast: _showCastPlaceholder,
       onPip: _enterPip,
       onExternal: _openExternal,
       muted: _muted,
       onToggleMute: () {
         setState(() => _muted = !_muted);
-        player.setVolume(_muted ? 0 : _volume);
+        player.setVolume(_muted ? 0 : _volume * 100);
       },
     ),
   );

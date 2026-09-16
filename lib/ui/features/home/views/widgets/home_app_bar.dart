@@ -19,23 +19,29 @@ String homeCategoryForNavIndex(int index) =>
     homeNavCategories[index.clamp(0, homeNavCategories.length - 1)];
 
 class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final VoidCallback onSearchTap;
+  final VoidCallback? onSearchTap;
   final int selectedNav;
   final ValueChanged<int>? onNavSelected;
   final List<SourceConfig> sources;
   final String? activeSourceId;
   final ValueChanged<String>? onSourceSelected;
   final VoidCallback? onManageSources;
+  final String searchQuery;
+  final ValueChanged<String> onSearchChanged;
+  final VoidCallback? onSearchCleared;
 
   const HomeAppBar({
     super.key,
-    required this.onSearchTap,
+    this.onSearchTap,
     this.selectedNav = 0,
     this.onNavSelected,
     this.sources = const [],
     this.activeSourceId,
     this.onSourceSelected,
     this.onManageSources,
+    this.searchQuery = '',
+    required this.onSearchChanged,
+    this.onSearchCleared,
   });
 
   @override
@@ -44,6 +50,8 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final isDesktop = context.isDesktop;
+    final showInlineSearch = isDesktop || searchQuery.isNotEmpty;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.background.withValues(alpha: 0.80),
@@ -52,126 +60,172 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
       child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 24),
-          child: Row(
-            children: [
-              if (!isDesktop)
-                IconButton(
-                  icon: const Icon(Icons.menu_rounded, color: Colors.white70),
-                  onPressed: () {},
-                ),
-              if (isDesktop) ...[
-                const Text(
-                  'F-Cine',
-                  style: TextStyle(
-                    color: Color(0xFFE50914),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 28,
-                    letterSpacing: -0.5,
-                    shadows: [Shadow(color: Color(0xFFE50914), blurRadius: 8)],
-                  ),
-                ),
-                const SizedBox(width: 32),
-                _SegmentedNav(
-                  selected: selectedNav,
-                  onSelected: onNavSelected ?? (_) {},
-                ),
-                if (sources.isNotEmpty &&
-                    onSourceSelected != null &&
-                    onManageSources != null) ...[
-                  const SizedBox(width: 12),
-                  SourcePickerButton(
-                    sources: sources,
-                    activeSourceId: activeSourceId,
-                    onSelected: onSourceSelected!,
-                    onManageSources: onManageSources!,
-                  ),
-                ],
-              ] else
-                const Expanded(
-                  child: Center(
-                    child: Text(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 24),
+              child: Row(
+                children: [
+                  if (!isDesktop)
+                    IconButton(
+                      icon: const Icon(Icons.menu_rounded, color: Colors.white70),
+                      onPressed: () {},
+                    ),
+                  if (isDesktop) ...[
+                    const Text(
                       'F-Cine',
                       style: TextStyle(
                         color: Color(0xFFE50914),
                         fontWeight: FontWeight.w900,
-                        fontSize: 24,
+                        fontSize: 28,
                         letterSpacing: -0.5,
-                        shadows: [
-                          Shadow(color: Color(0xFFE50914), blurRadius: 8),
-                        ],
+                        shadows: [Shadow(color: Color(0xFFE50914), blurRadius: 8)],
                       ),
                     ),
-                  ),
-                ),
-              const Spacer(),
-              if (isDesktop && MediaQuery.of(context).size.width >= 1280)
-                GestureDetector(
-                  onTap: onSearchTap,
-                  child: Container(
-                    width: 260,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.10),
-                      ),
+                    const SizedBox(width: 32),
+                    _SegmentedNav(
+                      selected: selectedNav,
+                      onSelected: onNavSelected ?? (_) {},
                     ),
-                    child: const Row(
-                      children: [
-                        SizedBox(width: 12),
-                        Icon(
-                          Icons.search_rounded,
-                          color: Colors.white54,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Tìm kiếm phim...',
-                            style: TextStyle(color: Colors.white38, fontSize: 13),
+                    if (sources.isNotEmpty &&
+                        onSourceSelected != null &&
+                        onManageSources != null) ...[
+                      const SizedBox(width: 12),
+                      SourcePickerButton(
+                        sources: sources,
+                        activeSourceId: activeSourceId,
+                        onSelected: onSourceSelected!,
+                        onManageSources: onManageSources!,
+                      ),
+                    ],
+                  ] else
+                    const Expanded(
+                      child: Center(
+                        child: Text(
+                          'F-Cine',
+                          style: TextStyle(
+                            color: Color(0xFFE50914),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 24,
+                            letterSpacing: -0.5,
+                            shadows: [
+                              Shadow(color: Color(0xFFE50914), blurRadius: 8),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
+                  const Spacer(),
+                  if (!isDesktop &&
+                      sources.isNotEmpty &&
+                      onSourceSelected != null &&
+                      onManageSources != null)
+                    SourcePickerButton(
+                      compact: true,
+                      sources: sources,
+                      activeSourceId: activeSourceId,
+                      onSelected: onSourceSelected!,
+                      onManageSources: onManageSources!,
+                    ),
+                  IconButton(
+                    icon: Icon(
+                      isDesktop
+                          ? Icons.notifications_none_rounded
+                          : Icons.search_rounded,
+                      color: Colors.white70,
+                    ),
+                    onPressed: onSearchTap,
                   ),
-                ),
-              if (isDesktop &&
-                  MediaQuery.of(context).size.width >= 1280)
-                const SizedBox(width: 16),
-              if (!isDesktop &&
-                  sources.isNotEmpty &&
-                  onSourceSelected != null &&
-                  onManageSources != null)
-                SourcePickerButton(
-                  compact: true,
-                  sources: sources,
-                  activeSourceId: activeSourceId,
-                  onSelected: onSourceSelected!,
-                  onManageSources: onManageSources!,
-                ),
-              IconButton(
-                icon: Icon(
-                  isDesktop
-                      ? Icons.notifications_none_rounded
-                      : Icons.search_rounded,
-                  color: Colors.white70,
-                ),
-                onPressed: onSearchTap,
+                  if (isDesktop) ...[
+                    const SizedBox(width: 8),
+                    const CircleAvatar(
+                      radius: 18,
+                      backgroundColor: Color(0xFF1A2130),
+                      child: Icon(Icons.person_rounded, color: Colors.white70, size: 18),
+                    ),
+                  ],
+                ],
               ),
-              if (isDesktop) ...[
-                const SizedBox(width: 8),
-                const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Color(0xFF1A2130),
-                  child: Icon(Icons.person_rounded, color: Colors.white70, size: 18),
+            ),
+            if (showInlineSearch)
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  isDesktop ? 32 : 16,
+                  8,
+                  isDesktop ? 32 : 16,
+                  8,
                 ),
-              ],
-            ],
-          ),
+                child: _InlineSearchField(
+                  query: searchQuery,
+                  onChanged: onSearchChanged,
+                  onCleared: onSearchCleared,
+                  isDesktop: isDesktop,
+                ),
+              ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+/// Ô tìm kiếm nội tuyến (inline) cho app bar.
+class _InlineSearchField extends StatelessWidget {
+  final String query;
+  final ValueChanged<String> onChanged;
+  final VoidCallback? onCleared;
+  final bool isDesktop;
+
+  const _InlineSearchField({
+    required this.query,
+    required this.onChanged,
+    this.onCleared,
+    this.isDesktop = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = TextEditingController(text: query);
+    controller.selection = TextSelection.collapsed(offset: query.length);
+
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 12),
+          Icon(
+            Icons.search_rounded,
+            color: Colors.white54,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: controller,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              decoration: const InputDecoration(
+                hintText: 'Tìm kiếm phim...',
+                hintStyle: TextStyle(color: Colors.white38, fontSize: 13),
+                border: InputBorder.none,
+                isDense: true,
+              ),
+              onChanged: onChanged,
+            ),
+          ),
+          if (query.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.clear_rounded, color: Colors.white54, size: 20),
+              onPressed: onCleared,
+              tooltip: 'Xóa tìm kiếm',
+            ),
+          const SizedBox(width: 8),
+        ],
       ),
     );
   }

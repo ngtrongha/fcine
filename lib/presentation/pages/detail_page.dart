@@ -6,8 +6,10 @@ import 'package:drift/drift.dart' show Value;
 import '../../core/cache/image_cache_manager.dart';
 import '../../core/di/injection.dart';
 import '../../core/database/app_database.dart';
+import '../../core/config/config_service.dart';
 import '../../core/config/master_config.dart';
 import '../../core/toast/app_toast.dart';
+import '../router/movie_route.dart';
 import '../../domain/entities/movie.dart';
 import '../../domain/entities/episode.dart';
 import '../../domain/repositories/movie_repository.dart';
@@ -17,7 +19,12 @@ import '../theme/app_theme.dart';
 
 class DetailPage extends StatefulWidget {
   final String slug;
-  const DetailPage({super.key, required this.slug});
+
+  /// Nguồn đang hiển thị ở danh sách (truyền qua `?source=`).
+  /// Chi tiết ưu tiên nguồn này để tránh lệch slug API <-> WEB.
+  final String? initialSourceId;
+
+  const DetailPage({super.key, required this.slug, this.initialSourceId});
 
   @override
   State<DetailPage> createState() => _DetailPageState();
@@ -31,7 +38,7 @@ class _DetailPageState extends State<DetailPage> {
   Movie? _movie;
   List<EpisodeServer> _servers = [];
   int _selectedServerIndex = 0;
-  String _selectedSourceId = 'kkphim';
+  String _selectedSourceId = '';
   bool _isSwitchingSource = false;
   bool _isBookmarked = false;
   bool _bookmarkLoading = false;
@@ -46,16 +53,69 @@ class _DetailPageState extends State<DetailPage> {
       if (show != _showTitle) setState(() => _showTitle = show);
     });
 
-    final masterConfig = getIt.isRegistered<MasterConfig>()
-        ? getIt<MasterConfig>()
-        : null;
-    _selectedSourceId = masterConfig?.enabledSource?.id ?? '';
-
     if (!hasConfiguredSource()) {
       _loading = false;
       _error = null;
       return;
     }
+    _initAndLoad();
+  }
+
+  List<SourceConfig> _enabledSources() {
+    try {
+      final cfg = getIt<MasterConfig>();
+      return cfg.sources.where((s) => s.enabled).toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  /// Slug web có dạng `section~slug`, slug API là chuỗi trơn.
+  static bool _slugIsWeb(String slug) => slug.contains('~');
+
+  /// Thứ tự thử nguồn: nguồn được chỉ định trước, rồi tới các nguồn
+  /// cùng loại với slug (tránh gọi slug API lên nguồn WEB và ngược lại),
+  /// cuối cùng là các nguồn còn lại.
+  List<String> _orderedSources(String preferred) {
+    final enabled = _enabledSources();
+    final wantWeb = _slugIsWeb(widget.slug);
+    final ids = <String>[];
+    void add(String id) {
+      if (id.isNotEmpty && !ids.contains(id)) ids.add(id);
+    }
+
+    if (enabled.any((s) => s.id == preferred)) add(preferred);
+    for (final s in enabled.where((s) => s.isWeb == wantWeb)) {
+      add(s.id);
+    }
+    for (final s in enabled) {
+      add(s.id);
+    }
+    if (ids.isEmpty) ids.add('');
+    return ids;
+  }
+
+  /// Ưu tiên nguồn: `?source=` (nếu còn bật) -> nguồn đang active
+  /// trên top bar -> nguồn cùng loại với slug.
+  Future<void> _initAndLoad() async {
+    var initial = widget.initialSourceId?.trim() ?? '';
+    if (initial.isNotEmpty &&
+        !_enabledSources().any((s) => s.id == initial)) {
+      initial = '';
+    }
+    _selectedSourceId = initial;
+    if (_selectedSourceId.isEmpty) {
+      try {
+        final activeId = await getIt<ConfigService>().getActiveSourceId();
+        if (!mounted) return;
+        if (activeId != null &&
+            activeId.isNotEmpty &&
+            _enabledSources().any((s) => s.id == activeId)) {
+          _selectedSourceId = activeId;
+        }
+      } catch (_) {}
+    }
+    if (!mounted) return;
     _loadDetail();
   }
 
@@ -79,21 +139,36 @@ class _DetailPageState extends State<DetailPage> {
     });
     try {
       final repo = getIt<MovieRepository>();
-      final effectiveSource = sourceId ?? _selectedSourceId;
-      final data = await repo.getDetail(widget.slug, sourceId: effectiveSource);
-      final bookmark = await getIt<AppDatabase>().getBookmark(widget.slug);
+      final preferred = (sourceId ?? _selectedSourceId).trim();
+      // Thử lần lượt các nguồn (ưu tiên nguồn được chỉ định + cùng loại
+      // slug) thay vì kẹt ở 1 nguồn sai rồi báo "Không tìm thấy phim".
+      final candidates = _orderedSources(preferred);
+      Object? lastErr;
+      for (final id in candidates) {
+        try {
+          final data = await repo.getDetail(
+            widget.slug,
+            sourceId: id.isEmpty ? null : id,
+          );
+          final bookmark = await getIt<AppDatabase>().getBookmark(widget.slug);
 
-      if (mounted) {
-        setState(() {
-          _movie = data.movie;
-          _servers = data.servers;
-          _selectedServerIndex = 0;
-          _selectedSourceId = effectiveSource;
-          _isBookmarked = bookmark != null;
-          _loading = false;
-        });
+          if (mounted) {
+            setState(() {
+              _movie = data.movie;
+              _servers = data.servers;
+              _selectedServerIndex = 0;
+              _selectedSourceId = id;
+              _isBookmarked = bookmark != null;
+              _loading = false;
+            });
+          }
+          _loadRelated(data.movie.type);
+          return;
+        } catch (e) {
+          lastErr = e;
+        }
       }
-      _loadRelated(data.movie.type);
+      throw lastErr ?? Exception('Không tải được chi tiết phim');
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -104,6 +179,19 @@ class _DetailPageState extends State<DetailPage> {
     }
   }
 
+  /// true khi slug và nguồn đích khác loại (API trơn <-> WEB section~slug).
+  /// Thử trực tiếp trường hợp này chỉ ra rác (VD trang chủ WP parse thành
+  /// phim "Full" không link), nên bỏ qua để tìm theo tên phim.
+  bool _isCrossType(String slug, String targetSourceId) {
+    try {
+      final src = _enabledSources().where((s) => s.id == targetSourceId).firstOrNull;
+      if (src == null) return false;
+      return src.isWeb != _slugIsWeb(slug);
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _switchSource(String sourceId) async {
     if (_selectedSourceId == sourceId || _isSwitchingSource) return;
     setState(() => _isSwitchingSource = true);
@@ -111,26 +199,29 @@ class _DetailPageState extends State<DetailPage> {
     try {
       final repo = getIt<MovieRepository>();
 
-      // 1. Thử tải trực tiếp với slug hiện tại
-      try {
-        final data = await repo.getDetail(widget.slug, sourceId: sourceId);
-        if (mounted) {
-          setState(() {
-            _movie = data.movie;
-            _servers = data.servers;
-            _selectedSourceId = sourceId;
-            _selectedServerIndex = 0;
-            _isSwitchingSource = false;
-          });
-          AppToast.show(
-            context,
-            message: 'Đã đổi sang nguồn $sourceId',
-            type: ToastType.success,
-          );
-          return;
+      // 1. Thử tải trực tiếp với slug hiện tại (bỏ qua khi khác loại
+      // slug API <-> nguồn WEB: thử trực tiếp chỉ ra phim rác).
+      if (!_isCrossType(widget.slug, sourceId)) {
+        try {
+          final data = await repo.getDetail(widget.slug, sourceId: sourceId);
+          if (mounted) {
+            setState(() {
+              _movie = data.movie;
+              _servers = data.servers;
+              _selectedSourceId = sourceId;
+              _selectedServerIndex = 0;
+              _isSwitchingSource = false;
+            });
+            AppToast.show(
+              context,
+              message: 'Đã đổi sang nguồn $sourceId',
+              type: ToastType.success,
+            );
+            return;
+          }
+        } catch (_) {
+          // Fallback: tìm kiếm theo tên phim trên nguồn mới
         }
-      } catch (_) {
-        // Fallback: tìm kiếm theo tên phim trên nguồn mới
       }
 
       // 2. Tìm kiếm theo tên phim nếu slug khác nhau
@@ -218,6 +309,9 @@ class _DetailPageState extends State<DetailPage> {
             movieName: Value(_movie!.name),
             posterUrl: Value(_movie!.posterUrl),
             year: Value(_movie!.year),
+            sourceId: Value(
+              _selectedSourceId.isEmpty ? _movie!.sourceId : _selectedSourceId,
+            ),
             addedAt: Value(DateTime.now()),
           ),
         );
@@ -275,19 +369,45 @@ class _DetailPageState extends State<DetailPage> {
       return;
     }
 
-    // Kiểm tra lịch sử xem dở
+    // Kiểm tra lịch sử xem dở (khớp cả khi mở từ nguồn khác:
+    // slug web `section~abc` và slug API trơn `abc` coi như cùng phim).
     try {
       final db = getIt<AppDatabase>();
       final historyList = await db.getAllHistory();
-      final lastWatched = historyList
-          .where((h) => h.movieSlug == widget.slug)
-          .firstOrNull;
+      String base(String s) => s.contains('~') ? s.split('~').last : s;
+      final wantBase = base(widget.slug);
+      final candidates = historyList
+          .where(
+            (h) => h.movieSlug == widget.slug || base(h.movieSlug) == wantBase,
+          )
+          .toList();
+      final lastWatched = candidates.firstOrNull;
       if (lastWatched != null) {
-        final ep = server.episodes
-            .where((e) => e.slug == lastWatched.episodeSlug)
-            .firstOrNull;
-        if (ep != null) {
-          _playEpisode(ep, server.serverName);
+        Episode? ep;
+        // 1. Đúng tập đã xem (so cả slug đầy đủ lẫn phần base).
+        for (final s in _servers) {
+          ep = s.episodes
+              .where(
+                (e) =>
+                    e.slug == lastWatched.episodeSlug ||
+                    base(e.slug) == base(lastWatched.episodeSlug),
+              )
+              .firstOrNull;
+          if (ep != null) {
+            _playEpisode(ep, s.serverName);
+            return;
+          }
+        }
+        // 2. Không còn đúng tập (đổi nguồn khác format tập): mở tập cùng tên.
+        final allNames = <String, (Episode, String)>{};
+        for (final s in _servers) {
+          for (final e in s.episodes) {
+            allNames.putIfAbsent(e.name, () => (e, s.serverName));
+          }
+        }
+        final sameName = allNames[lastWatched.episodeName];
+        if (sameName != null) {
+          _playEpisode(sameName.$1, sameName.$2);
           return;
         }
       }
@@ -324,8 +444,9 @@ class _DetailPageState extends State<DetailPage> {
       );
     }
     if (_error != null) {
+      final sources = _enabledSources();
       return Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -351,6 +472,59 @@ class _DetailPageState extends State<DetailPage> {
                   foregroundColor: Colors.white,
                 ),
               ),
+              // Lỗi thường do lệch nguồn (slug API mở bằng nguồn WEB
+              // và ngược lại) — cho đổi nguồn ngay tại đây.
+              if (sources.length > 1) ...[
+                const SizedBox(height: 16),
+                const Text(
+                  'Thử nguồn khác:',
+                  style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: sources.map((src) {
+                    final isSelected = _selectedSourceId == src.id;
+                    return InkWell(
+                      onTap: _isSwitchingSource
+                          ? null
+                          : () => _loadDetail(sourceId: src.id),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? AppColors.primary
+                              : const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color: isSelected
+                                ? AppColors.primary
+                                : const Color(0xFF334155),
+                          ),
+                        ),
+                        child: Text(
+                          src.name.isEmpty ? src.id : src.name,
+                          style: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : const Color(0xFFCBD5E1),
+                            fontSize: 12,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
           ),
         ),
@@ -992,7 +1166,7 @@ class _DetailPageState extends State<DetailPage> {
               itemBuilder: (context, i) {
                 final m = _relatedMovies[i];
                 return GestureDetector(
-                  onTap: () => context.push('/movie/${m.slug}'),
+                  onTap: () => context.push(movieDetailPath(m.slug, m.sourceId)),
                   child: SizedBox(
                     width: 130,
                     child: Column(
