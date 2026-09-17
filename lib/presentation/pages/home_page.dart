@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/repositories/bookmark_repository.dart';
+import '../../data/repositories/history_repository.dart';
 import '../blocs/home/home_bloc.dart';
 import '../blocs/home/home_event.dart';
 import '../blocs/home/home_state.dart';
@@ -35,6 +36,7 @@ class _HomePageState extends State<HomePage> {
   String? _activeSourceId;
   late int _loadedConfigVersion;
   String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -45,7 +47,9 @@ class _HomePageState extends State<HomePage> {
     _loadActiveSource();
     _scrollController.addListener(_onScroll);
     _db.watchAllHistory().listen((list) {
-      if (mounted) setState(() => _history = list);
+      if (mounted) {
+        setState(() => _history = HistoryRepository.latestPerMovie(list));
+      }
     });
   }
 
@@ -102,6 +106,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _onSearchCleared() {
+    _searchController.clear();
     setState(() => _searchQuery = '');
   }
 
@@ -173,6 +178,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
+    _searchController.dispose();
     _bloc.close();
     super.dispose();
   }
@@ -183,12 +189,7 @@ class _HomePageState extends State<HomePage> {
     if (!hasConfiguredSource()) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: HomeAppBar(
-          onSearchTap: () => context.push('/search'),
-          searchQuery: _searchQuery,
-          onSearchChanged: _onSearchChanged,
-          onSearchCleared: _onSearchCleared,
-        ),
+        appBar: const HomeAppBar(),
         body: RefreshIndicator(
           onRefresh: () async {
             await refreshSources();
@@ -226,18 +227,14 @@ class _HomePageState extends State<HomePage> {
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: PreferredSize(
-          preferredSize: Size.fromHeight(_searchQuery.isNotEmpty ? 104 : 64),
+          preferredSize: const Size.fromHeight(64),
           child: BlocBuilder<HomeBloc, HomeState>(
-            builder: (context, state) => HomeAppBar(
-              onSearchTap: () => context.push('/search'),
-              selectedNav: homeNavIndexForCategory(state.selectedCategory),
-              onNavSelected: (i) =>
-                  _bloc.add(HomeCategoryChanged(homeCategoryForNavIndex(i))),
+            builder: (context, _) => HomeAppBar(
               sources: getIt<MasterConfig>().enabledSources,
               activeSourceId: _activeSourceId,
               onSourceSelected: _onSourceSelected,
               onManageSources: () => context.go('/settings'),
-              searchQuery: _searchQuery,
+              searchController: _searchController,
               onSearchChanged: _onSearchChanged,
               onSearchCleared: _onSearchCleared,
             ),
@@ -258,6 +255,19 @@ class _HomePageState extends State<HomePage> {
               child: CustomScrollView(
                 controller: _scrollController,
                 slivers: [
+                  // Mobile: ô tìm kiếm nhanh ngay trên danh sách phim.
+                  if (!isDesktop)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        child: QuickSearchField(
+                          controller: _searchController,
+                          onChanged: _onSearchChanged,
+                          onCleared: _onSearchCleared,
+                          height: 44,
+                        ),
+                      ),
+                    ),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(isDesktop ? 32 : 16, 16, isDesktop ? 32 : 16, 0),
@@ -309,7 +319,7 @@ class _HomePageState extends State<HomePage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('Phim Mới Cập Nhật', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: isDesktop ? 22 : 18)),
-                          TextButton(onPressed: () {}, child: const Text('Xem tất cả', style: TextStyle(color: Colors.white54, fontSize: 12))),
+                          TextButton(onPressed: () => context.push('/search'), child: const Text('Xem tất cả', style: TextStyle(color: Colors.white54, fontSize: 12))),
                         ],
                       ),
                     ),

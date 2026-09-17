@@ -184,6 +184,25 @@ class DownloadService {
     await db.deleteDownload(d.movieSlug, d.episodeSlug, d.serverName);
   }
 
+  /// Tổng dung lượng thực tế trên đĩa của thư mục downloads (bytes).
+  Future<int> totalSizeOnDisk() async {
+    try {
+      final base = await _baseDir();
+      if (!await base.exists()) return 0;
+      int total = 0;
+      await for (final e in base.list(recursive: true, followLinks: false)) {
+        if (e is File) {
+          try {
+            total += await e.length();
+          } catch (_) {}
+        }
+      }
+      return total;
+    } catch (_) {
+      return 0;
+    }
+  }
+
   Future<String?> getLocalPath(String movieSlug, String episodeSlug, String serverName) async {
     final d = await db.getDownload(movieSlug, episodeSlug, serverName);
     if (d != null && d.status == 'completed' && d.localM3u8 != null) {

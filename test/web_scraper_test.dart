@@ -45,6 +45,19 @@ const _episodeHtml = '''
 </ul></div></div></body></html>
 ''';
 
+// Trang chi tiết kiểu Motphim: h1 logo (tên web) đứng TRƯỚC h1 tên phim.
+const _detailSiteTitleHtml = '''
+<html><head>
+<meta property="og:site_name" content="Motphim" />
+<meta property="og:title" content="Motphim | Phim Mới | Phim Hay | Xem Phim Online" />
+<meta property="og:image" content="https://web.test/og2.jpg" />
+</head><body>
+<header><h1 class="site-title">Motphim | Phim Mới | Phim Hay | Xem Phim Online</h1></header>
+<div class="sheader"><div class="poster"><img src="https://web.test/p2.jpg" /></div>
+<div class="data"><h1>Huyen Huyen Ta Thien Menh</h1><span class="date">2026</span></div></div>
+</body></html>
+''';
+
 const _playerApiJson =
     '{"embed_url":"https://player.phimapi.test/player/?url=https://v7.test/abc/index.m3u8","type":"iframe"}';
 
@@ -63,6 +76,8 @@ WebScraperDataSource _datasource() {
           body = _playerApiJson;
         } else if (url.contains('/episodes/')) {
           body = _episodeHtml;
+        } else if (url.contains('site-title-movie')) {
+          body = _detailSiteTitleHtml;
         } else if (url.contains('/tvshows/')) {
           body = _detailHtml;
         }
@@ -187,6 +202,12 @@ void main() {
         res.servers[0].episodes[0].slug,
         'https://web.test/episodes/ngu-dinh-dao-tap-1/',
       );
+    });
+
+    test('getDetail bỏ qua h1 logo, lấy đúng tên phim', () async {
+      final ds = _datasource();
+      final res = await ds.getDetail('tvshows~site-title-movie');
+      expect(res.movie.name, 'Huyen Huyen Ta Thien Menh');
     });
 
     test('resolveStream gọi player API -> m3u8 trực tiếp', () async {

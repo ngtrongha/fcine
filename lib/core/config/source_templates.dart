@@ -162,6 +162,22 @@ class SourceTemplates {
     );
   }
 
+  /// Nguồn web lấy danh sách từ sitemap (cho web render JS kiểu SPA:
+  /// HTML gốc không có card phim nhưng sitemap liệt kê đủ URL chi tiết).
+  /// Đây là CHIẾN LƯỢC chung, không gắn site nào: tiêu đề/poster lấy ở
+  /// trang chi tiết SSR + meta/JSON-LD chuẩn.
+  static SourceConfig webSitemap({required String baseUrl, String? name}) {
+    final base = webGeneric(baseUrl: baseUrl, name: name);
+    return base.copyWith(
+      endpoints: Endpoints(
+        latest: Endpoint(path: 'sitemap:/sitemap.xml', method: 'GET'),
+        search: Endpoint(path: 'sitemap:', method: 'GET'),
+        detail: base.endpoints.detail,
+        listByType: base.endpoints.listByType,
+      ),
+    );
+  }
+
   static String _normalizeBaseUrl(String input) {
     var url = input.trim();
     if (url.isEmpty) return url;
@@ -233,6 +249,7 @@ class WebSelectors {
   static const typeBadge = 'typeBadge'; // nhãn Phim Bộ/Lẻ/...
   // Trang chi tiết.
   static const detailTitle = 'detailTitle';
+  static const detailOrigin = 'detailOrigin'; // tên gốc (alias/original)
   static const detailContent = 'detailContent';
   static const detailPoster = 'detailPoster';
   // Tập phim: <a> tới trang tập (web dạng DooPlay) hoặc rỗng.

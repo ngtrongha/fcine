@@ -1,8 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
+import 'dart:async';
 import '../../core/cache/image_cache_manager.dart';
+import '../../core/scraper/web_probe.dart';
 import '../../core/config/master_config.dart';
 import '../../core/config/config_service.dart';
 import '../../core/config/source_templates.dart';
@@ -24,7 +27,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final _baseNameController = TextEditingController();
   final _webUrlController = TextEditingController();
   final _webNameController = TextEditingController();
-  String _webPreset = 'dooplay';
+  String _webPreset = 'auto';
 
   MasterConfig? _config;
   String? _savedConfigUrl;
@@ -149,8 +152,8 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  /// Thêm web phim bất kỳ: dựng config theo preset, băm thử 1 trang
-  /// (probe) rồi mới lưu. Probe fail -> báo lỗi, không lưu nguồn chết.
+  /// Thêm web phim bất kỳ: engine tự dò (nhiều đường dẫn × preset,
+  /// sitemap) rồi lưu cấu hình thắng. Không gắn cứng theo từng site.
   Future<void> _saveWebSource() async {
     final url = _webUrlController.text.trim();
     final err = SourceTemplates.validateWebUrl(url);
@@ -163,19 +166,24 @@ class _SettingsPageState extends State<SettingsPage> {
         : _webNameController.text.trim();
     setState(() => _savingWeb = true);
     try {
-      final src = _webPreset == 'dooplay'
-          ? SourceTemplates.webDooplay(baseUrl: url, name: name)
-          : SourceTemplates.webGeneric(baseUrl: url, name: name);
-      // Probe: băm thử trang mới nhất trước khi lưu.
-      final probe = WebScraperDataSource(
-        dio: Dio(BaseOptions(baseUrl: src.baseUrl, headers: src.headers)),
-        source: src,
+      final found = await WebProbe.probe(
+        baseUrl: url,
+        name: name,
+        hint: _webPreset,
+      ).timeout(
+        const Duration(seconds: 120),
+        onTimeout: () => throw TimeoutException(
+          'Web phản hồi quá chậm, thử lại sau.',
+        ),
       );
-      final res = await probe
-          .getLatest(page: 1)
-          .timeout(const Duration(seconds: 30));
-      if (res.movies.isEmpty) throw Exception('Không bóc được phim nào');
-      final cfg = await getIt<ConfigService>().saveWebSource(src);
+      if (!mounted) return;
+      // Xem trước phim mẫu trước khi lưu — Hủy thì không lưu nguồn.
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (_) => _WebSourcePreviewDialog(result: found),
+      );
+      if (confirmed != true || !mounted) return;
+      final cfg = await getIt<ConfigService>().saveWebSource(found.source);
       await refreshSources();
       _webUrlController.clear();
       _webNameController.clear();
@@ -183,11 +191,20 @@ class _SettingsPageState extends State<SettingsPage> {
       setState(() => _config = cfg);
       AppToast.show(
         context,
-        message: 'Đã thêm web ${src.name} (${res.movies.length} phim)',
+        message:
+            'Đã thêm web ${found.source.name} (${found.sample} phim qua ${found.via})',
         type: ToastType.success,
       );
       await _reload();
       if (mounted && cfg.hasSource) context.go('/home');
+    } on WebProbeException catch (e) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'Thêm web thất bại: ${e.message}',
+          type: ToastType.error,
+        );
+      }
     } catch (e) {
       if (mounted) {
         AppToast.show(
@@ -481,7 +498,7 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           const Text('Web phim bất kỳ (tự băm)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
           const SizedBox(height: 4),
-          const Text('VD: https://motchilltv.zip — app tự bóc danh sách, chi tiết, link phát.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+          const Text('VD: https://motchilltv.zip, https://www.rophim.ad — app tự dò cấu hình bóc được.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
           const SizedBox(height: 10),
           TextField(
             controller: _webUrlController,
@@ -502,6 +519,7 @@ class _SettingsPageState extends State<SettingsPage> {
             style: const TextStyle(color: Colors.white, fontSize: 13),
             decoration: const InputDecoration(hintStyle: TextStyle(color: Color(0xFF64748B))),
             items: const [
+              DropdownMenuItem(value: 'auto', child: Text('Tự động (khuyến nghị)')),
               DropdownMenuItem(value: 'dooplay', child: Text('WordPress DooPlay (MotChill...)')),
               DropdownMenuItem(value: 'generic', child: Text('Web thường (tự đoán markup)')),
             ],
@@ -728,6 +746,110 @@ class _SourceTestDialogState extends State<_SourceTestDialog> {
         TextButton(
           onPressed: _done ? () => Navigator.pop(context) : null,
           child: const Text('Đóng'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Xem trước phim mẫu trước khi lưu nguồn web — poster + tên, grid nhỏ.
+class _WebSourcePreviewDialog extends StatelessWidget {
+  final WebProbeResult result;
+
+  const _WebSourcePreviewDialog({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = result.source;
+    final movies = result.movies;
+    return AlertDialog(
+      backgroundColor: const Color(0xFF111622),
+      title: const Text(
+        'Xem trước nguồn',
+        style: TextStyle(color: Colors.white, fontSize: 16),
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '${s.name.isEmpty ? s.id : s.name} • ${s.baseUrl}',
+              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Dò qua: ${result.via} — ${result.sample} phim',
+              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            if (movies.isEmpty)
+              const Text(
+                'Không có phim mẫu để hiển thị. Vẫn có thể lưu nếu bạn muốn.',
+                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              )
+            else
+              Flexible(
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  itemCount: movies.length,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    childAspectRatio: 0.55,
+                    mainAxisSpacing: 8,
+                    crossAxisSpacing: 8,
+                  ),
+                  itemBuilder: (context, i) {
+                    final m = movies[i];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(6),
+                            child: m.posterUrl.isEmpty
+                                ? Container(
+                                    color: const Color(0xFF1A2130),
+                                    child: const Icon(Icons.movie_rounded, color: Color(0xFF64748B)),
+                                  )
+                                : CachedNetworkImage(
+                                    imageUrl: m.posterUrl,
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    errorWidget: (_, _, _) => Container(
+                                      color: const Color(0xFF1A2130),
+                                      child: const Icon(Icons.movie_rounded, color: Color(0xFF64748B)),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          m.name,
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Hủy'),
+        ),
+        ElevatedButton.icon(
+          onPressed: () => Navigator.pop(context, true),
+          icon: const Icon(Icons.check_rounded, size: 16),
+          label: const Text('Lưu nguồn'),
         ),
       ],
     );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'responsive_layout.dart';
 import 'desktop_sidebar.dart';
 import 'desktop_title_bar.dart';
+import 'offline_banner.dart';
 import '../theme/app_theme.dart';
 import '../../core/di/injection.dart';
 
@@ -40,6 +41,7 @@ class ResponsiveScaffold extends StatelessWidget {
         body: Column(
           children: [
             if (useCustomTitleBar) const DesktopTitleBar(),
+            const OfflineBanner(),
             Expanded(
               child: Row(
                 children: [
@@ -64,7 +66,12 @@ class ResponsiveScaffold extends StatelessWidget {
     // Mobile: floating glass bottom nav
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: child,
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(child: child),
+        ],
+      ),
       bottomNavigationBar: _FloatingBottomNav(
         selectedIndex: _branchToNav(selectedIndex, hasSource),
         onTap: (nav) => onTabSelected(_navToBranch(nav, hasSource)),

@@ -118,7 +118,8 @@ class WebScraper {
   }
 
   /// Tách detail href thành (section, slug) để dựng slug router-safe "sec~slug".
-  /// Trả về null khi không parse được.
+  /// Trả về null khi không parse được. URL 1 segment (permalink trơn
+  /// /ten-phim/) map section='p' để _detailUrl dựng lại đúng.
   static ({String section, String slug})? splitDetailPath(
     String base,
     String href,
@@ -128,7 +129,8 @@ class WebScraper {
     if (uri == null || !uri.hasAuthority) return null;
     final segs =
         uri.pathSegments.where((s) => s.isNotEmpty).toList();
-    if (segs.length < 2) return null;
+    if (segs.isEmpty) return null;
+    if (segs.length < 2) return (section: 'p', slug: segs.last);
     return (
       section: segs[segs.length - 2],
       slug: segs[segs.length - 1],

@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:html/dom.dart';
 
 import '../../core/config/master_config.dart';
+import '../../core/scraper/sitemap.dart';
 import '../../core/scraper/web_scraper.dart';
 import '../../domain/entities/episode.dart';
 import '../../domain/entities/movie.dart';
@@ -41,21 +42,18 @@ class WebScraperDataSource extends RemoteDataSource {
         final url = path.startsWith('http')
             ? path
             : WebScraper.absUrl(base, path);
-        final res = await dio.get(
-          url,
-          options: Options(
-            responseType: ResponseType.plain,
-            sendTimeout: _htmlTimeout,
-            receiveTimeout: _htmlTimeout,
-            headers: {
-              'accept':
-                  'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-              'user-agent': WebScraper.ua,
-              'accept-language': 'vi-VN,vi;q=0.9,en;q=0.8',
-            },
-            validateStatus: (s) => s != null && s < 500,
-          ),
-        );
+        var res = await _getPlain(url);
+        // Đổi trailing slash khi 404: WordPress bắt buộc có '/', còn web
+        // Next.js/modern lại 404 khi thừa '/'. Thử cả 2 biến thể.
+        if (res.statusCode == 404) {
+          final alt = _toggleTrailingSlash(url);
+          if (alt != url) {
+            try {
+              final retry = await _getPlain(alt);
+              if (retry.statusCode == 200) res = retry;
+            } catch (_) {}
+          }
+        }
         if (res.statusCode == 200 && res.data is String) {
           final html = res.data as String;
           // Soft-404: web WP đá về trang chủ (VD slug API gọi nhầm lên
@@ -103,6 +101,32 @@ class WebScraperDataSource extends RemoteDataSource {
       }
     }
     throw lastErr!;
+  }
+
+  Future<Response> _getPlain(String url) => dio.get(
+    url,
+    options: Options(
+      responseType: ResponseType.plain,
+      sendTimeout: _htmlTimeout,
+      receiveTimeout: _htmlTimeout,
+      headers: {
+        'accept':
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'user-agent': WebScraper.ua,
+        'accept-language': 'vi-VN,vi;q=0.9,en;q=0.8',
+      },
+      validateStatus: (s) => s != null && s < 500,
+    ),
+  );
+
+  /// '/phim/x/' <-> '/phim/x' (giữ nguyên '/' gốc).
+  static String _toggleTrailingSlash(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.path.isEmpty || uri.path == '/') return url;
+    final toggled = uri.path.endsWith('/')
+        ? uri.path.substring(0, uri.path.length - 1)
+        : '${uri.path}/';
+    return uri.replace(path: toggled).toString();
   }
 
   static bool _looksLikeChallenge(String html) {
@@ -219,6 +243,16 @@ class WebScraperDataSource extends RemoteDataSource {
   }
 
   Pagination _paginationFromHtml(Document doc, int page, int count) {
+    // Nguồn 1 trang (path không có {page}, VD sitemap hay trang custom):
+    // không loadMore để tránh trùng lặp.
+    if (!source.endpoints.latest.path.contains('{page}')) {
+      return Pagination(
+        totalItems: count,
+        totalItemsPerPage: count,
+        currentPage: page,
+        totalPages: page,
+      );
+    }
     var maxPage = page;
     for (final a in doc.querySelectorAll('.pagination a, .page-numbers')) {
       final n = int.tryParse(a.text.trim());
@@ -248,7 +282,12 @@ class WebScraperDataSource extends RemoteDataSource {
   Future<({List<Movie> movies, Pagination pagination})> getLatest({
     int page = 1,
   }) async {
-    final path = _buildPath(source.endpoints.latest.path, {
+    final latestPath = source.endpoints.latest.path;
+    // Nguồn sitemap (web SPA render JS): cắt lát catalog client-side.
+    if (latestPath.startsWith('sitemap:')) {
+      return _latestFromSitemap(page);
+    }
+    final path = _buildPath(latestPath, {
       'page': page.toString(),
     });
     final res = await _getHtml(path);
@@ -264,6 +303,46 @@ class WebScraperDataSource extends RemoteDataSource {
     );
   }
 
+  /// Danh sách từ sitemap: slug = URL tuyệt đối (router encode khi push),
+  /// tên prettify từ slug (không dấu), poster/năm bổ sung ở chi tiết SSR.
+  static const int _sitemapPerPage = 24;
+
+  Future<({List<Movie> movies, Pagination pagination})> _latestFromSitemap(
+    int page,
+  ) async {
+    final locs = await SitemapStore.locsFor(dio, source.baseUrl);
+    if (locs.isEmpty) throw Exception('Sitemap không có phim nào');
+    final totalPages = (locs.length / _sitemapPerPage).ceil().clamp(1, 1 << 30);
+    final slice = locs
+        .skip((page - 1) * _sitemapPerPage)
+        .take(_sitemapPerPage)
+        .toList();
+    return (
+      movies: slice.map(_movieFromSitemap).toList(),
+      pagination: Pagination(
+        totalItems: locs.length,
+        totalItemsPerPage: _sitemapPerPage,
+        currentPage: page,
+        totalPages: totalPages,
+      ),
+    );
+  }
+
+  Movie _movieFromSitemap(Uri loc) {
+    final segs = loc.pathSegments.where((s) => s.isNotEmpty).toList();
+    final last = segs.isEmpty ? loc.toString() : segs.last;
+    return MovieModel(
+      id: loc.toString(),
+      slug: loc.toString(),
+      name: SitemapStore.prettifySlug(last),
+      originName: '',
+      thumbUrl: '',
+      posterUrl: '',
+      year: 0,
+      sourceId: source.id,
+    );
+  }
+
   @override
   Future<({List<Movie> movies, Pagination pagination})> search({
     required String keyword,
@@ -275,6 +354,28 @@ class WebScraperDataSource extends RemoteDataSource {
     String? type,
     String? sourceId,
   }) async {
+    // Tìm trong sitemap (không dấu khớp slug): "bay vao" ~ "bay-vao-tim-anh".
+    if (source.endpoints.search.path.startsWith('sitemap:')) {
+      final locs = await SitemapStore.locsFor(dio, source.baseUrl);
+      final q = SitemapStore.stripDiacritics(keyword.trim().toLowerCase());
+      final words = q.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+      final matched = locs.where((u) {
+        final hay = SitemapStore.stripDiacritics(
+          '${SitemapStore.prettifySlug(u.pathSegments.isEmpty ? '' : u.pathSegments.last)} ${u.pathSegments.join(' ')}'
+              .toLowerCase(),
+        );
+        return words.every(hay.contains);
+      }).take(limit).toList();
+      return (
+        movies: matched.map(_movieFromSitemap).toList(),
+        pagination: Pagination(
+          totalItems: matched.length,
+          totalItemsPerPage: limit,
+          currentPage: page,
+          totalPages: page,
+        ),
+      );
+    }
     final path = _buildPath(source.endpoints.search.path, {
       'keyword': keyword,
       'page': page.toString(),
@@ -325,6 +426,10 @@ class WebScraperDataSource extends RemoteDataSource {
     }
     final parsed = WebScraper.parseWebSlug(slug);
     if (parsed != null) {
+      // section 'p' = slug 1 segment (permalink trơn /ten-phim/).
+      if (parsed.section == 'p') {
+        return WebScraper.absUrl(source.baseUrl, '/${parsed.slug}/');
+      }
       // WordPress bắt buộc trailing slash — thiếu là server trả trang lạ.
       return WebScraper.absUrl(
         source.baseUrl,
@@ -350,23 +455,25 @@ class WebScraperDataSource extends RemoteDataSource {
     final doc = WebScraper.parse(html);
     final schema = WebScraper.jsonLd(html, const ['movie', 'tvseries', 'tvepisode', 'webpage']);
 
-    var title = WebScraper.firstText(
-      doc,
-      source.webSelector('detailTitle', 'h1'),
-    );
-    title = title.isEmpty
-        ? _cleanTitle(WebScraper.metaContent(doc, 'og:title'))
-        : _cleanTitle(title);
-    if (title.isEmpty) {
-      title = (schema?['name']?.toString() ?? '').trim();
-    }
+    final title = _detailTitle(doc, html);
     if (title.isEmpty) throw Exception('Không bóc được chi tiết phim');
 
     var content = '';
-    final contentSel = source.webSelector('detailContent', '');
-    if (contentSel.isNotEmpty) {
+    // Selector config trước, rồi pattern phổ biến của các theme phim.
+    final contentSels = <String>[
+      source.webSelector('detailContent', ''),
+      '.description, .entry-content, .post-content, .film-content, '
+          '.video-description, [itemprop="description"]',
+    ];
+    for (final sel in contentSels) {
+      if (sel.isEmpty) continue;
       try {
-        content = doc.querySelector(contentSel)?.innerHtml.trim() ?? '';
+        final c = doc.querySelector(sel)?.innerHtml.trim() ?? '';
+        if (c.length > 20) {
+          content = c;
+          break;
+        }
+        if (content.isEmpty) content = c;
       } catch (_) {}
     }
     content = content.isEmpty
@@ -374,10 +481,52 @@ class WebScraperDataSource extends RemoteDataSource {
             WebScraper.metaContent(doc, 'description'))
         : content;
 
+    // Tên gốc (alias): config + pattern phổ biến + schema.
+    var originName = '';
+    final originSels = <String>[
+      source.webSelector('detailOrigin', ''),
+      '.alias-name, .original-title, .org-title, [itemprop="alternateName"]',
+    ];
+    for (final sel in originSels) {
+      if (sel.isEmpty) continue;
+      try {
+        final t = WebScraper.firstText(doc, sel);
+        if (t.isNotEmpty && t != title) {
+          originName = t;
+          break;
+        }
+      } catch (_) {}
+    }
+    if (originName.isEmpty) {
+      final alt = schema?['alternateName']?.toString().trim() ?? '';
+      if (alt.isNotEmpty && alt != title) originName = alt;
+    }
+
     var poster = WebScraper.absUrl(
       source.baseUrl,
       WebScraper.metaContent(doc, 'og:image'),
     );
+    if (poster.isEmpty) {
+      poster = WebScraper.absUrl(
+        source.baseUrl,
+        WebScraper.metaContent(doc, 'twitter:image'),
+      );
+    }
+    if (poster.isEmpty) {
+      // Microdata schema.org: <meta itemprop="image" content="...">.
+      try {
+        final meta = doc.querySelector('[itemprop="image"]');
+        if (meta != null) {
+          final raw = meta.localName == 'meta'
+              ? (meta.attributes['content'] ?? '')
+              : WebScraper.firstAttr(
+                  meta,
+                  source.webSelector('posterAttr', 'data-src,src'),
+                );
+          poster = WebScraper.absUrl(source.baseUrl, raw);
+        }
+      } catch (_) {}
+    }
     final posterSel = source.webSelector('detailPoster', '');
     if (posterSel.isNotEmpty) {
       try {
@@ -398,6 +547,30 @@ class WebScraperDataSource extends RemoteDataSource {
     final year = WebScraper.yearFromText(
       '$title ${schema?['datePublished'] ?? ''}',
     );
+    // Chuẩn schema.org (JSON-LD Movie): genre/actor/director/countryOfOrigin
+    // có ở mọi web làm SEO — không cần selector riêng từng site.
+    final schemaCats = _schemaStrings(schema?['genre']);
+    final categories = <Category>[
+      for (final g in schemaCats)
+        Category(
+          id: g.toLowerCase().replaceAll(RegExp(r'\s+'), '-'),
+          name: g,
+          slug: g.toLowerCase().replaceAll(RegExp(r'\s+'), '-'),
+        ),
+    ];
+    final schemaCountries = _schemaStrings(
+      schema?['countryOfOrigin'] ?? schema?['contentLocation'],
+    );
+    final countries = <Country>[
+      for (final c in schemaCountries)
+        Country(
+          id: c.toLowerCase().replaceAll(RegExp(r'\s+'), '-'),
+          name: c,
+          slug: c.toLowerCase().replaceAll(RegExp(r'\s+'), '-'),
+        ),
+    ];
+    final actors = _schemaStrings(schema?['actor']);
+    final directors = _schemaStrings(schema?['director']);
     final parsed = WebScraper.parseWebSlug(slug);
     final section = parsed?.section.toLowerCase() ?? '';
     String? type;
@@ -429,6 +602,11 @@ class WebScraperDataSource extends RemoteDataSource {
       );
       if (episodes.length >= 300) break;
     }
+    // Heuristic generic khi theme lạ không khớp selector: link cùng host
+    // có text/href dạng tập ("Tập 12", "Full", "/tap-3", "/ep-3"...).
+    if (episodes.isEmpty) {
+      episodes.addAll(_heuristicEpisodes(doc, url));
+    }
 
     // Server tabs: bóc options từ trang tập đầu (DooPlay liệt kê server/tập).
     var servers = <EpisodeServer>[];
@@ -458,12 +636,16 @@ class WebScraperDataSource extends RemoteDataSource {
       id: slug,
       slug: slug,
       name: title,
-      originName: '',
+      originName: originName,
       thumbUrl: poster,
       posterUrl: poster,
       year: year,
       content: content.isEmpty ? null : content,
       type: type,
+      categories: categories,
+      countries: countries,
+      actors: actors,
+      directors: directors,
       episodeCurrent:
           episodes.isEmpty ? 'Full' : 'Tập ${episodes.length}',
       sourceId: source.id,
@@ -471,8 +653,89 @@ class WebScraperDataSource extends RemoteDataSource {
     return (movie: movie, servers: servers);
   }
 
-  Future<List<EpisodeServer>> _serversFromEpisodePage(
-    String episodePageUrl,
+  /// Chuẩn hóa field schema.org: string ("A, B"), list string, hoặc list
+  /// map có name (actor: [{@type, name}]) — mọi site làm SEO đều theo chuẩn.
+  static List<String> _schemaStrings(dynamic value) {
+    final out = <String>[];
+    void add(String s) {
+      final t = s.trim().replaceAll(RegExp(r'\s+'), ' ');
+      if (t.isNotEmpty && !out.contains(t)) out.add(t);
+    }
+
+    if (value == null) return out;
+    if (value is String) {
+      for (final part in value.split(',')) {
+        add(part);
+      }
+      return out;
+    }
+    if (value is Map) {
+      if (value['name'] != null) add(value['name'].toString());
+      return out;
+    }
+    if (value is List) {
+      for (final item in value) {
+        if (item is String) {
+          add(item);
+        } else if (item is Map && item['name'] != null) {
+          add(item['name'].toString());
+        }
+      }
+    }
+    return out;
+  }
+
+  /// Heuristic generic tìm link tập khi theme không khớp selector config:
+  /// quét mọi link cùng host, giữ lại link có text ("Tập 12", "Full",
+  /// "Trailer") hoặc href (.../tap-3, .../ep-3, .../episode-3) dạng tập.
+  /// Bỏ qua link trùng trang chi tiết và link ngoài.
+  List<Episode> _heuristicEpisodes(Document doc, String detailUrl) {
+    final textRe = RegExp(
+      r'^(tập|tap|ep|episode|eps|full|trailer|preview|thuyết minh|vietsub)'
+      r'[\s\-_#:]*\d*\s*$',
+      caseSensitive: false,
+    );
+    final hrefRe = RegExp(
+      r'/(tap|ep|eps|episode|taps)[\-_/]?\d*([\-_/]|$)',
+      caseSensitive: false,
+    );
+    final host = Uri.tryParse(source.baseUrl)?.host.toLowerCase() ?? '';
+    final detail = detailUrl.toLowerCase();
+    final out = <Episode>[];
+    final seen = <String>{};
+    try {
+      for (final a in doc.querySelectorAll('a[href]')) {
+        final href = a.attributes['href'] ?? '';
+        if (href.isEmpty ||
+            href.startsWith('#') ||
+            href.startsWith('javascript:')) {
+          continue;
+        }
+        final page = WebScraper.absUrl(source.baseUrl, href);
+        final uri = Uri.tryParse(page);
+        if (uri == null ||
+            !(uri.scheme == 'http' || uri.scheme == 'https')) {
+          continue;
+        }
+        if (host.isNotEmpty && uri.host.toLowerCase() != host) continue;
+        if (page.toLowerCase() == detail) continue;
+        final text = a.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+        final path = uri.path.toLowerCase();
+        if (!textRe.hasMatch(text) && !hrefRe.hasMatch(path)) continue;
+        if (!seen.add(page)) continue;
+        out.add(
+          Episode(
+            name: text.isEmpty ? 'Tập ${out.length + 1}' : text,
+            slug: page,
+          ),
+        );
+        if (out.length >= 300) break;
+      }
+    } catch (_) {}
+    return out;
+  }
+
+  Future<List<EpisodeServer>> _serversFromEpisodePage(    String episodePageUrl,
     List<Episode> episodes,
   ) async {
     try {
@@ -641,12 +904,99 @@ class WebScraperDataSource extends RemoteDataSource {
     return null;
   }
 
-  static String _cleanTitle(String title) {
+  /// Tiêu đề trang chi tiết: thử nhiều selector theo độ ưu tiên, bỏ qua
+  /// text rác (h1 logo / tiêu đề trang chủ như
+  /// "Motphim | Phim Mới | Phim Hay | Xem Phim Online").
+  String _detailTitle(Document doc, String html) {
+    final siteName = WebScraper.metaContent(doc, 'og:site_name').trim();
+    bool isJunk(String t) {
+      if (t.isEmpty) return true;
+      final l = t.toLowerCase();
+      // Slogan trang chủ — không bao giờ là tên phim.
+      if (l.contains('xem phim online')) return true;
+      if (siteName.isNotEmpty) {
+        final s = siteName.toLowerCase();
+        if (l == s) return true;
+        // Bắt đầu bằng tên web + dài hơn hẳn ("Motphim | Phim Mới | ...",
+        // "RoPhim - Phim hay cả rổ - ...") thì là tiêu đề trang chủ.
+        if (l.startsWith(s) && t.length > s.length + 8) return true;
+      }
+      return false;
+    }
+
+    String norm(String t) => _cleanTitle(t, siteName: siteName);
+
+    // 1. Selector theo độ ưu tiên: config trước, pattern phổ biến của các
+    // theme phim (.media-name, .movie-title...), microdata schema.org, rồi
+    // h1 chung. Duyệt TẤT CẢ match (kể cả khi h1 logo đứng trước).
+    final ordered = <String>[];
+    void addSel(String s) {
+      for (final part in s.split(',')) {
+        final p = part.trim();
+        if (p.isNotEmpty && !ordered.contains(p)) ordered.add(p);
+      }
+    }
+
+    addSel(source.webSelector('detailTitle', ''));
+    addSel('.sheader .data h1, .sheader h1, .data h1, h1.entry-title');
+    addSel(
+      '.media-name, .movie-title, .film-title, .video-title, '
+      '.entry-title, .post-title, [itemprop="name"]',
+    );
+    addSel('h1');
+
+    var fallback = '';
+    for (final sel in ordered) {
+      List<Element> els;
+      try {
+        els = doc.querySelectorAll(sel);
+      } catch (_) {
+        continue;
+      }
+      for (final el in els) {
+        final raw = el.text.trim().replaceAll(RegExp(r'\s+'), ' ');
+        if (raw.isEmpty) continue;
+        final cleaned = norm(raw);
+        if (cleaned.isEmpty) continue;
+        if (!isJunk(cleaned)) return cleaned;
+        fallback = fallback.isEmpty ? cleaned : fallback;
+      }
+    }
+
+    // 2. JSON-LD của phim (bỏ qua WebPage/WebSite vì đó là tên web).
+    final movieSchema =
+        WebScraper.jsonLd(html, const ['movie', 'tvseries', 'tvepisode']);
+    final schemaName = (movieSchema?['name']?.toString() ?? '')
+        .trim()
+        .replaceAll(RegExp(r'\s+'), ' ');
+    if (schemaName.isNotEmpty && !isJunk(norm(schemaName))) {
+      return norm(schemaName);
+    }
+
+    // 3. og:title.
+    final og = norm(WebScraper.metaContent(doc, 'og:title'));
+    if (og.isNotEmpty && !isJunk(og)) return og;
+
+    // 4. Giữ hành vi cũ để không crash regression.
+    if (fallback.isNotEmpty) return fallback;
+    if (schemaName.isNotEmpty) return norm(schemaName);
+    return og;
+  }
+
+  static String _cleanTitle(String title, {String siteName = ''}) {
     var t = title.trim();
     // Bỏ hậu tố tên site: "Tên Phim (2026) Full Vietsub - Motchill".
     final dash = RegExp(r'\s+[-|–]\s+[^-|–]+$').firstMatch(t);
     if (dash != null && dash.start > 8) {
       t = t.substring(0, dash.start).trim();
+    }
+    // "Tên Phim | Motphim": hậu tố sau | trùng tên web -> bỏ.
+    if (siteName.isNotEmpty) {
+      final m = RegExp(r'\s+[|\-–]\s+(.+)$').firstMatch(t);
+      if (m != null &&
+          m.group(1)!.trim().toLowerCase() == siteName.toLowerCase()) {
+        t = t.substring(0, m.start).trim();
+      }
     }
     return t;
   }

@@ -35,4 +35,18 @@ class HistoryRepository {
 
   Future<void> deleteProgress(String movieSlug, String episodeSlug, String serverName) =>
       db.deleteHistory(movieSlug, episodeSlug, serverName);
+
+  /// Gộp lịch sử theo phim cho rail "Tiếp tục xem": mỗi phim chỉ 1 dòng
+  /// MỚI NHẤT (theo timestamp).
+  /// Khớp cả slug cross-source (`tvshows~abc` ≈ `abc`).
+  /// List đầu vào đã xếp mới nhất trước (getAllHistory/watchAllHistory).
+  static List<WatchHistoryData> latestPerMovie(List<WatchHistoryData> rows) {
+    String base(String s) => s.contains('~') ? s.split('~').last : s;
+    final seen = <String>{};
+    final out = <WatchHistoryData>[];
+    for (final h in rows) {
+      if (seen.add(base(h.movieSlug))) out.add(h);
+    }
+    return out;
+  }
 }

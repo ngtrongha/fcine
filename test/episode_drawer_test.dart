@@ -133,7 +133,6 @@ void main() {
               'server': 'Vietsub #2',
             },
         ];
-        dynamic selectedEp;
         String? selectedServer;
 
         await tester.pumpWidget(
@@ -147,7 +146,6 @@ void main() {
                   currentEpisode: multi[4]['ep'],
                   currentServer: 'Vietsub #2',
                   onSelectEpisode: (ep, s) async {
-                    selectedEp = ep;
                     selectedServer = s;
                   },
                 ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:drift/drift.dart' show Value;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/cache/image_cache_manager.dart';
 import '../../core/di/injection.dart';
@@ -9,7 +10,11 @@ import '../../core/database/app_database.dart';
 import '../../core/config/config_service.dart';
 import '../../core/config/master_config.dart';
 import '../../core/toast/app_toast.dart';
+import '../../core/match/movie_matcher.dart'
+    show normalizeMovieName, isSameMovie;
 import '../router/movie_route.dart';
+import '../../ui/features/detail/views/widgets/download_sheet.dart';
+import '../../ui/features/home/views/widgets/source_picker_button.dart';
 import '../../domain/entities/movie.dart';
 import '../../domain/entities/episode.dart';
 import '../../domain/repositories/movie_repository.dart';
@@ -43,6 +48,15 @@ class _DetailPageState extends State<DetailPage> {
   bool _isBookmarked = false;
   bool _bookmarkLoading = false;
   bool _isContentExpanded = false;
+
+  /// Kết quả quét phim hiện tại trên các nguồn khác (để user chọn).
+  /// key: sourceId.
+  final Map<String, _SourceHit> _sourceAvailability = {};
+  bool _checkingSources = false;
+  int _checkToken = 0;
+
+  /// Chống bấm trùng nút phát (bấm đúp -> 2 trang player chồng tiếng).
+  DateTime? _lastOpenAt;
   List<Movie> _relatedMovies = [];
 
   @override
@@ -163,6 +177,7 @@ class _DetailPageState extends State<DetailPage> {
             });
           }
           _loadRelated(data.movie.type);
+          _checkOtherSources();
           return;
         } catch (e) {
           lastErr = e;
@@ -198,13 +213,16 @@ class _DetailPageState extends State<DetailPage> {
 
     try {
       final repo = getIt<MovieRepository>();
+      final label = _sourceLabel(sourceId);
 
       // 1. Thử tải trực tiếp với slug hiện tại (bỏ qua khi khác loại
       // slug API <-> nguồn WEB: thử trực tiếp chỉ ra phim rác).
+      // Kể cả cùng loại cũng phải verify tên, tránh slug trùng nhưng
+      // khác phim giữa 2 nguồn.
       if (!_isCrossType(widget.slug, sourceId)) {
         try {
           final data = await repo.getDetail(widget.slug, sourceId: sourceId);
-          if (mounted) {
+          if (_isSameMovie(data.movie) && mounted) {
             setState(() {
               _movie = data.movie;
               _servers = data.servers;
@@ -214,40 +232,59 @@ class _DetailPageState extends State<DetailPage> {
             });
             AppToast.show(
               context,
-              message: 'Đã đổi sang nguồn $sourceId',
+              message: 'Đã đổi sang nguồn $label',
               type: ToastType.success,
             );
+            _loadRelated(data.movie.type);
+            _checkOtherSources();
             return;
           }
+          // Trực tiếp ra phim khác -> rơi xuống tìm theo tên.
         } catch (_) {
           // Fallback: tìm kiếm theo tên phim trên nguồn mới
         }
       }
 
-      // 2. Tìm kiếm theo tên phim nếu slug khác nhau
+      // 2. Tìm kiếm theo tên phim (rồi tên gốc) và chỉ nhận kết quả
+      // khớp thật, thay vì lấy mù kết quả đầu tiên.
       if (_movie != null && _movie!.name.isNotEmpty) {
-        final searchRes = await repo.search(
-          _movie!.name,
-          sourceId: sourceId,
-          limit: 5,
-        );
-        if (searchRes.movies.isNotEmpty) {
-          final matched = searchRes.movies.first;
-          final data = await repo.getDetail(matched.slug, sourceId: sourceId);
-          if (mounted) {
-            setState(() {
-              _movie = data.movie;
-              _servers = data.servers;
-              _selectedSourceId = sourceId;
-              _selectedServerIndex = 0;
-              _isSwitchingSource = false;
-            });
-            AppToast.show(
-              context,
-              message: 'Đã đổi sang nguồn $sourceId',
-              type: ToastType.success,
-            );
-            return;
+        final queries = <String>[_movie!.name];
+        final origin = _movie!.originName.trim();
+        if (origin.isNotEmpty &&
+            normalizeMovieName(origin) !=
+                normalizeMovieName(_movie!.name)) {
+          queries.add(origin);
+        }
+        for (final q in queries) {
+          final searchRes = await repo.search(
+            q,
+            sourceId: sourceId,
+            limit: 10,
+          );
+          for (final candidate in searchRes.movies) {
+            try {
+              final data =
+                  await repo.getDetail(candidate.slug, sourceId: sourceId);
+              if (_isSameMovie(data.movie) && mounted) {
+                setState(() {
+                  _movie = data.movie;
+                  _servers = data.servers;
+                  _selectedSourceId = sourceId;
+                  _selectedServerIndex = 0;
+                  _isSwitchingSource = false;
+                });
+                AppToast.show(
+                  context,
+                  message: 'Đã đổi sang nguồn $label',
+                  type: ToastType.success,
+                );
+                _loadRelated(data.movie.type);
+                _checkOtherSources();
+                return;
+              }
+            } catch (_) {
+              // Ứng viên lỗi -> thử ứng viên tiếp theo.
+            }
           }
         }
       }
@@ -256,7 +293,7 @@ class _DetailPageState extends State<DetailPage> {
         setState(() => _isSwitchingSource = false);
         AppToast.show(
           context,
-          message: 'Không tìm thấy phim này trên nguồn $sourceId',
+          message: 'Không tìm thấy phim này trên nguồn $label',
           type: ToastType.warning,
         );
       }
@@ -270,6 +307,167 @@ class _DetailPageState extends State<DetailPage> {
         );
       }
     }
+  }
+
+  /// Quét phim đang xem trên mọi nguồn còn lại (chạy song song).
+  /// Nguồn nào có phim khớp thật mới hiện chip để user chọn.
+  Future<void> _checkOtherSources() async {
+    final movie = _movie;
+    if (movie == null || movie.name.trim().isEmpty) return;
+    final others = _enabledSources()
+        .where((s) => s.id != _selectedSourceId)
+        .toList();
+    final token = ++_checkToken;
+    if (mounted) {
+      setState(() {
+        _sourceAvailability.removeWhere((id, _) => id == _selectedSourceId);
+        _checkingSources = others.isNotEmpty;
+      });
+    }
+    if (others.isEmpty) return;
+    final repo = getIt<MovieRepository>();
+    await Future.wait(
+      others.map((src) => _checkOneSource(repo, src, movie, token)),
+    );
+    if (mounted && token == _checkToken) {
+      setState(() => _checkingSources = false);
+    }
+  }
+
+  Future<void> _checkOneSource(
+    MovieRepository repo,
+    SourceConfig src,
+    Movie movie,
+    int token,
+  ) async {
+    try {
+      final queries = <String>[movie.name];
+      final origin = movie.originName.trim();
+      if (origin.isNotEmpty &&
+          normalizeMovieName(origin) != normalizeMovieName(movie.name)) {
+        queries.add(origin);
+      }
+      for (final q in queries) {
+        final searchRes = await repo
+            .search(q, sourceId: src.id, limit: 8)
+            .timeout(const Duration(seconds: 12));
+        for (final cand in searchRes.movies) {
+          if (!isSameMovie(
+            curName: movie.name,
+            curOrigin: movie.originName,
+            curYear: movie.year,
+            candName: cand.name,
+            candOrigin: cand.originName,
+            candYear: cand.year,
+          )) {
+            continue;
+          }
+          // Prefetch chi tiết để đếm tập + chuyển nguồn tức thì khi bấm.
+          try {
+            final detail = await repo
+                .getDetail(cand.slug, sourceId: src.id)
+                .timeout(const Duration(seconds: 12));
+            if (!isSameMovie(
+              curName: movie.name,
+              curOrigin: movie.originName,
+              curYear: movie.year,
+              candName: detail.movie.name,
+              candOrigin: detail.movie.originName,
+              candYear: detail.movie.year,
+            )) {
+              continue;
+            }
+            var eps = 0;
+            for (final sv in detail.servers) {
+              eps += sv.episodes.length;
+            }
+            if (!mounted || token != _checkToken) return;
+            setState(() {
+              _sourceAvailability[src.id] = _SourceHit(
+                slug: cand.slug,
+                episodeCount: eps,
+                serverCount: detail.servers.length,
+              );
+            });
+            return;
+          } catch (_) {
+            // Ứng viên lỗi -> thử ứng viên tiếp theo.
+          }
+        }
+      }
+    } catch (_) {
+      // Nguồn lỗi/timeout -> bỏ qua lặng lẽ, chỉ hiện nguồn bóc được.
+    }
+  }
+
+  /// Chuyển sang bản phim đã quét sẵn trên nguồn khác (không search lại).
+  Future<void> _switchToMatched(String sourceId, String slug) async {
+    if (_selectedSourceId == sourceId || _isSwitchingSource) return;
+    setState(() => _isSwitchingSource = true);
+    try {
+      final data = await getIt<MovieRepository>().getDetail(
+            slug,
+            sourceId: sourceId,
+          );
+      if (!mounted) return;
+      if (!_isSameMovie(data.movie)) {
+        setState(() => _isSwitchingSource = false);
+        AppToast.show(
+          context,
+          message:
+              'Phim trên nguồn ${_sourceLabel(sourceId)} đã đổi, không khớp',
+          type: ToastType.warning,
+        );
+        return;
+      }
+      setState(() {
+        _movie = data.movie;
+        _servers = data.servers;
+        _selectedSourceId = sourceId;
+        _selectedServerIndex = 0;
+        _isSwitchingSource = false;
+        _sourceAvailability.remove(sourceId);
+      });
+      AppToast.show(
+        context,
+        message: 'Đã đổi sang nguồn ${_sourceLabel(sourceId)}',
+        type: ToastType.success,
+      );
+      _loadRelated(data.movie.type);
+      _checkOtherSources();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSwitchingSource = false);
+        AppToast.show(
+          context,
+          message: 'Lỗi khi đổi nguồn: $e',
+          type: ToastType.error,
+        );
+      }
+    }
+  }
+
+  /// Tên hiển thị thân thiện của nguồn (thay vì id thô).
+  String _sourceLabel(String sourceId) {
+    try {
+      final s = _enabledSources().where((s) => s.id == sourceId).firstOrNull;
+      if (s != null) return sourceDisplayName(s);
+    } catch (_) {}
+    return sourceId;
+  }
+
+  /// true khi [candidate] đúng là phim đang xem (so tên + tên gốc + năm).
+  bool _isSameMovie(Movie candidate) {
+    final cur = _movie;
+    if (cur == null) return false;
+    return isSameMovie(
+      curName: cur.name,
+      curOrigin: cur.originName,
+      curYear: cur.year,
+      candName: candidate.name,
+      candOrigin: candidate.originName,
+      candYear: candidate.year,
+    );
   }
 
   Future<void> _loadRelated(String? type) async {
@@ -334,8 +532,33 @@ class _DetailPageState extends State<DetailPage> {
     }
   }
 
+  void _showDownloadSheet() {
+    if (_movie == null || _servers.isEmpty) {
+      AppToast.show(
+        context,
+        message: 'Chưa có tập phim nào khả dụng',
+        type: ToastType.warning,
+      );
+      return;
+    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) => DownloadSheet(movie: _movie!, servers: _servers),
+    );
+  }
+
   void _playEpisode(Episode ep, String serverName) {
     if (_movie == null) return;
+    final now = DateTime.now();
+    if (_lastOpenAt != null &&
+        now.difference(_lastOpenAt!).inMilliseconds < 800) {
+      return;
+    }
+    _lastOpenAt = now;
     context.push(
       '/player',
       extra: {
@@ -414,6 +637,23 @@ class _DetailPageState extends State<DetailPage> {
     } catch (_) {}
 
     _playEpisode(server.episodes.first, server.serverName);
+  }
+
+  Future<void> _openTrailer() async {
+    final url = _movie?.trailerUrl ?? '';
+    if (url.isEmpty) return;
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return;
+    }
+    if (mounted) {
+      AppToast.show(
+        context,
+        message: 'Không thể mở trailer',
+        type: ToastType.warning,
+      );
+    }
   }
 
   String _cleanHtml(String? text) {
@@ -738,7 +978,36 @@ class _DetailPageState extends State<DetailPage> {
           ),
           const SizedBox(height: 16),
 
-          // Action Buttons: Xem Phim & Tủ Phim
+          // Trailer (thường là link YouTube từ API)
+          if ((_movie!.trailerUrl ?? '').isNotEmpty) ...[
+            OutlinedButton.icon(
+              onPressed: _openTrailer,
+              icon: const Icon(
+                Icons.smart_display_rounded,
+                size: 20,
+                color: Colors.white70,
+              ),
+              label: const Text(
+                'XEM TRAILER',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(44),
+                side: const BorderSide(color: Color(0xFF2D3748)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
+          // Action Buttons: Xem Phim, Tải & Tủ Phim
           Row(
             children: [
               Expanded(
@@ -762,6 +1031,35 @@ class _DetailPageState extends State<DetailPage> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     elevation: 4,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: OutlinedButton.icon(
+                  onPressed: _showDownloadSheet,
+                  icon: const Icon(
+                    Icons.download_rounded,
+                    size: 20,
+                    color: Colors.white70,
+                  ),
+                  label: const Text(
+                    'Tải phim',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(48),
+                    side: const BorderSide(
+                      color: Color(0xFF2D3748),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 ),
               ),
@@ -979,6 +1277,92 @@ class _DetailPageState extends State<DetailPage> {
                   ),
               ],
             ),
+
+            // 1b. Phim này còn có trên các nguồn khác (tự quét sẵn).
+            if (_checkingSources || _sourceAvailability.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.travel_explore_rounded,
+                    size: 14,
+                    color: Color(0xFF94A3B8),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Phim này còn có trên:',
+                    style: TextStyle(
+                      color: Color(0xFF94A3B8),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (_checkingSources) ...[
+                    const SizedBox(width: 8),
+                    const SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (_sourceAvailability.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _sourceAvailability.entries.map((e) {
+                    final label = _sourceLabel(e.key);
+                    final hit = e.value;
+                    final sub = hit.episodeCount > 0
+                        ? '${hit.episodeCount} tập'
+                        : '${hit.serverCount} server';
+                    return InkWell(
+                      onTap: _isSwitchingSource
+                          ? null
+                          : () => _switchToMatched(e.key, hit.slug),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.45),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.play_circle_rounded,
+                              size: 14,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '$label • $sub',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ],
 
             // 2. Nguồn Phát / Server (Vietsub, Thuyết Minh, Server #1...)
             if (_servers.isNotEmpty) ...[
@@ -1289,4 +1673,16 @@ class _MetadataRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Bản phim khớp đã quét sẵn trên 1 nguồn khác.
+class _SourceHit {
+  final String slug;
+  final int episodeCount;
+  final int serverCount;
+  const _SourceHit({
+    required this.slug,
+    required this.episodeCount,
+    required this.serverCount,
+  });
 }

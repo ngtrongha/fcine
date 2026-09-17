@@ -49,8 +49,24 @@ class QualityService {
     Duration currentPos,
   ) async {
     await player.open(Media(q.url), play: true);
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (currentPos.inMilliseconds > 1000) await player.seek(currentPos);
+    if (currentPos.inMilliseconds <= 1000) return;
+    // open() reset vị trí về 0 — phải đợi media mới load xong rồi seek về,
+    // seek mù sau delay cố định dễ bị nuốt khiến phim chạy lại từ đầu.
+    try {
+      await player.stream.duration
+          .firstWhere((d) => d.inMilliseconds > 0)
+          .timeout(const Duration(seconds: 15));
+    } catch (_) {
+      return;
+    }
+    try {
+      await player.seek(currentPos);
+      await Future.delayed(const Duration(milliseconds: 600));
+      final pos = player.state.position.inMilliseconds;
+      if ((pos - currentPos.inMilliseconds).abs() > 5000) {
+        await player.seek(currentPos);
+      }
+    } catch (_) {}
   }
 }
 

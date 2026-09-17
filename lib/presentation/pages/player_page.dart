@@ -45,6 +45,11 @@ class PlayerPage extends StatefulWidget {
 }
 
 class _PlayerPageState extends State<PlayerPage> {
+  /// Player online đang phát tiếng — mở trang phát mới thì dừng trang cũ,
+  /// đảm bảo không bao giờ có 2 tập phát chồng tiếng (kể cả khi stack
+  /// navigation kẹt 2 trang do bấm trùng).
+  static Player? _activeOnlinePlayer;
+
   late final Player player;
   late final VideoController controller;
   bool isFullscreen = false,
@@ -415,13 +420,67 @@ class _PlayerPageState extends State<PlayerPage> {
       }
     } catch (_) {}
     try {
+      await player.open(Media(m3u8), play: true);
+      _claimActivePlayer();
+      final resumed = await _seekToResume();
+      if (resumed > 0 && mounted) {
+        AppToast.show(
+          context,
+          message:
+              'Tiếp tục từ ${formatDuration(Duration(milliseconds: resumed))}',
+          type: ToastType.success,
+        );
+      }
+      Future.delayed(const Duration(seconds: 10), () {
+        if (mounted && duration.inMilliseconds == 0 && playerError == null) {
+          setState(
+            () => playerError = 'Không tải được luồng (mạng yếu / link hỏng)',
+          );
+        }
+      });
+    } catch (e) {
+      if (mounted) setState(() => playerError = 'Lỗi phát: $e');
+    }
+  }
+
+  /// Nhận quyền phát độc quyền: dừng player của trang phát online khác
+  /// (nếu còn sống trong stack do bấm trùng) để không chồng tiếng 2 tập.
+  void _claimActivePlayer() {
+    final prev = _activeOnlinePlayer;
+    _activeOnlinePlayer = player;
+    if (prev != null && !identical(prev, player)) {
+      try {
+        prev.pause();
+      } catch (_) {}
+    }
+  }
+  /// Đợi media load xong (có duration) — seek trước lúc này bị mpv nuốt
+  /// nên toast "Tiếp tục từ ..." hiện mà video vẫn chạy từ đầu.
+  Future<bool> _waitForDuration(Duration timeout) async {
+    if (duration.inMilliseconds > 0) return true;
+    if (duration.inMilliseconds > 0) return true;
+    try {
+      await player.stream.duration
+          .firstWhere((d) => d.inMilliseconds > 0)
+          .timeout(timeout);
+      return true;
+    } catch (_) {
+      return duration.inMilliseconds > 0;
+    }
+  }
+
+  /// Tìm mốc resume của tập đang phát và seek tới đó (sau khi load xong).
+  /// Trả về mốc ms nếu đã seek, 0 nếu xem từ đầu.
+  Future<int> _seekToResume() async {
+    int start = 0;
+    try {
       final historyDb = getIt<HistoryRepository>().db;
       final ex = await historyDb.getHistory(
         widget.movie.slug,
         _episode.slug,
         _serverName,
       );
-      var start = ex?.positionMs ?? 0;
+      start = ex?.positionMs ?? 0;
       // Không khớp exact (đổi tên server / mở từ nguồn khác cùng slug tập):
       // dùng lại vị trí của cùng tập đó thay vì xem từ đầu.
       if (start <= 5000) {
@@ -441,27 +500,26 @@ class _PlayerPageState extends State<PlayerPage> {
           if (sameEp != null) start = sameEp.positionMs;
         } catch (_) {}
       }
-      await player.open(Media(m3u8), play: true);
-      if (start > 5000) {
-        await player.seek(Duration(milliseconds: start));
-        if (mounted) {
-          AppToast.show(
-            context,
-            message:
-                'Tiếp tục từ ${formatDuration(Duration(milliseconds: start))}',
-            type: ToastType.success,
-          );
+    } catch (_) {
+      return 0;
+    }
+    if (start <= 5000 || !mounted) return 0;
+    final loaded = await _waitForDuration(const Duration(seconds: 15));
+    if (!mounted || !loaded) return 0;
+    try {
+      await player.seek(Duration(milliseconds: start));
+      await Future.delayed(const Duration(milliseconds: 600));
+      if (!mounted) return 0;
+      // mpv đôi khi nuốt seek đầu tiên ngay sau khi load -> kiểm tra + thử lại.
+      try {
+        final pos = player.state.position.inMilliseconds;
+        if ((pos - start).abs() > 5000) {
+          await player.seek(Duration(milliseconds: start));
         }
-      }
-      Future.delayed(const Duration(seconds: 10), () {
-        if (mounted && duration.inMilliseconds == 0 && playerError == null) {
-          setState(
-            () => playerError = 'Không tải được luồng (mạng yếu / link hỏng)',
-          );
-        }
-      });
-    } catch (e) {
-      if (mounted) setState(() => playerError = 'Lỗi phát: $e');
+      } catch (_) {}
+      return start;
+    } catch (_) {
+      return 0;
     }
   }
 
@@ -470,7 +528,30 @@ class _PlayerPageState extends State<PlayerPage> {
     await _initPlayer();
   }
 
+  /// Chuyển trang phát (drawer/theater/đổi server): chặn bấm trùng khi
+  /// trang cũ chưa kịp rời stack, tránh kẹt 2 player cùng phát.
+  bool _isLeaving = false;
+
+  Future<void> _replaceWith(dynamic ep, String server) async {
+    if (_isLeaving) return;
+    _isLeaving = true;
+    await _saveProgress();
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PlayerPage(
+          movie: widget.movie,
+          episode: ep,
+          serverName: server,
+          servers: widget.servers,
+        ),
+      ),
+    );
+  }
   Future<void> _switchServer() async {
+    if (_isLeaving) return;
+    _isLeaving = true;
     final cur = _episode.name;
     final web = _webSource();
     for (final s in widget.servers) {
@@ -481,6 +562,7 @@ class _PlayerPageState extends State<PlayerPage> {
             (((ep.slug as String?) ?? '').isNotEmpty) &&
             ep.name == cur;
         if (ep.name == cur && (hasUrl || webPlayable)) {
+          await _saveProgress();
           if (!mounted) return;
           Navigator.pushReplacement(
             context,
@@ -497,6 +579,7 @@ class _PlayerPageState extends State<PlayerPage> {
         }
       }
     }
+    _isLeaving = false;
     if (!mounted) return;
     AppToast.show(
       context,
@@ -599,12 +682,46 @@ class _PlayerPageState extends State<PlayerPage> {
     dur: duration,
   );
 
-  /// Tập vừa xem xong: xóa dòng resume của nó (xem lại sẽ phát từ đầu)
-  /// rồi mới tự chuyển tập — nếu không, tập cũ kẹt lại vị trí 90%+.
+  /// Tập vừa xem xong: xóa dòng resume của nó, đồng thời đánh dấu tập KẾ
+  /// (vị trí 0) để rail "Tiếp tục xem" đi tới thay vì rớt về tập cũ.
+  /// Tập cuối thì chỉ xóa (hết phim -> rời rail).
   Future<void> _onCompleted() async {
     if (duration.inMilliseconds <= 0) return;
     try {
-      await getIt<HistoryRepository>().deleteProgress(
+      final repo = getIt<HistoryRepository>();
+      dynamic src;
+      try {
+        src = (widget.movie as dynamic).sourceId;
+      } catch (_) {
+        src = null;
+      }
+      final sourceId = src is String && src.isNotEmpty ? src : null;
+      final idx = currentIndex, list = flatEpisodes;
+      if (idx + 1 < list.length) {
+        final next = list[idx + 1];
+        final nEp = next['ep'];
+        final nServer = next['server'] as String? ?? _serverName;
+        final existing = await repo.db.getHistory(
+          widget.movie.slug,
+          nEp.slug,
+          nServer,
+        );
+        // Giữ mốc cũ nếu tập kế đã xem dở (không ghi đè về 0).
+        if (existing == null || existing.positionMs <= 0) {
+          await repo.saveProgress(
+            movieSlug: widget.movie.slug,
+            movieName: widget.movie.name,
+            posterUrl: widget.movie.posterUrl,
+            episodeName: nEp.name,
+            episodeSlug: nEp.slug,
+            serverName: nServer,
+            positionMs: 0,
+            durationMs: 0,
+            sourceId: sourceId,
+          );
+        }
+      }
+      await repo.deleteProgress(
         widget.movie.slug,
         _episode.slug,
         _serverName,
@@ -652,9 +769,14 @@ class _PlayerPageState extends State<PlayerPage> {
     });
     await _loadQualities(url);
     if (!mounted) return;
+    // Tập mới có thể đã xem dở trước đó -> resume luôn.
+    final resumed = await _seekToResume();
+    if (!mounted) return;
     AppToast.show(
       context,
-      message: 'Tự động phát tập tiếp: ${ep.name}',
+      message: resumed > 0
+          ? 'Tập tiếp: ${ep.name} (tiếp tục từ ${formatDuration(Duration(milliseconds: resumed))})'
+          : 'Tự động phát tập tiếp: ${ep.name}',
       type: ToastType.info,
     );
   }
@@ -711,6 +833,10 @@ class _PlayerPageState extends State<PlayerPage> {
     _playerSubs.clear();
     _saveProgress();
     _persistVolume(_muted ? 0 : _volume);
+    if (identical(_activeOnlinePlayer, player)) _activeOnlinePlayer = null;
+    try {
+      player.stop();
+    } catch (_) {}
     player.dispose();
     WakelockPlus.disable();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
@@ -914,19 +1040,7 @@ class _PlayerPageState extends State<PlayerPage> {
                       _resetHideTimer();
                     },
                     onSelect: (ep, s) async {
-                      await _saveProgress();
-                      if (!mounted) return;
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => PlayerPage(
-                            movie: widget.movie,
-                            episode: ep,
-                            serverName: s,
-                            servers: widget.servers,
-                          ),
-                        ),
-                      );
+                      await _replaceWith(ep, s);
                     },
                   ),
                 ),
@@ -984,20 +1098,7 @@ class _PlayerPageState extends State<PlayerPage> {
       currentEpisode: _episode,
       currentServer: _serverName,
       onSelectEpisode: (ep, s) async {
-        await _saveProgress();
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PlayerPage(
-                movie: widget.movie,
-                episode: ep,
-                serverName: s,
-                servers: widget.servers,
-              ),
-            ),
-          );
-        }
+        await _replaceWith(ep, s);
       },
       title: _playerTitle(),
       onCast: _showCastPlaceholder,

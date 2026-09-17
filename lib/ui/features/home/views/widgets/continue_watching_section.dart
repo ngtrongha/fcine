@@ -14,6 +14,15 @@ class ContinueWatchingSection extends StatelessWidget {
     required this.isDesktop,
   });
 
+  /// Tên tập đã có sẵn "Tập 01"/"Full" thì giữ nguyên, tránh "Tập Tập 01".
+  static String _episodeLabel(String name) {
+    final t = name.trim();
+    if (t.isEmpty) return '';
+    final l = t.toLowerCase();
+    if (l.startsWith('tập') || l.startsWith('tap') || l == 'full') return t;
+    return 'Tập $t';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (history.isEmpty) return const SizedBox.shrink();
@@ -144,7 +153,7 @@ class ContinueWatchingSection extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Tập ${h.episodeName}',
+                        _episodeLabel((h.episodeName as String?) ?? ''),
                         style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 11,
