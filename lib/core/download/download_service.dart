@@ -10,6 +10,9 @@ class DownloadService {
   final Dio dio;
   DownloadService({required this.db, Dio? dio}) : dio = dio ?? Dio();
 
+  /// CancelToken của các download đang chạy, tra cứu theo entry id.
+  final Map<int, CancelToken> _cancelTokens = {};
+
   Future<Directory> _baseDir() async {
     final doc = await getApplicationDocumentsDirectory();
     final dir = Directory(p.join(doc.path, 'downloads'));
@@ -54,15 +57,46 @@ class DownloadService {
     final entry = (await db.getDownload(movieSlug, episodeSlug, serverName))!;
 
     // chạy async download không block
-    _downloadInBackground(entry);
+    final token = CancelToken();
+    _cancelTokens[entry.id] = token;
+    _downloadInBackground(entry, token);
     return entry;
   }
 
-  Future<void> _downloadInBackground(Download entry) async {
+  /// Huỷ download đang chạy: cancel token → loop dừng → xoá file dở dang
+  /// + đánh dấu 'cancelled'. Entry không có token (app restart giữa chừng)
+  /// → huỷ trực tiếp.
+  Future<void> cancelDownload(int id) async {
+    final token = _cancelTokens.remove(id);
+    if (token != null) {
+      token.cancel('user-cancelled');
+      return;
+    }
+    final all = await db.getAllDownloads();
+    final entry = all.where((e) => e.id == id).firstOrNull;
+    if (entry != null && entry.status == 'downloading') {
+      await _cleanupPartial(entry);
+      await db.updateDownloadStatus(entry.id, 'cancelled');
+    }
+  }
+
+  Future<void> _cleanupPartial(Download entry) async {
+    try {
+      final dirPath = await _localDir(entry.movieSlug, entry.episodeSlug, entry.serverName);
+      final dir = Directory(dirPath);
+      if (await dir.exists()) await dir.delete(recursive: true);
+    } catch (_) {}
+  }
+
+  Future<void> _downloadInBackground(Download entry, CancelToken token) async {
     try {
       final dirPath = await _localDir(entry.movieSlug, entry.episodeSlug, entry.serverName);
       // 1. Fetch m3u8
-      final res = await dio.get(entry.remoteM3u8, options: Options(responseType: ResponseType.plain));
+      final res = await dio.get(
+        entry.remoteM3u8,
+        options: Options(responseType: ResponseType.plain),
+        cancelToken: token,
+      );
       final String content = res.data as String;
       final baseUri = Uri.parse(entry.remoteM3u8);
 
@@ -92,7 +126,11 @@ class DownloadService {
       if (content.contains('#EXT-X-STREAM-INF') && segmentUrls.isNotEmpty) {
         // segmentUrls ở đây thực ra là variant m3u8 urls, tải variant đầu
         final variantUrl = segmentUrls.first;
-        final variantRes = await dio.get(variantUrl, options: Options(responseType: ResponseType.plain));
+        final variantRes = await dio.get(
+          variantUrl,
+          options: Options(responseType: ResponseType.plain),
+          cancelToken: token,
+        );
         final variantContent = variantRes.data as String;
         final variantBase = Uri.parse(variantUrl);
         segmentUrls.clear();
@@ -103,29 +141,36 @@ class DownloadService {
           segmentUrls.add(abs);
         }
         // ghi đè content để rewrite sau
-        await _downloadSegmentsAndRewrite(
-          entry: entry,
-          dirPath: dirPath,
-          originalContent: variantContent,
-          segmentUrls: segmentUrls,
-          baseUri: variantBase,
-          keyUrls: keyUrls,
-        );
-        return;
-      }
-
       await _downloadSegmentsAndRewrite(
         entry: entry,
         dirPath: dirPath,
-        originalContent: content,
+        originalContent: variantContent,
         segmentUrls: segmentUrls,
-        baseUri: baseUri,
+        baseUri: variantBase,
         keyUrls: keyUrls,
+        token: token,
       );
-    } catch (e) {
+      return;
+    }
+
+    await _downloadSegmentsAndRewrite(
+      entry: entry,
+      dirPath: dirPath,
+      originalContent: content,
+      segmentUrls: segmentUrls,
+      baseUri: baseUri,
+      keyUrls: keyUrls,
+      token: token,
+    );
+  } catch (e) {
+    if (e is DioException && CancelToken.isCancel(e)) {
+      await _cleanupPartial(entry);
+      await db.updateDownloadStatus(entry.id, 'cancelled');
+    } else {
       await db.updateDownloadStatus(entry.id, 'failed');
     }
   }
+}
 
   Future<void> _downloadSegmentsAndRewrite({
     required Download entry,
@@ -134,6 +179,7 @@ class DownloadService {
     required List<String> segmentUrls,
     required Uri baseUri,
     required List<String> keyUrls,
+    required CancelToken token,
   }) async {
     // cập nhật total
     await (db.update(db.downloads)..where((t) => t.id.equals(entry.id))).write(DownloadsCompanion(totalSegments: Value(segmentUrls.length)));
@@ -151,10 +197,19 @@ class DownloadService {
     String newContent = originalContent;
     int downloaded = 0;
     for (final segUrl in segmentUrls) {
+      // Segment errors bị nuốt nên phải kiểm tra cancel thủ công,
+      // không thì huỷ sẽ bị bỏ qua và loop vẫn chạy hết.
+      if (token.isCancelled) {
+        throw token.cancelError ??
+            DioException.requestCancelled(
+              requestOptions: RequestOptions(path: segUrl),
+              reason: 'user-cancelled',
+            );
+      }
       final fileName = p.basename(Uri.parse(segUrl).path.split('?').first);
       final localPath = p.join(dirPath, fileName);
       try {
-        await dio.download(segUrl, localPath, options: Options(receiveTimeout: const Duration(seconds: 15)));
+        await dio.download(segUrl, localPath, options: Options(receiveTimeout: const Duration(seconds: 15)), cancelToken: token);
         newContent = newContent.replaceAll(segUrl, fileName);
       } catch (_) {
         // lỗi 1 segment => tiếp tục, không fail toàn bộ

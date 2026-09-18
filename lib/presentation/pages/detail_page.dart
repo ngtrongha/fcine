@@ -772,6 +772,32 @@ class _DetailPageState extends State<DetailPage> {
     }
     if (_movie == null) return const SizedBox.shrink();
 
+    // Desktop dual-pane: nội dung chính bên trái, metadata + tóm tắt
+    // ở side panel phải (cố định, cuộn riêng).
+    if (isDesktop) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
+                _buildSliverAppBar(),
+                SliverToBoxAdapter(
+                  child: _buildInfoSection(isDesktop, includeDetails: false),
+                ),
+                SliverToBoxAdapter(child: _buildSourceAndServerSection(isDesktop)),
+                SliverToBoxAdapter(child: _buildEpisodeSection(isDesktop)),
+                SliverToBoxAdapter(child: _buildRelatedSection(isDesktop)),
+                const SliverToBoxAdapter(child: SizedBox(height: 48)),
+              ],
+            ),
+          ),
+          _buildDesktopSidePanel(),
+        ],
+      );
+    }
+
     return CustomScrollView(
       controller: _scrollController,
       slivers: [
@@ -782,6 +808,83 @@ class _DetailPageState extends State<DetailPage> {
         SliverToBoxAdapter(child: _buildRelatedSection(isDesktop)),
         const SliverToBoxAdapter(child: SizedBox(height: 48)),
       ],
+    );
+  }
+
+  /// Side panel phải của desktop: tóm tắt nội dung + metadata phim.
+  Widget _buildDesktopSidePanel() {
+    final movie = _movie!;
+    final cleanedContent = _cleanHtml(movie.content);
+    return SizedBox(
+      width: 360,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0F172A),
+          border: Border(
+            left: BorderSide(color: const Color(0xFF1E293B)),
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (cleanedContent.isNotEmpty) ...[
+                const Text(
+                  'Nội Dung Phim',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  cleanedContent,
+                  style: const TextStyle(
+                    color: Color(0xFFCBD5E1),
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              if (movie.countries.isNotEmpty ||
+                  movie.directors.isNotEmpty ||
+                  movie.actors.isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF1E293B)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (movie.countries.isNotEmpty)
+                        _MetadataRow(
+                          label: 'Quốc gia',
+                          value: movie.countries.map((c) => c.name).join(', '),
+                        ),
+                      if (movie.directors.isNotEmpty)
+                        _MetadataRow(
+                          label: 'Đạo diễn',
+                          value: movie.directors.join(', '),
+                        ),
+                      if (movie.actors.isNotEmpty)
+                        _MetadataRow(
+                          label: 'Diễn viên',
+                          value: movie.actors.join(', '),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -866,7 +969,7 @@ class _DetailPageState extends State<DetailPage> {
     );
   }
 
-  Widget _buildInfoSection(bool isDesktop) {
+  Widget _buildInfoSection(bool isDesktop, {bool includeDetails = true}) {
     final movie = _movie!;
     final cleanedContent = _cleanHtml(movie.content);
     final rating = movie.voteAverage;
@@ -1100,8 +1203,8 @@ class _DetailPageState extends State<DetailPage> {
           ),
           const SizedBox(height: 16),
 
-          // Tóm tắt nội dung
-          if (cleanedContent.isNotEmpty) ...[
+          // Tóm tắt nội dung (desktop: chuyển sang side panel phải)
+          if (includeDetails && cleanedContent.isNotEmpty) ...[
             const Text(
               'Nội Dung Phim',
               style: TextStyle(
@@ -1140,10 +1243,11 @@ class _DetailPageState extends State<DetailPage> {
             const SizedBox(height: 12),
           ],
 
-          // Đạo diễn, diễn viên, quốc gia
-          if (movie.countries.isNotEmpty ||
-              movie.directors.isNotEmpty ||
-              movie.actors.isNotEmpty) ...[
+          // Đạo diễn, diễn viên, quốc gia (desktop: chuyển sang side panel)
+          if (includeDetails &&
+              (movie.countries.isNotEmpty ||
+                  movie.directors.isNotEmpty ||
+                  movie.actors.isNotEmpty)) ...[
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(

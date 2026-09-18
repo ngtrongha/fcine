@@ -3,6 +3,8 @@ import 'package:dio/dio.dart';
 import '../database/app_database.dart';
 import '../config/master_config.dart';
 import '../config/config_service.dart';
+import '../config/safe_mode_service.dart';
+import '../config/source_refresh_service.dart';
 import '../download/download_service.dart';
 import '../../data/datasources/remote_datasource.dart';
 import '../../data/datasources/web_scraper_datasource.dart';
@@ -31,6 +33,14 @@ Future<void> setupInjection() async {
   );
   getIt.registerLazySingleton<DownloadService>(
     () => DownloadService(db: getIt<AppDatabase>(), dio: getIt<Dio>()),
+  );
+
+  // Safe mode (ẩn 18+) — setting lưu SharedPreferences
+  getIt.registerLazySingleton<SafeModeService>(() => SafeModeService());
+
+  // Source refresh service (auto re-probe khi web source fail liên tục)
+  getIt.registerLazySingleton<SourceRefreshService>(
+    () => SourceRefreshService(getIt<ConfigService>()),
   );
 
   // Config — CHỈ dùng URL do user nhập.
@@ -95,6 +105,7 @@ Future<void> _registerSources(MasterConfig masterConfig) async {
     MovieRepositoryImpl(
       primary: primarySource != null ? datasources[primarySource.id] : null,
       allDatasources: datasources,
+      refreshService: getIt<SourceRefreshService>(),
     ),
   );
 

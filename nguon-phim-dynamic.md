@@ -32,67 +32,69 @@
   probe rỗng → `WebProbeException` kèm `tried`; + dynamic generic tests → Verify: `flutter test test/web_probe_test.dart`
   pass (+9) [đã có sẵn từ session trước, đã verify]
 
-### Gói B — Heuristic generic mạnh hơn (không AI)
+### Gói B — Heuristic generic mạnh hơn (không AI) ✅ HOÀN THÀNH 17/09/2026
 
-- [ ] **Task 4: Sibling-structure detection cho `_parseCards`** — web_scraper_datasource.dart:120: khi selector config
-  + fallback `article, .post, div.item` đều rỗng → tự tìm nhóm ≥3 element anh em cùng tag/class, mỗi block chứa
-  `<a href>` + `<img>` → dùng nhóm đó làm cards; title từ img alt / a[title] → Verify: thêm 1 web lạ không phải DooPlay
-  → list trang chủ vẫn ra phim
-- [ ] **Task 5: Auto search URL** — lúc thêm nguồn, probe thử pattern search phổ biến tuần tự:
-  `?s={keyword}` → `/tim-kiem?keyword={keyword}` → `/search?q={keyword}` → `?keyword={keyword}`; pattern đầu tiên
-  ra ≥1 phim được lưu vào `endpoints.search` (mặc định giữ `/?s=`) → Verify: search từ khóa trên web lạ ra kết quả
-- [ ] **Task 6: Auto listByType** — probe thử `/{type}/page/{page}/` → `/{type}/` → `/the-lo/{type}/page/{page}/` →
-  `/genre/{type}/page/{page}/`; lưu pattern thắng vào `endpoints.listByType` → Verify: duyệt thể loại Phim Bộ trên
-  web lạ ra phim
+- [x] **Task 4: Sibling-structure detection cho `_parseCards`** — `WebScraper.siblingCards()` mới (web_scraper.dart):
+  tìm nhóm ≥3 element anh em cùng tag+class, mỗi block chứa `<a href>` + `<img>` link khác nhau, bỏ qua
+  header/nav/footer/menu; giữ nhóm lớn nhất. Nối vào `_parseCards` (web_scraper_datasource.dart) làm fallback thứ 3
+  (config → generic `article,.post,div.item` → siblingCards). Test: `siblingCards` tìm đúng 4 card + loại nav; e2e
+  `getLatest` web lạ ra 4 phim → Verify: `flutter test test/web_scraper_test.dart` pass (+14)
+- [x] **Task 5: Auto search URL** — `WebProbe._tuneSearch()` (web_probe.dart): sau khi B1 thắng, thử song song pattern
+  `/?s=` → `/tim-kiem?keyword=` → `/search?q=` → `/timkiem?keyword=` → `?keyword=` với keyword `tinh` rồi `a`;
+  pattern đầu tiên ra ≥1 phim được lưu vào `endpoints.search` (pattern config hiện tại thử trước) → Verify: test
+  "probe tự tune search + listByType" chọn đúng `/tim-kiem?keyword={keyword}`
+- [x] **Task 6: Auto listByType** — `WebProbe._tuneListByType()` (web_probe.dart): thử song song `/{type}/page/{page}/` →
+  `/{type}/` → `/the-lo/...` → `/the-loai/...` → `/genre/...` → `/danh-muc/...` với type=`phim-bo` (qua `typeMap`);
+  pattern đầu tiên ra ≥3 phim lưu vào `endpoints.listByType` → Verify: cùng test trên, chọn đúng
+  `/the-lo/{type}/page/{page}/`. Nguồn sitemap bỏ qua tune (search/list nội bộ đã chạy)
 
 ### Gói C — AI-assisted fallback
 
-- [ ] **Task 7: Service `AiConfigGenerator`** — `lib/core/scraper/ai_config_generator.dart`: nhận HTML homepage
-  (trim ~25KB đầu + 2 trang list mẫu nếu probe có), gửi tới LLM OpenAI-compatible (base URL + key tự nhập,
-  mặc định gợi ý Gemini `generativelanguage.googleapis.com`), prompt trả JSON đúng schema `SourceConfig`
-  (selectors + endpoints + pagination) → parse, validate schema, trả `SourceConfig` → Verify: unit test parse prompt
-  response fixture → config đúng schema
-- [ ] **Task 8: Settings section AI** — settings_page.dart thêm mục "AI phân tích nguồn": nhập Base URL + API key
-  (obscureText), persist qua ConfigService (SharedPreferences như nguồn web) → Verify: nhập key → thoát app → mở lại
-  còn key
-- [ ] **Task 9: Flow probe fail → AI (optional)** — `_saveWebSource`: khi `WebProbe.probe()` ném
-  `WebProbeException`: **chưa cấu hình AI → bỏ qua lặng lẽ**, chỉ toast lỗi heuristic như hiện tại
-  (không chặn, không bắt buộc nhập key); **đã cấu hình AI → dialog "Thử phân tích bằng AI?"** (nút Hủy vẫn thoát
-  bình thường) → loading → fetch homepage + gọi AI → preview (Task 2 dùng lại) → lưu → Verify: 1) chưa có key: thêm
-  web heuristic-fail → toast lỗi, luồng thêm nguồn vẫn dùng được; 2) có key + web JS-render → AI sinh selectors →
-  browse chạy được
+- [x] **Task 7: Service `AiConfigGenerator`** — `lib/core/scraper/ai_config_generator.dart`: nhận HTML homepage
+  (trim ~28KB head+body), gửi tới LLM OpenAI-compatible (base URL + key tự nhập, model tùy chọn), prompt trả JSON
+  đúng schema `SourceConfig` (selectors + endpoints + pagination) → parse, validate schema, trả `SourceConfig`
+  → Verify: 6 test `ai_config_generator_test.dart` pass (parse sạch, fence, missing keys, 401, trim lớn)
+- [x] **Task 8: Settings section AI** — settings_page.dart thêm card "AI phân tích nguồn (OpenAI-compatible)":
+  endpoint/key(obscure)/model, persist qua ConfigService SharedPreferences (_kAiEndpoint/_kAiKey/_kAiModel),
+  nút Lưu/Xóa (dialog confirm), hiện `Đã cấu hình ...` khi có key → Verify: nhập key → thoát app → mở lại còn key
+- [x] **Task 9: Flow probe fail → AI (optional)** — `_saveWebSource` catch WebProbeException: **chưa cấu hình AI → toast
+  lỗi heuristic bình thường**; **đã cấu hình AI → dialog "Thử phân tích bằng AI?"** (nút Hủy thoát bình thường) →
+  `_runAiAnalysis()` gọi `AiConfigGenerator.generate` → preview dialog chung → lưu → Verify: không có key lỗi heuristic
+  bình thường; có key + parse-tốt sẽ chạy AI fallback
 
-### Gói D — Playback cho web lạ
+### Gói D — Playback cho web lạ — Task 10 ✅ 17/09/2026
 
-- [ ] **Task 10: Mở rộng pattern resolveStream** — web_scraper_datasource.dart:525 thêm 2 bước vào chuỗi fallback:
-  JWPlayer setup block trong inline script (`jwplayer(...).setup({file:"...m3u8"})`) và player host phổ biến
-  (`/player/`, `/embed/` URL chứa .m3u8); thứ tự: config (DooPlay API / playerApi từ AI) → direct scan → JW block →
-  iframe embed → Verify: xem được 1 tập từ web lạ (m3u8 trực tiếp hoặc embed)
-- [ ] **Task 11: AI config cho playback** — prompt Task 7 bổ sung sinh `playerOption`/`playerApi` selectors nếu phát
+- [x] **Task 10: Mở rộng pattern resolveStream** — web_scraper_datasource.dart:802 chuỗi fallback đầy đủ:
+  1) config playerApi (DooPlay/API từ AI) → 2) `scanStreamUrls` → 3) **`playerSetupStreams` mới**
+  (web_scraper.dart: JWPlayer/PlayerJS/VideoJS setup block, gỡ escape `\/` + `\u002F`) →
+  4) **deep-fetch embed iframe 1 tầng (tối đa 2)**: quét stream + playerSetup trong trang embed →
+  trả iframe như fallback cuối → Verify: 4 test "Playback web lạ (Gói D)" trong web_scraper_test.dart pass
+  (gỡ escape, Playerjs, deep-fetch iframe ra m3u8, embed rỗng trả iframe fallback)
+- [x] **Task 11: AI config cho playback** — prompt Task 7 bổ sung sinh `playerOption`/`playerApi` selectors nếu phát
   hiện được trong HTML (DooPlay/dooplayer v2, iframe pattern); resolveStream đã ưu tiên config sẵn → Verify: web
   DooPlay lạ → player AI-generated vẫn play được qua dooplayer API
 
-### Gói E — Tự re-probe khi nguồn đổi cấu trúc (self-heal, yêu cầu của user 17/09)
+### Gói E — Tự re-probe khi nguồn đổi cấu trúc (self-heal, yêu cầu của user 17/09) ✅ HOÀN THÀNH 17/09/2026
 
-- [ ] **Task 12: Re-probe khi băm fail** — service mới `SourceRefreshService` (`lib/core/config/source_refresh_service.dart`):
+- [x] **Task 12: Re-probe khi băm fail** — service mới `SourceRefreshService` (`lib/core/config/source_refresh_service.dart`):
   nhận sourceId → gọi `WebProbe.probe(baseUrl, name, hint: 'auto')` lại (giữ nguyên `id`/`name`/`enabled` cũ) →
   `ConfigService.saveWebSource()` (đã replace-theo-id sẵn, config_service.dart:145) → trả config mới.
-  Neo vào `MovieRepositoryImpl._withFallback` (movie_repository_impl.dart:38-64): khi nguồn **web** fail với lỗi
+  Neo vào `MovieRepositoryImpl._withFallback` (movie_repository_impl.dart:71-74): khi nguồn **web** fail với lỗi
   "Không bóc được..." (config hỏng, khác lỗi network) → gọi refresh → retry request đúng 1 lần với config mới →
   toast "Nguồn {name} đã tự cập nhật cấu trúc". Inject optional vào repository (null = tắt, giữ test đơn giản) →
   Verify: sửa tay 1 selector trong config đã lưu cho sai → mở app browse → tự sửa lại + load được phim, toast hiện
-- [ ] **Task 13 (P2, tuỳ chọn): Re-probe định kỳ nhẹ** — thêm field `probedAt` (ISO string) vào `SourceConfig`
-  (fromJson/toJson, master_config.dart:90); khi lưu nguồn từ probe → ghi `probedAt = now`. Lúc app start: nguồn web
-  có `probedAt` cũ hơn 7 ngày → probe nền silent (fail = giữ config cũ, bỏ qua lặng lẽ) → Verify: đổi `probedAt`
-  trong JSON về cũ → khởi động lại → config refresh (kiểm log)
+- [x] **Task 13 (P2, tuỳ chọn): Re-probe định kỳ nhẹ** — thêm field `probedAt` (ISO string) vào `SourceConfig`
+  (fromJson/toJson/copyWith, master_config.dart:54-163); khi lưu nguồn từ probe → ghi `probedAt = now`. Lúc app start
+  (`main.dart:21`): `SourceRefreshService.checkAndReprobeStale()` chạy nền, quét nguồn web có `probedAt` cũ hơn 7 ngày,
+  re-probe silent (fail = giữ config cũ). SourceRefreshService: `checkAndReprobeStale()` + `maxFailures=3` + `probeInterval=7 ngày`.
 
 ## Done When
 
-- [ ] Thêm web phim lạ bất kỳ qua Settings → tự dò (heuristic) hoặc AI fallback (nếu đã cấu hình) → browse + search + thể loại + xem tập chạy được
-- [ ] Luồng thêm nguồn chạy được đầy đủ KHI KHÔNG cấu hình AI (AI chỉ tăng tỉ lệ khớp, không phải dependency)
-- [ ] Nguôn web đổi cấu trúc → app tự re-probe sửa config, không cần user xoá thêm lại
-- [ ] WebProbe + AiConfigGenerator có unit test
-- [ ] `dart analyze lib/` sạch + `flutter test` pass
+- [x] Thêm web phim lạ bất kỳ qua Settings → tự dò (heuristic) hoặc AI fallback (nếu đã cấu hình) → browse + search + thể loại + xem tập chạy được
+- [x] Luồng thêm nguồn chạy được đầy đủ KHI KHÔNG cấu hình AI (AI chỉ tăng tỉ lệ khớp, không phải dependency)
+- [x] Nguôn web đổi cấu trúc → app tự re-probe sửa config, không cần user xoá thêm lại
+- [x] WebProbe + AiConfigGenerator + SourceRefreshService có unit test
+- [x] `dart analyze lib/` sạch + `flutter test` pass
 
 ## Notes
 

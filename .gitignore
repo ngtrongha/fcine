@@ -1,3 +1,13 @@
+# Android signing — never commit keystore or credentials
+key.properties
+android/key.properties
+*.jks
+*.keystore
+
+# MSIX signing — PFX is private (cert .cer is public and committed)
+*.pfx
+windows/fcine-msix.pfx
+
 # Miscellaneous
 *.class
 *.log
@@ -33,6 +43,7 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+/dist/
 
 # Symbolication related
 app.*.symbols

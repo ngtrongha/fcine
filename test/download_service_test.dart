@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:fcine/core/database/app_database.dart';
@@ -43,6 +45,40 @@ class _FakePathProvider extends PathProviderPlatform {
   _FakePathProvider(this.docsPath);
   @override
   Future<String?> getApplicationDocumentsPath() async => docsPath;
+}
+
+/// Dio giả: m3u8 trả ngay, segment treo mãi cho tới khi CancelToken huỷ
+/// (test cancel abort download đang chạy).
+class _NeverEndingAdapter implements HttpClientAdapter {
+  final List<int> playlist;
+  final String m3u8Url;
+  _NeverEndingAdapter(this.playlist, this.m3u8Url);
+
+  @override
+  void close({bool force = false}) {}
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    if (options.uri.toString() == m3u8Url) {
+      return ResponseBody.fromBytes(playlist, 200);
+    }
+    final c = Completer<ResponseBody>();
+    cancelFuture?.then((_) {
+      if (!c.isCompleted) {
+        c.completeError(
+          DioException(
+            requestOptions: options,
+            type: DioExceptionType.cancel,
+          ),
+        );
+      }
+    });
+    return c.future;
+  }
 }
 
 String _simplePlaylist(List<String> segments) => [
@@ -186,6 +222,62 @@ void main() {
 
     final failed = await _waitForStatus(db, entry.id, 'failed');
     expect(failed.localM3u8, isNull);
+  });
+
+  test('Huỷ download đang chạy: abort segment, xoá file dở, status cancelled', () async {
+    final db = buildDb();
+    addTearDown(db.close);
+    const m3u8Url = 'https://cdn.test/v/index.m3u8';
+    final playlist = _simplePlaylist(['seg1.ts', 'seg2.ts', 'seg3.ts']);
+    final svc = DownloadService(
+      db: db,
+      dio: Dio()..httpClientAdapter = _NeverEndingAdapter(utf8.encode(playlist), m3u8Url),
+    );
+
+    final entry = await svc.startDownload(
+      movieSlug: 'movie-e',
+      movieName: 'Movie E',
+      posterUrl: null,
+      episodeName: 'Tập 1',
+      episodeSlug: 'tap-1',
+      serverName: 'Vietsub',
+      remoteM3u8: m3u8Url,
+    );
+
+    // Cho download kẹt ở segment đầu rồi huỷ.
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    await svc.cancelDownload(entry.id);
+
+    final cancelled = await _waitForStatus(db, entry.id, 'cancelled');
+    expect(cancelled.localM3u8, isNull);
+    expect(await svc.getLocalPath('movie-e', 'tap-1', 'Vietsub'), isNull);
+  });
+
+  test('Huỷ entry downloading không còn token (app restart): status cancelled', () async {
+    final db = buildDb();
+    addTearDown(db.close);
+    final svc = DownloadService(db: db);
+    await db.upsertDownload(
+      DownloadsCompanion(
+        movieSlug: const Value('movie-f'),
+        movieName: const Value('Movie F'),
+        posterUrl: const Value(null),
+        episodeName: const Value('Tập 1'),
+        episodeSlug: const Value('tap-1'),
+        serverName: const Value('Vietsub'),
+        remoteM3u8: const Value('https://cdn.test/f.m3u8'),
+        status: const Value('downloading'),
+        progress: const Value(50),
+        createdAt: Value(DateTime.now()),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+    final entry = (await db.getAllDownloads()).first;
+
+    await svc.cancelDownload(entry.id);
+
+    final cancelled = await _waitForStatus(db, entry.id, 'cancelled');
+    expect(cancelled.status, 'cancelled');
   });
 
   test('deleteDownload: xoá file trên đĩa + xoá DB row', () async {

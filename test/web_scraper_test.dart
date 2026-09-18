@@ -61,6 +61,22 @@ const _detailSiteTitleHtml = '''
 const _playerApiJson =
     '{"embed_url":"https://player.phimapi.test/player/?url=https://v7.test/abc/index.m3u8","type":"iframe"}';
 
+// Markup web lạ: không article/.post/div.item — chỉ nhóm div lặp lại.
+// Menu nav cũng có a+img nhưng link trong nav phải bị loại.
+const _genericListHtml = '''
+<div class="film-list">
+<div class="film"><a href="https://g.test/xem/phim-a" title="Phim A"><img src="https://g.test/a.jpg" alt="Phim A" /></a></div>
+<div class="film"><a href="https://g.test/xem/phim-b" title="Phim B"><img src="https://g.test/b.jpg" alt="Phim B" /></a></div>
+<div class="film"><a href="https://g.test/xem/phim-c" title="Phim C"><img src="https://g.test/c.jpg" alt="Phim C" /></a></div>
+<div class="film"><a href="https://g.test/xem/phim-d" title="Phim D"><img src="https://g.test/d.jpg" alt="Phim D" /></a></div>
+</div>
+<nav><ul class="menu">
+<li class="m"><a href="https://g.test/trang-chu"><img src="https://g.test/logo.png" /></a></li>
+<li class="m"><a href="https://g.test/phim-bo"><img src="https://g.test/logo.png" /></a></li>
+<li class="m"><a href="https://g.test/phim-le"><img src="https://g.test/logo.png" /></a></li>
+</ul></nav>
+''';
+
 WebScraperDataSource _datasource() {
   final src = SourceTemplates.webDooplay(
     baseUrl: 'https://web.test',
@@ -86,6 +102,28 @@ WebScraperDataSource _datasource() {
             requestOptions: options,
             statusCode: 200,
             data: url.contains('dooplayer') ? body : '<html>$body</html>',
+          ),
+        );
+      },
+    ),
+  );
+  return WebScraperDataSource(dio: dio, source: src);
+}
+
+WebScraperDataSource _genericDatasource(String body) {
+  final src = SourceTemplates.webGeneric(
+    baseUrl: 'https://g.test',
+    name: 'GTest',
+  );
+  final dio = Dio(BaseOptions(baseUrl: src.baseUrl, headers: src.headers));
+  dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (options, handler) {
+        handler.resolve(
+          Response(
+            requestOptions: options,
+            statusCode: 200,
+            data: '<html>$body</html>',
           ),
         );
       },
@@ -218,6 +256,100 @@ void main() {
       );
       expect(r.m3u8, 'https://v7.test/abc/index.m3u8');
       expect(r.serverUsed, 'Vietsub #2');
+    });
+  });
+
+  group('Sibling-structure heuristic (web lạ)', () {
+    test('siblingCards tìm nhóm card lặp, bỏ qua nav', () {
+      final doc = WebScraper.parse(_genericListHtml);
+      final cards = WebScraper.siblingCards(doc);
+      expect(cards.length, 4);
+      expect(cards.every((c) => c.classes.contains('film')), isTrue);
+    });
+
+    test('getLatest web lạ fallback siblingCards ra phim', () async {
+      final ds = _genericDatasource(_genericListHtml);
+      final res = await ds.getLatest(page: 1);
+      expect(res.movies.length, 4);
+      expect(
+        res.movies.map((m) => m.name).toList(),
+        ['Phim A', 'Phim B', 'Phim C', 'Phim D'],
+      );
+      expect(res.movies[0].posterUrl, 'https://g.test/a.jpg');
+      expect(res.movies[0].slug, 'xem~phim-a');
+    });
+  });
+
+  group('Playback web lạ (Gói D)', () {
+    test('playerSetupStreams gỡ escape / trong JWPlayer block', () {
+      // Phần lớn web VN nhúng stream dạng "file":"https:\/\/cdn\/x\/a.m3u8".
+      const html = '<script>jwplayer("p").setup({'
+          '"file":"https:\\/\\/cdn.stream.test\\/v\\/ep1\\/master.m3u8",'
+          '"width":"100%"'
+          '});</script>';
+      // scanStreamUrls (regex thường) phải bỏ qua URL escape dạng \/.
+      expect(
+        WebScraper.scanStreamUrls(html, 'https://web.test'),
+        isEmpty,
+      );
+      final urls = WebScraper.playerSetupStreams(html, 'https://web.test');
+      expect(urls, ['https://cdn.stream.test/v/ep1/master.m3u8']);
+    });
+
+    test('playerSetupStreams bắt Playerjs file:', () {
+      const html =
+          '<script>var p=new Playerjs({"id":"x","file":"https://cdn.test/y/1080.mp4"});</script>';
+      final urls = WebScraper.playerSetupStreams(html, 'https://web.test');
+      expect(urls, contains('https://cdn.test/y/1080.mp4'));
+    });
+
+    WebScraperDataSource embedDs(String episodeHtml, String embedHtml) {
+      final src = SourceTemplates.webGeneric(
+        baseUrl: 'https://web.test',
+        name: 'EmbedTest',
+      );
+      final dio = Dio(BaseOptions(baseUrl: src.baseUrl));
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) {
+            final url = options.uri.toString();
+            final isEmbed = url.contains('embed.test');
+            handler.resolve(
+              Response(
+                requestOptions: options,
+                statusCode: 200,
+                data: isEmbed ? embedHtml : episodeHtml,
+              ),
+            );
+          },
+        ),
+      );
+      return WebScraperDataSource(dio: dio, source: src);
+    }
+
+    test('resolveStream deep-fetch iframe chứa JW setup ra m3u8', () async {
+      final epHtml = '<html><body><h1>Tap 1</h1>'
+          '<iframe src="https://embed.test/watch/abc"></iframe>'
+          '</body></html>';
+      final embedHtml = '<html><body><script>jwplayer("v").setup({'
+          '"file":"https:\\/\\/cdn.stream.test\\/hls\\/index.m3u8"'
+          '});</script></body></html>';
+      final r = await embedDs(epHtml, embedHtml)
+          .resolveStream('https://web.test/watch/tap-1');
+      expect(r.m3u8, 'https://cdn.stream.test/hls/index.m3u8');
+      expect(r.embed, isNull);
+      expect(r.serverUsed, 'Mặc định');
+    });
+
+    test('resolveStream embed không có stream -> trả iframe fallback', () async {
+      final epHtml = '<html><body><h1>Tap 2</h1>'
+          '<iframe src="https://embed.test/watch/xyz"></iframe>'
+          '</body></html>';
+      final embedHtml = '<html><body><p>no stream here</p></body></html>';
+      final r = await embedDs(epHtml, embedHtml)
+          .resolveStream('https://web.test/watch/tap-2');
+      expect(r.m3u8, isNull);
+      expect(r.embed, 'https://embed.test/watch/xyz');
     });
   });
 }

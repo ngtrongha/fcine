@@ -7,6 +7,8 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:screen_brightness/screen_brightness.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:floating/floating.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -79,6 +81,16 @@ class _PlayerPageState extends State<PlayerPage> {
       _brightness = 0.6;
   BoxFit fit = BoxFit.contain;
   String? playerError, _selectedQualityUrl;
+
+  /// Swipe dọc: vị trí bắt đầu (quyết định nửa trái=sáng / phải=volume).
+  Offset? _verticalDragStartPos;
+
+  /// Overlay mức sáng/âm lượng khi kéo swipe dọc.
+  IconData? _gestureOverlayIcon;
+  String? _gestureOverlayText;
+
+  /// Phụ đề ngoài đã tải (.srt/.ass) — hiển thị tên trong settings sheet.
+  String? _externalSubtitleTitle;
   List<QualityVariant> _qualities = [];
   Tracks? _tracks;
   Track? _currentTrack;
@@ -130,6 +142,77 @@ class _PlayerPageState extends State<PlayerPage> {
     _resetHideTimer();
     _loadQualities();
     _loadIntro();
+    _initBrightness();
+  }
+
+  /// Đọc độ sáng hiện tại của app để slider/swipe bắt đầu từ đúng mức.
+  Future<void> _initBrightness() async {
+    try {
+      final v = await ScreenBrightness.instance.application;
+      if (mounted) setState(() => _brightness = v.clamp(0.05, 1.0));
+    } catch (_) {}
+  }
+
+  Future<void> _setScreenBrightness(double v) async {
+    try {
+      await ScreenBrightness.instance.setApplicationScreenBrightness(v);
+    } catch (_) {}
+  }
+
+  /// Đổi độ sáng từ slider/swipe: cập nhật UI + áp lên màn hình thật.
+  void _onBrightnessChanged(double v) {
+    final clamped = v.clamp(0.05, 1.0);
+    setState(() => _brightness = clamped);
+    _setScreenBrightness(clamped);
+  }
+
+  void _onVerticalDragStart(DragStartDetails d) {
+    _verticalDragStartPos = d.localPosition;
+    hideTimer?.cancel();
+  }
+
+  /// Swipe dọc kiểu YouTube: nửa trái = độ sáng (thật qua
+  /// screen_brightness), nửa phải = âm lượng. Kéo lên = tăng.
+  void _onVerticalDragUpdate(DragUpdateDetails d) {
+    final start = _verticalDragStartPos;
+    if (start == null || !mounted) return;
+    final isLeftHalf = start.dx < MediaQuery.of(context).size.width / 2;
+    final delta = -d.delta.dy / 200;
+    if (isLeftHalf) {
+      final v = (_brightness + delta).clamp(0.05, 1.0);
+      if ((v - _brightness).abs() < 0.005) return;
+      setState(() {
+        _brightness = v;
+        _gestureOverlayIcon = Icons.brightness_6_rounded;
+        _gestureOverlayText = 'Độ sáng ${(v * 100).round()}%';
+      });
+      _setScreenBrightness(v);
+    } else {
+      final v = (_volume + delta).clamp(0.0, 1.0);
+      if ((v - _volume).abs() < 0.005) return;
+      setState(() {
+        _volume = v;
+        _muted = v == 0;
+        _gestureOverlayIcon =
+            v == 0 ? Icons.volume_off_rounded : Icons.volume_up_rounded;
+        _gestureOverlayText =
+            v == 0 ? 'Tắt tiếng' : 'Âm lượng ${(v * 100).round()}%';
+      });
+      player.setVolume(v * 100);
+      _persistVolume(v);
+    }
+  }
+
+  void _onVerticalDragEnd(DragEndDetails d) {
+    _verticalDragStartPos = null;
+    if (!mounted) return;
+    if (_gestureOverlayText != null) {
+      setState(() {
+        _gestureOverlayIcon = null;
+        _gestureOverlayText = null;
+      });
+    }
+    _resetHideTimer();
   }
 
   /// Khôi phục âm lượng đã lưu (chung với tab Video) rồi đẩy vào player,
@@ -202,6 +285,38 @@ class _PlayerPageState extends State<PlayerPage> {
           : 'Phụ đề: ${t.language ?? t.title ?? t.id}',
       type: ToastType.info,
     );
+  }
+
+  /// Tải phụ đề ngoài (.srt/.ass/.vtt) từ tệp và gắn vào player hiện tại.
+  Future<void> _loadExternalSubtitle() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['srt', 'ass', 'ssa', 'vtt'],
+    );
+    final path = result?.files.single.path;
+    if (path == null || !mounted) return;
+    final name = path.split(RegExp(r'[\\/]')).last;
+    try {
+      await player.setSubtitleTrack(
+        SubtitleTrack.uri(Uri.file(path).toString(), title: name),
+      );
+      if (mounted) {
+        setState(() => _externalSubtitleTitle = name);
+        AppToast.show(
+          context,
+          message: 'Đã tải phụ đề: $name',
+          type: ToastType.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'Không tải được phụ đề: $e',
+          type: ToastType.error,
+        );
+      }
+    }
   }
 
   void _showCastPlaceholder() => showDialog(
@@ -766,6 +881,7 @@ class _PlayerPageState extends State<PlayerPage> {
       _hasSkippedIntro = false;
       _qualities = [];
       _selectedQualityUrl = null;
+      _externalSubtitleTitle = null;
     });
     await _loadQualities(url);
     if (!mounted) return;
@@ -835,6 +951,9 @@ class _PlayerPageState extends State<PlayerPage> {
     _persistVolume(_muted ? 0 : _volume);
     if (identical(_activeOnlinePlayer, player)) _activeOnlinePlayer = null;
     try {
+      ScreenBrightness.instance.resetApplicationScreenBrightness();
+    } catch (_) {}
+    try {
       player.stop();
     } catch (_) {}
     player.dispose();
@@ -874,6 +993,8 @@ class _PlayerPageState extends State<PlayerPage> {
           showAudioSheet(context, _tracks!, _currentTrack, _selectAudio),
       onSubtitleTap: () =>
           showSubtitleSheet(context, _tracks!, _currentTrack, _selectSubtitle),
+      onExternalSubtitleTap: _loadExternalSubtitle,
+      externalSubtitleTitle: _externalSubtitleTitle,
       introEndMs: _introEndMs,
       onIntroTap: () =>
           showIntroSheet(context, _introEndMs, position, _setIntroEnd),
@@ -922,10 +1043,45 @@ class _PlayerPageState extends State<PlayerPage> {
                     _horizontalDragAccum = 0;
                     _resetHideTimer();
                   },
+                  onVerticalDragStart: _onVerticalDragStart,
+                  onVerticalDragUpdate: _onVerticalDragUpdate,
+                  onVerticalDragEnd: _onVerticalDragEnd,
                   onTap: _resetHideTimer,
                   child: Container(color: Colors.transparent),
                 ),
               ),
+              if (_gestureOverlayText != null && playerError == null)
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _gestureOverlayIcon,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _gestureOverlayText!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               if (playerError != null)
                 Positioned.fill(
                   child: PlayerErrorOverlay(
@@ -975,7 +1131,7 @@ class _PlayerPageState extends State<PlayerPage> {
                 Center(
                   child: PlayerCenterControls(
                     brightness: _brightness,
-                    onBrightnessChanged: (v) => setState(() => _brightness = v),
+                    onBrightnessChanged: _onBrightnessChanged,
                     isPlaying: isPlaying,
                     onTogglePlay: _togglePlay,
                     onSeekBack: () => _seekRelative(-10),

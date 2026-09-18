@@ -290,6 +290,45 @@ class ConfigService {
     }
   }
 
+  // ─── AI config (tùy chọn) ────────────────────────────────
+
+  static const String _kAiEndpoint = 'fcine_ai_endpoint';
+  static const String _kAiKey = 'fcine_ai_key';
+  static const String _kAiModel = 'fcine_ai_model';
+
+  /// Lưu cấu hình AI (endpoint + key + optionally model).
+  Future<void> saveAiConfig({
+    required String endpoint,
+    required String key,
+    String model = '',
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kAiEndpoint, endpoint.trim());
+    await prefs.setString(_kAiKey, key.trim());
+    await prefs.setString(_kAiModel, model.trim());
+  }
+
+  /// Đọc cấu hình AI đã lưu. Null nếu chưa cấu hình (endpoint hoặc key rỗng).
+  Future<Map<String, String>?> getAiConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+    final endpoint = prefs.getString(_kAiEndpoint)?.trim() ?? '';
+    final key = prefs.getString(_kAiKey)?.trim() ?? '';
+    if (endpoint.isEmpty || key.isEmpty) return null;
+    return {
+      'endpoint': endpoint,
+      'key': key,
+      'model': prefs.getString(_kAiModel)?.trim() ?? '',
+    };
+  }
+
+  /// Xóa cấu hình AI (ẩn tính năng AI fallback).
+  Future<void> clearAiConfig() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kAiEndpoint);
+    await prefs.remove(_kAiKey);
+    await prefs.remove(_kAiModel);
+  }
+
   Future<void> _persist(
     MasterConfig config,
     SharedPreferences prefs, {

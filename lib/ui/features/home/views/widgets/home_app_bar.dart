@@ -15,6 +15,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
   final TextEditingController? searchController;
   final ValueChanged<String>? onSearchChanged;
   final VoidCallback? onSearchCleared;
+  final ValueChanged<String>? onSearchSubmitted;
 
   const HomeAppBar({
     super.key,
@@ -25,6 +26,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.searchController,
     this.onSearchChanged,
     this.onSearchCleared,
+    this.onSearchSubmitted,
   });
 
   @override
@@ -81,6 +83,7 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
                       controller: searchController!,
                       onChanged: onSearchChanged!,
                       onCleared: onSearchCleared ?? () {},
+                      onSubmitted: onSearchSubmitted,
                       height: 36,
                     ),
                   ),
@@ -127,11 +130,13 @@ class HomeAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 /// Ô tìm kiếm nhanh: lọc danh sách ngay tại chỗ, không chuyển trang.
-/// Dùng chung cho app bar desktop và thanh search trên danh sách mobile.
+/// Nhấn Enter (submit) -> chuyển sang trang tìm kiếm server (nếu [onSubmitted]
+/// được truyền). Dùng chung cho app bar desktop và thanh search mobile.
 class QuickSearchField extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final VoidCallback onCleared;
+  final ValueChanged<String>? onSubmitted;
   final double height;
 
   const QuickSearchField({
@@ -139,6 +144,7 @@ class QuickSearchField extends StatelessWidget {
     required this.controller,
     required this.onChanged,
     required this.onCleared,
+    this.onSubmitted,
     this.height = 36,
   });
 
@@ -173,7 +179,11 @@ class QuickSearchField extends StatelessWidget {
                 isDense: true,
                 contentPadding: EdgeInsets.symmetric(vertical: 8),
               ),
+              textInputAction: onSubmitted != null
+                  ? TextInputAction.search
+                  : TextInputAction.done,
               onChanged: onChanged,
+              onSubmitted: onSubmitted,
             ),
           ),
           if (controller.text.isNotEmpty)

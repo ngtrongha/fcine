@@ -57,7 +57,9 @@ GoRouter createAppRouter() => GoRouter(
             GoRoute(
               path: '/search',
               redirect: _requireSource,
-              builder: (context, state) => const SearchPage(),
+              builder: (context, state) => SearchPage(
+                initialKeyword: state.uri.queryParameters['q'],
+              ),
             ),
           ],
         ),

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fcine/core/config/config_service.dart';
+import 'package:fcine/core/config/source_refresh_service.dart';
 import 'package:fcine/core/database/app_database.dart';
 import 'package:fcine/core/di/injection.dart';
 import 'package:fcine/presentation/pages/settings_page.dart';
@@ -16,20 +17,23 @@ import 'package:fcine/presentation/pages/settings_page.dart';
 /// Test dựng đúng cấu trúc production: SettingsPage nằm trong
 /// StatefulShellBranch, dialog nằm trên root navigator.
 Future<void> _setupDiWithOneSource() async {
-  await getIt.reset();
-  SharedPreferences.setMockInitialValues({});
-  getIt.registerSingleton<AppDatabase>(
-    AppDatabase.forTesting(NativeDatabase.memory()),
-  );
-  getIt.registerSingleton<ConfigService>(
-    ConfigService(db: getIt<AppDatabase>(), dio: Dio()),
-  );
-  await getIt<ConfigService>().saveBaseUrl(
-    'https://phimapi.com',
-    name: 'KKPhim',
-  );
-  await refreshSources();
-}
+    await getIt.reset();
+    SharedPreferences.setMockInitialValues({});
+    getIt.registerSingleton<AppDatabase>(
+      AppDatabase.forTesting(NativeDatabase.memory()),
+    );
+    getIt.registerSingleton<ConfigService>(
+      ConfigService(db: getIt<AppDatabase>(), dio: Dio()),
+    );
+    getIt.registerLazySingleton<SourceRefreshService>(
+      () => SourceRefreshService(getIt<ConfigService>()),
+    );
+    await getIt<ConfigService>().saveBaseUrl(
+      'https://phimapi.com',
+      name: 'KKPhim',
+    );
+    await refreshSources();
+  }
 
 GoRouter _shellRouter() {
   return GoRouter(

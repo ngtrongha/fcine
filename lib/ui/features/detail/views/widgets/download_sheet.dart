@@ -208,6 +208,7 @@ class _EpisodeRow extends StatelessWidget {
     final bool completed = d?.status == 'completed';
     final bool downloading = d?.status == 'downloading';
     final bool failed = d?.status == 'failed';
+    final bool cancelled = d?.status == 'cancelled';
 
     Widget trailing;
     if (completed) {
@@ -233,11 +234,11 @@ class _EpisodeRow extends StatelessWidget {
       trailing = IconButton(
         onPressed: onStart,
         icon: Icon(
-          failed ? Icons.refresh_rounded : Icons.download_rounded,
-          color: failed ? Colors.amber : Colors.white70,
+          (failed || cancelled) ? Icons.refresh_rounded : Icons.download_rounded,
+          color: (failed || cancelled) ? Colors.amber : Colors.white70,
           size: 20,
         ),
-        tooltip: failed ? 'Thử lại' : 'Tải tập này',
+        tooltip: (failed || cancelled) ? 'Thử lại' : 'Tải tập này',
         constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
         padding: EdgeInsets.zero,
       );
@@ -271,9 +272,11 @@ class _EpisodeRow extends StatelessWidget {
                           ? 'Đang tải ${d!.progress}%'
                           : failed
                               ? 'Tải lỗi - bấm thử lại'
-                              : episode.hasM3u8
-                                  ? 'Sẵn sàng tải'
-                                  : 'Không có link m3u8',
+                              : cancelled
+                                  ? 'Đã huỷ - bấm thử lại'
+                                  : episode.hasM3u8
+                                      ? 'Sẵn sàng tải'
+                                      : 'Không có link m3u8',
                   style: const TextStyle(
                       color: Color(0xFF94A3B8), fontSize: 11),
                 ),

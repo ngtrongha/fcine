@@ -5,6 +5,25 @@
 > Đã triển khai: nút Tải xuống + bottom-sheet, menu Thử lại/Xoá, storage meter thật,
 > OfflineBanner, nút Trailer, fix nút chết, xoá dead code, 7 test mới.
 
+## Vòng 2 — P2 (✅ hoàn thành 17/09/2026, 63/63 pass)
+
+* Cancel download (CancelToken registry + status 'cancelled' + menu Huỷ, xoá file dở dang)
+* QuickSearchField nhấn Enter → `/search?q=` (server search đầy đủ)
+* Dual-pane Detail desktop (tóm tắt + metadata side panel phải 360px)
+
+## Vòng 3 — Quick win + P3 khả thi (✅ hoàn thành 17/09/2026, 67/67 pass)
+
+* **Real brightness**: `screen_brightness` package — slider/swipe áp độ sáng thật lên màn hình, reset khi đóng player
+* **Swipe gesture player** (quick win trong kế hoạch gốc): swipe dọc kiểu YouTube — nửa trái = độ sáng, nửa phải = âm lượng, overlay hiển thị mức khi kéo; swipe ngang tua ±10s đã có sẵn
+* **Phụ đề ngoài online player**: "Tải phụ đề từ tệp..." (.srt/.ass/.vtt) qua file_picker, hiển thị tên phụ đề trong settings sheet, tự clear khi đổi tập
+* **Safe mode ẩn 18+** (Kids Mode lite): toggle trong Cài Đặt → lọc phim 18+ (theo category/lang "18+") khỏi Home (banner + grid) và Search; fail-soft khi thiếu DI
+
+**Còn lại trong Phase 2+ (cần backend/SDK, chưa làm):**
+* Chromecast / AirPlay — cần Cast SDK (placeholder dialog giữ nguyên)
+* Download → mp4 remux — cần ffmpeg
+* Push tập mới — cần backend cron check `latest`
+* Đồng bộ Cloud — đã skip theo yêu cầu
+
 ## Mục tiêu
 
 Hoàn thiện Tải xuống end-to-end, gắn OfflineBanner, thêm nút Trailer, sửa các nút chết, dọn dead code.
@@ -41,4 +60,7 @@ Hoàn thiện Tải xuống end-to-end, gắn OfflineBanner, thêm nút Trailer,
 - **Không sửa DownloadService core logic**: parse/rewrite/progress đã đúng; chỉ thêm `totalSizeOnDisk()` + retry entry failed (dùng lại `startDownload` với field từ DB)
 - **Trailer**: `trailer_url` đã parse sẵn vào `Movie.trailerUrl` (`domain/entities/movie.dart:19`) — chỉ thêm UI + url_launcher
 - **Thứ tự gợi ý**: A → B → C; Task 1-3 song song được với Task 4-6
-- **Tuỳ chọn P2** (nếu còn thời gian): pause/cancel download qua CancelToken registry; Home search chuyển sang server search; dual-pane Home/Detail desktop
+- **Tuỳ chọn P2 (ĐÃ HOÀN THÀNH 17/09/2026):**
+- [x] Cancel download: CancelToken registry + status 'cancelled' + menu Huỷ cho entry đang tải, xoá file dở dang; entry mất token (app restart) → huỷ trực tiếp. +2 test
+- [x] QuickSearchField (Home): nhấn Enter → `/search?q=` — tìm kiếm server đầy đủ thay vì chỉ lọc client-side; SearchPage nhận initialKeyword
+- [x] Dual-pane Detail desktop: nội dung chính cột trái, tóm tắt + metadata (Quốc gia/Đạo diễn/Diễn viên) side panel phải 360px cuộn riêng

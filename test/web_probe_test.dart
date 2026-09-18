@@ -127,6 +127,31 @@ void main() {
         expect(e.message, contains('sitemap'));
       }
     });
+
+    test('probe tự tune search + listByType', () async {
+      // Chỉ '/movies/page/1/' có list, chỉ '/tim-kiem?...' search được,
+      // chỉ '/the-lo/tvshows/...' có thể loại (qua typeMap dooplay).
+      final dio = _mockDio({
+        '/movies/page/1/': _dooplayListHtml,
+        'tim-kiem': _dooplayListHtml,
+        '/the-lo/tvshows': _dooplayListHtml,
+      });
+      final r = await WebProbe.probe(
+        baseUrl: 'https://probe5.test',
+        name: 'P5',
+        client: dio,
+      );
+      expect(r.source.endpoints.latest.path, '/movies/page/{page}/');
+      expect(
+        r.source.endpoints.search.path,
+        '/tim-kiem?keyword={keyword}',
+      );
+      expect(
+        r.source.endpoints.listByType?.path,
+        '/the-lo/{type}/page/{page}/',
+      );
+      expect(r.movies.length, 3);
+    });
   });
 
   group('Sitemap datasource', () {

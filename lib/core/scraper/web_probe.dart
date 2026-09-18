@@ -158,7 +158,8 @@ class WebProbe {
             ? '${cands[i].label} (${cands[i].shortError})'
             : '${cands[i].label} (${r.sample} phim)',
       );
-      if (r != null) return r;
+      // Config thắng được tune thêm search + listByType (B1.5) trước khi trả.
+      if (r != null) return _tuneEndpoints(dio, r, timeout);
     }
 
     // B2: sitemap (cho web render JS nhưng có sitemap đầy đủ).
@@ -213,6 +214,165 @@ class WebProbe {
     detail: e.detail,
     listByType: e.listByType,
   );
+
+  /// Pattern search phổ biến của web phim (WP + custom VN).
+  static const _searchPatterns = [
+    '/?s={keyword}',
+    '/tim-kiem?keyword={keyword}',
+    '/search?q={keyword}',
+    '/timkiem?keyword={keyword}',
+    '?keyword={keyword}',
+  ];
+
+  /// Từ khóa dò search: 'tinh' trúng hầu hết web phim VN,
+  /// 'a' dự phòng cho web ngoại/không dấu.
+  static const _searchKeywords = ['tinh', 'a'];
+
+  /// Pattern trang thể loại phổ biến. `{type}` giữ nguyên để runtime map
+  /// qua `typeMap` của config (VD dooplay: phim-bo -> tvshows).
+  static const _typePatterns = [
+    '/{type}/page/{page}/',
+    '/{type}/',
+    '/the-lo/{type}/page/{page}/',
+    '/the-loai/{type}/page/{page}/',
+    '/genre/{type}/page/{page}/',
+    '/danh-muc/{type}/page/{page}/',
+  ];
+
+  /// B1.5: tune search + listByType cho config thắng từ B1. Pattern hiện tại
+  /// của config được thử trước (giữ nguyên nếu đã chạy). Bỏ qua nguồn
+  /// sitemap (search/list nội bộ qua locs đã hoạt động, không cần tune).
+  static Future<WebProbeResult> _tuneEndpoints(
+    Dio dio,
+    WebProbeResult won,
+    Duration timeout,
+  ) async {
+    if (won.source.endpoints.latest.path.startsWith('sitemap:')) return won;
+    final results = await Future.wait([
+      _tuneSearch(dio, won.source, timeout),
+      _tuneListByType(dio, won.source, timeout),
+    ]);
+    final searchPath = results[0];
+    final typePath = results[1];
+    if (searchPath == null && typePath == null) return won;
+    var ep = won.source.endpoints;
+    if (searchPath != null) {
+      ep = Endpoints(
+        latest: ep.latest,
+        latestV1: ep.latestV1,
+        search: Endpoint(path: searchPath, method: 'GET'),
+        detail: ep.detail,
+        listByType: ep.listByType,
+      );
+    }
+    if (typePath != null) {
+      ep = Endpoints(
+        latest: ep.latest,
+        latestV1: ep.latestV1,
+        search: ep.search,
+        detail: ep.detail,
+        listByType: Endpoint(path: typePath, method: 'GET'),
+      );
+    }
+    return WebProbeResult(
+      source: won.source.copyWith(endpoints: ep),
+      sample: won.sample,
+      via: won.via,
+      movies: won.movies,
+    );
+  }
+
+  /// Thử các pattern search (song song), giữ pattern đầu tiên bóc được
+  /// ≥1 phim (theo thứ tự ưu tiên: config hiện tại trước).
+  static Future<String?> _tuneSearch(
+    Dio dio,
+    SourceConfig base,
+    Duration timeout,
+  ) async {
+    final paths = <String>{
+      base.endpoints.search.path,
+      ..._searchPatterns,
+    }.toList();
+    final hits = await Future.wait(
+      paths.map((p) => _trySearchPath(dio, base, p, timeout)),
+    );
+    for (var i = 0; i < paths.length; i++) {
+      if (hits[i]) return paths[i];
+    }
+    return null;
+  }
+
+  static Future<bool> _trySearchPath(
+    Dio dio,
+    SourceConfig base,
+    String path,
+    Duration timeout,
+  ) async {
+    final e = base.endpoints;
+    final tmp = base.copyWith(
+      endpoints: Endpoints(
+        latest: e.latest,
+        latestV1: e.latestV1,
+        search: Endpoint(path: path, method: 'GET'),
+        detail: e.detail,
+        listByType: e.listByType,
+      ),
+    );
+    final ds = WebScraperDataSource(dio: dio, source: tmp);
+    for (final kw in _searchKeywords) {
+      try {
+        final res = await ds.search(keyword: kw, limit: 5).timeout(timeout);
+        if (res.movies.isNotEmpty) return true;
+      } catch (_) {}
+    }
+    return false;
+  }
+
+  /// Thử các pattern thể loại với type='phim-bo' (song song), giữ pattern
+  /// đầu tiên bóc được ≥ [minMovies] phim.
+  static Future<String?> _tuneListByType(
+    Dio dio,
+    SourceConfig base,
+    Duration timeout,
+  ) async {
+    final paths = <String>{
+      if (base.endpoints.listByType?.path case final String current)
+        current,
+      ..._typePatterns,
+    }.toList();
+    final hits = await Future.wait(
+      paths.map((p) => _tryTypePath(dio, base, p, timeout)),
+    );
+    for (var i = 0; i < paths.length; i++) {
+      if (hits[i]) return paths[i];
+    }
+    return null;
+  }
+
+  static Future<bool> _tryTypePath(
+    Dio dio,
+    SourceConfig base,
+    String path,
+    Duration timeout,
+  ) async {
+    final e = base.endpoints;
+    final tmp = base.copyWith(
+      endpoints: Endpoints(
+        latest: e.latest,
+        latestV1: e.latestV1,
+        search: e.search,
+        detail: e.detail,
+        listByType: Endpoint(path: path, method: 'GET'),
+      ),
+    );
+    final ds = WebScraperDataSource(dio: dio, source: tmp);
+    try {
+      final res = await ds.getListByType('phim-bo', page: 1).timeout(timeout);
+      return res.movies.length >= minMovies;
+    } catch (_) {
+      return false;
+    }
+  }
 
   static String _shortReason(Object e) {
     final s = e.toString();

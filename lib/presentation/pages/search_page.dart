@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fcine/core/di/injection.dart';
 import 'package:fcine/core/toast/app_toast.dart';
+import 'package:fcine/core/config/safe_mode_service.dart';
 import 'package:fcine/presentation/blocs/search/search_bloc.dart';
 import 'package:fcine/presentation/blocs/search/search_event.dart';
 import 'package:fcine/presentation/blocs/search/search_state.dart';
@@ -16,7 +17,9 @@ import 'package:fcine/ui/features/search/views/widgets/search_app_bar.dart';
 import 'package:fcine/ui/features/search/views/widgets/search_grid.dart';
 
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+  /// Keyword ban đầu (từ ô tìm kiếm nhanh trên Home qua `?q=`).
+  final String? initialKeyword;
+  const SearchPage({super.key, this.initialKeyword});
   @override
   State<SearchPage> createState() => _SearchPageState();
 }
@@ -25,6 +28,7 @@ class _SearchPageState extends State<SearchPage> {
   late final SearchBloc _bloc;
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  bool _safeMode = false;
 
   final Map<String, String> categories = const {
     '': 'Tất cả',
@@ -66,7 +70,24 @@ class _SearchPageState extends State<SearchPage> {
     super.initState();
     _bloc = SearchBloc();
     _scrollController.addListener(_onScroll);
+    final kw = widget.initialKeyword?.trim() ?? '';
+    if (kw.isNotEmpty) {
+      _controller.text = kw;
+      _bloc.add(SearchKeywordChanged(kw));
+    }
+    _loadSafeMode();
   }
+
+  Future<void> _loadSafeMode() async {
+    try {
+      final on = await getIt<SafeModeService>().load();
+      if (mounted) setState(() => _safeMode = on);
+    } catch (_) {}
+  }
+
+  /// Áp safe mode (ẩn 18+) lên danh sách kết quả hiển thị.
+  SearchState _filtered(SearchState state) =>
+      state.copyWith(movies: SafeModeService.filter(state.movies, _safeMode));
 
   void _onScroll() {
     if (_scrollController.position.pixels >=
@@ -115,8 +136,9 @@ class _SearchPageState extends State<SearchPage> {
           }
         },
         builder: (context, state) {
-          if (context.isDesktop) return _buildDesktop(state);
-          return _buildMobile(state);
+          final filtered = _filtered(state);
+          if (context.isDesktop) return _buildDesktop(filtered);
+          return _buildMobile(filtered);
         },
       ),
     );

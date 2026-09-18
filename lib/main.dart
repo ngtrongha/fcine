@@ -5,6 +5,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'core/di/injection.dart';
+import 'core/config/source_refresh_service.dart';
 import 'presentation/router/app_router.dart';
 import 'presentation/theme/app_theme.dart';
 
@@ -19,6 +20,8 @@ Future<void> main() async {
   );
 
   await setupInjection();
+  // Periodic re-probe stale sources (7 days) - chạy background, không block UI
+  getIt<SourceRefreshService>().checkAndReprobeStale();
   await _initDesktopWindow();
 
   runApp(const MyApp());

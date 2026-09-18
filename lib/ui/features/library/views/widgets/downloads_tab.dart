@@ -44,6 +44,15 @@ class DownloadsTab extends StatelessWidget {
     );
   }
 
+  void _cancel(BuildContext context, Download d) {
+    getIt<DownloadService>().cancelDownload(d.id);
+    AppToast.show(
+      context,
+      message: 'Đã huỷ tải: ${d.episodeName}',
+      type: ToastType.info,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (items.isEmpty) return const Center(child: Text('Chưa có bản tải', style: TextStyle(color: Color(0xFF94A3B8))));
@@ -54,17 +63,27 @@ class DownloadsTab extends StatelessWidget {
       itemBuilder: (context, i) {
         final d = items[i];
         final failed = d.status == 'failed';
+        final cancelled = d.status == 'cancelled';
+        final completed = d.status == 'completed';
+        final active = !completed && !failed && !cancelled;
+        final Color statusColor = completed
+            ? Colors.green
+            : failed
+                ? Colors.red
+                : cancelled
+                    ? const Color(0xFF94A3B8)
+                    : Colors.amber;
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(color: const Color(0xFF111622), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF1E293B))),
           child: Row(children: [
-            Icon(d.status == 'completed' ? Icons.check_circle : (failed ? Icons.error_outline : Icons.downloading), color: d.status == 'completed' ? Colors.green : (failed ? Colors.red : Colors.amber)),
+            Icon(completed ? Icons.check_circle : (failed ? Icons.error_outline : (cancelled ? Icons.cancel : Icons.downloading)), color: statusColor),
             const SizedBox(width: 10),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('${d.movieName} - ${d.episodeName}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-              Text('${d.serverName} • ${failed ? 'Tải lỗi' : '${d.progress}%'}', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
+              Text('${d.serverName} • ${completed ? 'Đã tải' : failed ? 'Tải lỗi' : cancelled ? 'Đã huỷ' : '${d.progress}%'}', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11)),
               const SizedBox(height: 4),
-              ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: d.progress / 100, backgroundColor: const Color(0xFF1E293B), valueColor: AlwaysStoppedAnimation(d.status == 'completed' ? Colors.green : (failed ? Colors.red : Colors.amber)), minHeight: 4)),
+              if (active) ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: d.progress / 100, backgroundColor: const Color(0xFF1E293B), valueColor: AlwaysStoppedAnimation(statusColor), minHeight: 4)),
             ])),
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Color(0xFF94A3B8)),
@@ -72,10 +91,11 @@ class DownloadsTab extends StatelessWidget {
               color: const Color(0xFF1E293B),
               onSelected: (action) {
                 if (action == 'retry') _retry(context, d);
+                if (action == 'cancel') _cancel(context, d);
                 if (action == 'delete') _delete(context, d);
               },
               itemBuilder: (_) => [
-                if (failed || d.status == 'completed')
+                if (!active)
                   const PopupMenuItem(
                     value: 'retry',
                     height: 40,
@@ -83,6 +103,16 @@ class DownloadsTab extends StatelessWidget {
                       Icon(Icons.refresh_rounded, color: Colors.amber, size: 18),
                       SizedBox(width: 10),
                       Text('Tải lại', style: TextStyle(color: Colors.white, fontSize: 13)),
+                    ]),
+                  ),
+                if (active)
+                  const PopupMenuItem(
+                    value: 'cancel',
+                    height: 40,
+                    child: Row(children: [
+                      Icon(Icons.cancel_outlined, color: Color(0xFF94A3B8), size: 18),
+                      SizedBox(width: 10),
+                      Text('Huỷ', style: TextStyle(color: Colors.white, fontSize: 13)),
                     ]),
                   ),
                 const PopupMenuItem(

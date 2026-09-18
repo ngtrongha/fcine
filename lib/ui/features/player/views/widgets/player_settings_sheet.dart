@@ -17,6 +17,8 @@ class PlayerSettingsSheet extends StatelessWidget {
   final Track? currentTrack;
   final VoidCallback onAudioTap;
   final VoidCallback onSubtitleTap;
+  final VoidCallback onExternalSubtitleTap;
+  final String? externalSubtitleTitle;
   final int introEndMs;
   final VoidCallback onIntroTap;
   final VoidCallback onCastTap;
@@ -39,6 +41,8 @@ class PlayerSettingsSheet extends StatelessWidget {
     required this.currentTrack,
     required this.onAudioTap,
     required this.onSubtitleTap,
+    required this.onExternalSubtitleTap,
+    this.externalSubtitleTitle,
     required this.introEndMs,
     required this.onIntroTap,
     required this.onCastTap,
@@ -93,6 +97,12 @@ class PlayerSettingsSheet extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white54, size: 18),
                 onTap: () => _popAnd(onSubtitleTap, context),
               ),
+            ListTile(
+              leading: Icon(Icons.subtitles_rounded, color: externalSubtitleTitle != null ? Colors.amber : Colors.white70),
+              title: Text(externalSubtitleTitle != null ? 'Phụ đề ngoài: $externalSubtitleTitle' : 'Tải phụ đề từ tệp...', style: const TextStyle(color: Colors.white)),
+              subtitle: const Text('Hỗ trợ .srt / .ass / .vtt', style: TextStyle(color: Colors.white54, fontSize: 11)),
+              onTap: () => _popAnd(onExternalSubtitleTap, context),
+            ),
             ListTile(
               leading: Icon(Icons.skip_next_rounded, color: introEndMs > 0 ? Colors.amber : Colors.white70),
               title: Text(introEndMs > 0 ? 'Skip intro: ${introEndMs ~/ 1000}s' : 'Đặt Skip intro', style: const TextStyle(color: Colors.white)),

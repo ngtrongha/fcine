@@ -6,8 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'dart:async';
 import '../../core/cache/image_cache_manager.dart';
 import '../../core/scraper/web_probe.dart';
+import '../../core/scraper/ai_config_generator.dart';
 import '../../core/config/master_config.dart';
 import '../../core/config/config_service.dart';
+import '../../core/config/safe_mode_service.dart';
 import '../../core/config/source_templates.dart';
 import '../../core/di/injection.dart';
 import '../../core/toast/app_toast.dart';
@@ -35,11 +37,122 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _savingConfigUrl = false;
   bool _savingBaseUrl = false;
   bool _savingWeb = false;
+  bool _safeMode = false;
+  bool _aiConfigSaved = false;
+  final _aiEndpointController = TextEditingController();
+  final _aiKeyController = TextEditingController();
+  final _aiModelController = TextEditingController();
+  bool _savingAi = false;
 
   @override
   void initState() {
     super.initState();
     _reload();
+    _loadSafeMode();
+    _loadAiConfig();
+  }
+
+  Future<void> _loadSafeMode() async {
+    try {
+      final on = await getIt<SafeModeService>().load();
+      if (mounted) setState(() => _safeMode = on);
+    } catch (_) {}
+  }
+
+  Future<void> _loadAiConfig() async {
+    try {
+      final svc = getIt<ConfigService>();
+      final cfg = await svc.getAiConfig();
+      if (cfg == null) return;
+      setState(() {
+        _aiConfigSaved = true;
+        _aiEndpointController.text = cfg['endpoint'] ?? '';
+        _aiKeyController.text = cfg['key'] ?? '';
+        _aiModelController.text = cfg['model'] ?? '';
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _saveAiConfig() async {
+    final endpoint = _aiEndpointController.text.trim();
+    final key = _aiKeyController.text.trim();
+    final model = _aiModelController.text.trim();
+    if (endpoint.isEmpty || key.isEmpty) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'Vui lòng nhập endpoint và key',
+          type: ToastType.warning,
+        );
+      }
+      return;
+    }
+    setState(() => _savingAi = true);
+    try {
+      await getIt<ConfigService>().saveAiConfig(
+        endpoint: endpoint,
+        key: key,
+        model: model,
+      );
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'Đã lưu cấu hình AI',
+          type: ToastType.success,
+        );
+        setState(() => _aiConfigSaved = true);
+      }
+    } catch (e) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'Lưu AI config thất bại: $e',
+          type: ToastType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _savingAi = false);
+    }
+  }
+
+  void _clearAiConfig() {
+    showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF111622),
+        title: const Text('Xóa cấu hình AI?', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'App vẫn dùng heuristic WebProbe bình thường. AI fallback sẽ bị tắt.',
+          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Hủy')),
+          ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Xóa')),
+        ],
+      ),
+    ).then((ok) async {
+      if (ok != true) return;
+      await getIt<ConfigService>().clearAiConfig();
+      _clearAiConfigFields();
+      if (mounted) setState(() => _aiConfigSaved = false);
+      if (mounted) AppToast.show(context, message: 'Đã xóa cấu hình AI', type: ToastType.info);
+    });
+  }
+
+  Future<void> _toggleSafeMode(bool value) async {
+    setState(() => _safeMode = value);
+    try {
+      await getIt<SafeModeService>().save(value);
+    } catch (_) {}
+    if (mounted) {
+      AppToast.show(
+        context,
+        message: value
+            ? 'Đã bật chế độ an toàn - ẩn phim 18+'
+            : 'Đã tắt chế độ an toàn',
+        type: ToastType.success,
+      );
+    }
   }
 
   Future<void> _reload() async {
@@ -198,18 +311,113 @@ class _SettingsPageState extends State<SettingsPage> {
       await _reload();
       if (mounted && cfg.hasSource) context.go('/home');
     } on WebProbeException catch (e) {
-      if (mounted) {
-        AppToast.show(
-          context,
-          message: 'Thêm web thất bại: ${e.message}',
-          type: ToastType.error,
-        );
+      if (!mounted) return;
+      // Thử AI fallback nếu user đã cấu hình (openAI-compatible endpoint/key).
+      final aiCfg = await getIt<ConfigService>().getAiConfig();
+      if (aiCfg == null || aiCfg['endpoint'] == null || aiCfg['key'] == null) {
+        _showWebProbeFail(e);
+        return;
       }
+      // Hỏi trước khi gọi AI (không tự động, không tốn state).
+      if (!mounted) return;
+      final useAi = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: const Color(0xFF111622),
+          title: const Text('Heuristic không bóc được. Thử AI phân tích?', style: TextStyle(color: Colors.white)),
+          content: const Text(
+            'AI (OpenAI-compatible) sẽ phân tích HTML và sinh selectors. Chi phí tính bằng token API của bạn.',
+            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Bỏ qua')),
+            ElevatedButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Thử AI')),
+          ],
+        ),
+      );
+      if (useAi != true) {
+        _showWebProbeFail(e);
+        return;
+      }
+      if (!mounted) return;
+      setState(() => _savingWeb = false);
+      _runAiAnalysis(url, name);
     } catch (e) {
       if (mounted) {
         AppToast.show(
           context,
           message: 'Thêm web thất bại: $e',
+          type: ToastType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _savingWeb = false);
+    }
+  }
+
+  /// Toast lỗi khi heuristic probe fail (không dùng AI).
+  void _showWebProbeFail(WebProbeException e) {
+    if (mounted) {
+      AppToast.show(
+        context,
+        message: e.message,
+        type: ToastType.error,
+      );
+    }
+  }
+
+  /// Chạy AI phân tích web (tùy chọn): dùng config AI đã lưu sinh selectors.
+  /// Kết thúc bằng dialog preview (dùng chung _WebSourcePreviewDialog).
+  Future<void> _runAiAnalysis(String baseUrl, String? name) async {
+    if (!mounted) return;
+    setState(() => _savingWeb = true);
+    try {
+      final cfgSvc = getIt<ConfigService>();
+      final gen = AiConfigGenerator(
+        AiConfig(
+          endpoint: (await cfgSvc.getAiConfig())?['endpoint'] ?? '',
+          key: (await cfgSvc.getAiConfig())?['key'] ?? '',
+          model: (await cfgSvc.getAiConfig())?['model'] ?? '',
+        ),
+      );
+      final source = await gen.generate(
+        baseUrl: baseUrl,
+        name: name,
+      ).timeout(const Duration(seconds: 90));
+      if (source == null) {
+        throw Exception('AI không trả cấu hình hợp lệ (nội dung trống hoặc parse fail)');
+      }
+      if (!mounted) return;
+      // Dùng preview dialog chung: dùng kết quả trả về từ AI làm source.
+      final found = WebProbeResult(
+        source: source,
+        sample: 0, // Patch chưa dùng sample count — để trống (sẽ 0 cho AI)
+        via: 'AI fallback',
+        movies: const [],
+      );
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (_) => _WebSourcePreviewDialog(result: found),
+      );
+      if (confirmed != true || !mounted) return;
+      final cfg = await getIt<ConfigService>().saveWebSource(found.source);
+      await refreshSources();
+      _webUrlController.clear();
+      _webNameController.clear();
+      if (!mounted) return;
+      setState(() => _config = cfg);
+      AppToast.show(
+        context,
+        message: 'Đã thêm ${source.name} bằng AI fallback',
+        type: ToastType.success,
+      );
+      await _reload();
+      if (mounted && cfg.hasSource) context.go('/home');
+    } catch (e) {
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'AI phân tích thất bại: $e',
           type: ToastType.error,
         );
       }
@@ -273,6 +481,12 @@ class _SettingsPageState extends State<SettingsPage> {
     if (mounted) AppToast.show(context, message: 'Đã xóa bộ nhớ đệm ảnh', type: ToastType.success);
   }
 
+  void _clearAiConfigFields() {
+    _aiEndpointController.clear();
+    _aiKeyController.clear();
+    _aiModelController.clear();
+  }
+
   @override
   void dispose() {
     _configUrlController.dispose();
@@ -280,6 +494,9 @@ class _SettingsPageState extends State<SettingsPage> {
     _baseNameController.dispose();
     _webUrlController.dispose();
     _webNameController.dispose();
+    _aiEndpointController.dispose();
+    _aiKeyController.dispose();
+    _aiModelController.dispose();
     super.dispose();
   }
 
@@ -306,6 +523,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
+                _sectionTitle('CHẾ ĐỘ AN TOÀN'),
+                SwitchListTile(
+                  value: _safeMode,
+                  onChanged: _toggleSafeMode,
+                  secondary: const Icon(Icons.family_restroom_rounded, color: Color(0xFFE50914)),
+                  activeThumbColor: const Color(0xFFE50914),
+                  title: const Text('Ẩn phim 18+', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+                  subtitle: const Text('Lọc nội dung 18+ khỏi trang chủ và tìm kiếm', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: const Color(0xFF1E293B))),
+                  tileColor: const Color(0xFF111622),
+                ),
+                const SizedBox(height: 24),
                 _sectionTitle('NGUỒN PHIM ĐÃ LƯU (${sources.length})'),
                 if (sources.isEmpty)
                   _emptySources()
@@ -326,6 +556,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 _addWebCard(),
                 const SizedBox(height: 12),
                 _addConfigUrlCard(),
+                const SizedBox(height: 24),
+                _sectionTitle('AI FALLBACK (TÙY CHỌN)'),
+                _addAiConfigCard(),
                 const SizedBox(height: 24),
                 _sectionTitle('BỘ NHỚ'),
                 _cacheCard(),
@@ -573,6 +806,89 @@ class _SettingsPageState extends State<SettingsPage> {
               label: Text(_savingConfigUrl ? 'Đang tải...' : 'Tải & lưu cấu hình'),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Card "AI fallback" (tùy chọn) — endpoint + API key + model cho generator.
+  Widget _addAiConfigCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: const Color(0xFF111622), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF1E293B))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('AI phân tích nguồn (OpenAI-compatible)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 14)),
+          const SizedBox(height: 4),
+          const Text(
+            'Khi heuristic probe fail, app có thể dùng AI sinh selectors. Không bắt buộc — xem [link](https://platform.openai.com/api-keys) để tạo key (miễn phí).',
+            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _aiEndpointController,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+            decoration: const InputDecoration(
+              hintText: 'https://api.openai.com/v1',
+              hintStyle: TextStyle(color: Color(0xFF64748B)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _aiKeyController,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+            decoration: const InputDecoration(
+              hintText: 'API key (không để fill cũng được — dán vào để bật)',
+              hintStyle: TextStyle(color: Color(0xFF64748B)),
+            ),
+            obscureText: true,
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _aiModelController,
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+            decoration: const InputDecoration(
+              hintText: 'Model (vd: gpt-4o-mini, tùy chọn)',
+              hintStyle: TextStyle(color: Color(0xFF64748B)),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _savingAi ? null : _saveAiConfig,
+                  icon: _savingAi
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.save_rounded, size: 16),
+                  label: Text(_savingAi ? 'Đang lưu...' : 'Lưu config AI'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1A5DFF),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: _clearAiConfig,
+                icon: const Icon(Icons.delete_outline_rounded, size: 16),
+                label: const Text('Xóa AI'),
+                style: OutlinedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  side: BorderSide(color: const Color(0xFF64748B)),
+                ),
+              ),
+            ],
+          ),
+          if (_aiConfigSaved)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                'Đã cấu hình AI fallback (${Uri.tryParse(_aiEndpointController.text)?.host ?? "openai"})',
+                style: TextStyle(color: const Color(0xFF22C55E), fontSize: 11),
+              ),
+            ),
         ],
       ),
     );

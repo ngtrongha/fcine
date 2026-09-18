@@ -3,6 +3,8 @@ import '../../domain/entities/episode.dart';
 import '../../domain/entities/pagination.dart';
 import '../../domain/repositories/movie_repository.dart';
 import '../datasources/remote_datasource.dart';
+// Re-probe service được DI inject từ injection.dart (lazy singleton)
+import 'package:fcine/core/config/source_refresh_service.dart';
 
 /// Throw khi app chưa có nguồn phim do user nhập.
 /// UI bắt exception này để hiển thị chế độ player-only.
@@ -20,11 +22,15 @@ class NoSourceConfiguredException implements Exception {
 class MovieRepositoryImpl implements MovieRepository {
   final RemoteDataSource? primary;
   final Map<String, RemoteDataSource> allDatasources;
+  final SourceRefreshService? refreshService;
 
-  MovieRepositoryImpl({required this.primary, this.allDatasources = const {}});
+  MovieRepositoryImpl({
+    required this.primary,
+    this.allDatasources = const {},
+    this.refreshService,
+  });
 
-  bool get hasSource =>
-      primary != null && allDatasources.isNotEmpty;
+  bool get hasSource => primary != null && allDatasources.isNotEmpty;
 
   RemoteDataSource _requireSource(String? sourceId) {
     if (sourceId != null && allDatasources.containsKey(sourceId)) {
@@ -58,8 +64,24 @@ class MovieRepositoryImpl implements MovieRepository {
           continue;
         }
       }
-      // All sources failed, rethrow original error
-      rethrow;
+      // Re-probe web source blunt khi fail liên tục (self-heal)
+      if (refreshService != null && first.source.isWeb) {
+        try {
+          final maybeReprobed = await refreshService!.maybeReprobe(first.source.id);
+          if (maybeReprobed != null) {
+            // Manager off-chảy gọi lại bằng config mới
+            final newDs = MovieRepositoryImpl(
+              primary: primary,
+              allDatasources: allDatasources,
+              refreshService: refreshService,
+            )._requireSource(first.source.id);
+            return await action(newDs);
+          }
+        } catch (_) {
+          // Re-probe crack không được → trung bình dùng lỗi gốc
+        }
+      }
+      rethrow; // Fallback nếu không refresh: trả lỗi gốc
     }
   }
 

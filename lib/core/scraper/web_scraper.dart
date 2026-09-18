@@ -194,6 +194,96 @@ class WebScraper {
     return found;
   }
 
+  /// Heuristic tìm card phim cho web lạ: nhóm ≥ [minGroup] element anh em
+  /// cùng tag+class, mỗi block chứa `<a href>` + `<img>` với link khác nhau.
+  /// Dùng khi selector config + fallback generic đều rỗng. Bỏ qua vùng
+  /// chrome (header/nav/footer/menu/sidebar). Trả về nhóm lớn nhất tìm được.
+  static List<Element> siblingCards(Document doc, {int minGroup = 3}) {
+    List<Element> best = const [];
+    for (final parent in doc.querySelectorAll('*')) {
+      if (parent.children.length < minGroup) continue;
+      if (_inChrome(parent)) continue;
+      final groups = <String, List<Element>>{};
+      for (final c in parent.children) {
+        final key = '${c.localName}|${c.classes.join(' ')}';
+        (groups[key] ??= <Element>[]).add(c);
+      }
+      for (final g in groups.values) {
+        if (g.length < minGroup || g.length <= best.length) continue;
+        var sameHref = true;
+        String? firstHref;
+        var ok = true;
+        for (final b in g) {
+          final a = b.querySelector('a[href]');
+          final img = b.querySelector('img');
+          final href = a?.attributes['href']?.trim() ?? '';
+          if (a == null || img == null || href.isEmpty || href.startsWith('#')) {
+            ok = false;
+            break;
+          }
+          if (firstHref == null) {
+            firstHref = href;
+          } else if (firstHref != href) {
+            sameHref = false;
+          }
+        }
+        if (ok && !sameHref) best = g;
+      }
+      if (best.length >= 24) break;
+    }
+    return best;
+  }
+
+  /// True khi [el] nằm trong vùng chrome (nav/header/footer/menu/sidebar).
+  static bool _inChrome(Element el) {
+    Node? n = el;
+    for (var i = 0; i < 4 && n != null; i++) {
+      if (n is Element) {
+        final tag = n.localName;
+        if (tag == 'header' || tag == 'nav' || tag == 'footer') return true;
+        final cls = n.classes.join(' ').toLowerCase();
+        if (cls.contains('menu') ||
+            cls.contains('nav') ||
+            cls.contains('sidebar')) {
+          return true;
+        }
+      }
+      n = n.parent;
+    }
+    return false;
+  }
+
+  /// Quét link stream trong block setup của player JS phổ biến (JWPlayer,
+  /// PlayerJS, VideoJS...) trong inline script. Khác scanStreamUrls ở chỗ:
+  /// gỡ escape JS (`\/` -> `/`, `\/u002F` -> `/`) nên bắt được URL mã hoá
+  /// kiểu `"file":"https:\/\/cdn.test\/a.m3u8"`. Chỉ quét cửa sổ nhỏ ngay
+  /// sau anchor player để tránh dính quảng cáo/tracking URL lung tung.
+  static List<String> playerSetupStreams(String html, String base) {
+    final text = html
+        .replaceAll('\\/', '/')
+        .replaceAll('\\u002F', '/')
+        .replaceAll('\\u002f', '/');
+    final anchors = RegExp(
+      r'jwplayer|playerjs|new\s+Playerjs|videojs|file\s*[:=]\s*["\x27]https?',
+      caseSensitive: false,
+    );
+    final urlRe = RegExp(
+      r'https?://[^\s\x22\x27\\<>]+?\.(m3u8|mp4|mkv|webm)(\?[^\s\x22\x27\\<>]*)?',
+      caseSensitive: false,
+    );
+    final out = <String>[];
+    for (final m in anchors.allMatches(text)) {
+      final start = m.start;
+      final end = start + 1600 <= text.length ? start + 1600 : text.length;
+      final window = text.substring(start, end);
+      for (final u in urlRe.allMatches(window)) {
+        final abs = absUrl(base, u.group(0)!);
+        if (abs.isNotEmpty && !out.contains(abs)) out.add(abs);
+      }
+    }
+    return out;
+  }
+
   /// src các <iframe> trong trang (fallback mở embed).
   static List<String> iframeSrcs(String html, String base) {
     final out = <String>[];

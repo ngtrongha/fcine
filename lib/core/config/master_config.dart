@@ -70,6 +70,9 @@ class SourceConfig {
   final Map<String, dynamic> selectors;
   final Map<String, dynamic> pagination;
 
+  /// Thời điểm probe cuối cùng (ISO8601). Dùng cho periodic re-probe (7 ngày).
+  final String? probedAt;
+
   bool get isWeb => sourceType == 'web';
 
   SourceConfig({
@@ -85,9 +88,10 @@ class SourceConfig {
     this.extractors = const {},
     this.selectors = const {},
     this.pagination = const {},
+    this.probedAt,
   });
 
-  factory SourceConfig.fromJson(Map<String, dynamic> json) => SourceConfig(
+factory SourceConfig.fromJson(Map<String, dynamic> json) => SourceConfig(
     id: json['id']?.toString() ?? '',
     name: json['name']?.toString() ?? '',
     enabled: json['enabled'] ?? true,
@@ -95,7 +99,7 @@ class SourceConfig {
     baseUrl: json['baseUrl']?.toString() ?? '',
     fallbackUrls:
         (json['fallbackUrls'] as List?)?.map((e) => e.toString()).toList() ??
-        [],
+            [],
     cdnImage: json['cdnImage']?.toString() ?? 'https://phimimg.com',
     headers: Map<String, String>.from(json['headers'] ?? {}),
     endpoints: Endpoints.fromJson(
@@ -110,6 +114,7 @@ class SourceConfig {
     pagination: json['pagination'] != null
         ? Map<String, dynamic>.from(json['pagination'] as Map)
         : {},
+    probedAt: json['probedAt']?.toString(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -125,6 +130,7 @@ class SourceConfig {
     'extractors': extractors,
     'selectors': selectors,
     'pagination': pagination,
+    'probedAt': probedAt,
   };
 
   /// Đọc 1 selector CSS (String) cho nguồn web, fallback [fallback].
@@ -147,6 +153,7 @@ class SourceConfig {
     Map<String, dynamic>? extractors,
     Map<String, dynamic>? selectors,
     Map<String, dynamic>? pagination,
+    String? probedAt,
   }) => SourceConfig(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -160,6 +167,7 @@ class SourceConfig {
     extractors: extractors ?? this.extractors,
     selectors: selectors ?? this.selectors,
     pagination: pagination ?? this.pagination,
+    probedAt: probedAt ?? this.probedAt,
   );
 
   /// Get extractor config for a section (latest, search, detail, episodes)

@@ -151,6 +151,11 @@ class WebScraperDataSource extends RemoteDataSource {
     if (cards.isEmpty) {
       cards = WebScraper.queryAll(doc, 'article, .post, div.item');
     }
+    // Heuristic cuối cho web lạ: tự tìm nhóm card lặp lại (link+ảnh),
+    // bỏ qua nav/menu — không cần biết trước cấu trúc markup.
+    if (cards.isEmpty) {
+      cards = WebScraper.siblingCards(doc);
+    }
     final movies = <Movie>[];
     final seen = <String>{};
     for (final card in cards) {
@@ -862,9 +867,44 @@ class WebScraperDataSource extends RemoteDataSource {
       );
     }
 
-    // 3) Fallback: iframe embed đầu tiên.
+    // 2.5) Block setup player JS (JWPlayer/PlayerJS/VideoJS) — URL stream
+    // thường nằm trong inline script với escape `\/` nên regex thường miss.
+    final setupStreams = WebScraper.playerSetupStreams(html, base);
+    if (setupStreams.isNotEmpty) {
+      return (
+        m3u8: setupStreams.first,
+        embed: null,
+        serverUsed: picked == null ? 'Mặc định' : _serverLabel(picked),
+      );
+    }
+
+    // 3) Iframe embed: tải sâu 1 tầng tối đa 2 embed, quét stream/PlayerJS
+    // trong trang embed (phần lớn host VN giấu m3u8 ở trang embed, không
+    // phải trang tập). Không lấy được stream thì trả embed như fallback.
     final iframes = WebScraper.iframeSrcs(html, base);
     if (iframes.isNotEmpty) {
+      for (final embed in iframes.take(2)) {
+        try {
+          final res = await _getHtml(embed);
+          final deep = WebScraper.scanStreamUrls(res.html, embed);
+          if (deep.isNotEmpty) {
+            return (
+              m3u8: deep.first,
+              embed: null,
+              serverUsed: picked == null ? 'Mặc định' : _serverLabel(picked),
+            );
+          }
+          final deepSetup = WebScraper.playerSetupStreams(res.html, embed);
+          if (deepSetup.isNotEmpty) {
+            return (
+              m3u8: deepSetup.first,
+              embed: null,
+              serverUsed: picked == null ? 'Mặc định' : _serverLabel(picked),
+            );
+          }
+        } catch (_) {}
+      }
+      // Fallback cuối: trả iframe embed đầu cho WebView/player ngoài.
       return (
         m3u8: null,
         embed: iframes.first,

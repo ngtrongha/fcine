@@ -47,6 +47,7 @@ dependencies:
   media_kit_video: ^2.0.1
   media_kit_libs_video: ^1.0.5
   wakelock_plus: ^1.3.1
+  screen_brightness: ^2.1.11
   file_picker: ^8.0.0
   intl: ^0.20.0
   floating: ^6.0.0
@@ -72,6 +73,7 @@ dev_dependencies:
   freezed: ^4.0.1
   flutter_launcher_icons: ^0.14.4
   path_provider_platform_interface: ^2.1.3
+  msix: ^3.16.8
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -107,4 +109,14 @@ flutter_launcher_icons:
   web:
     generate: true
     image_path: "assets/icon/app_icon.png"
+
+msix_config:
+  display_name: F-Cine
+  publisher_display_name: FCine
+  identity_name: com.fcine.fcine
+  publisher: CN=FCine, O=FCine, C=VN
+  logo_path: assets/icon/app_icon.png
+  architecture: x64
+  capabilities: internetClient
+  install_certificate: false
 

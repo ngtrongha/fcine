@@ -12,14 +12,44 @@ concurrency:
   group: build-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  issues: write
+
 env:
-  FLUTTER_VERSION: '3.32.1'
+  FLUTTER_VERSION: '3.47.4'
   JAVA_VERSION: '17'
 
 # ═══════════════════════════════════════════════════════
-#  PARALLEL JOBS — each platform builds independently
+#  PARALLEL JOBS — quality gate first, then platform builds
 # ═══════════════════════════════════════════════════════
 jobs:
+
+  # ─────────────────────────────────────────────────────
+  #  QUALITY GATE — analyze + tests
+  # ─────────────────────────────────────────────────────
+  test:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate code
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
 
   # ─────────────────────────────────────────────────────
   #  ANDROID APK (debug + release)
@@ -27,6 +57,7 @@ jobs:
   android-apk:
     name: Android APK
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
 
@@ -69,6 +100,7 @@ jobs:
   android-aab:
     name: Android AAB
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
 
@@ -104,6 +136,7 @@ jobs:
   windows:
     name: Windows
     runs-on: windows-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
 
@@ -121,11 +154,21 @@ jobs:
       - name: Build Windows
         run: flutter build windows --release
 
+      - name: Build MSIX
+        run: dart run msix:create --install-certificate false
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-exe
           path: build/windows/x64/runner/Release/
+          retention-days: 14
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-msix
+          path: build/windows/x64/runner/Release/fcine.msix
           retention-days: 14
 
   # ─────────────────────────────────────────────────────
@@ -134,6 +177,7 @@ jobs:
   linux:
     name: Linux
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
 
@@ -171,6 +215,7 @@ jobs:
   macos:
     name: macOS
     runs-on: macos-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
 
@@ -201,6 +246,7 @@ jobs:
   web:
     name: Web
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
 
@@ -231,7 +277,7 @@ jobs:
   summary:
     name: Build Summary
     runs-on: ubuntu-latest
-    needs: [android-apk, android-aab, windows, linux, macos, web]
+    needs: [test, android-apk, android-aab, windows, linux, macos, web]
     if: always()
     steps:
       - name: Download all artifacts
@@ -257,14 +303,15 @@ jobs:
             const fs = require('fs');
             const body = `## ✅ Build Complete
 
-            | Platform | Status | Artifact |
-            |----------|--------|----------|
-            | Android APK | \${{ needs.android-apk.result }} | \`apk-arm64\`, \`apk-universal\` |
-            | Android AAB | \${{ needs.android-aab.result }} | \`aab-release\` |
-            | Windows | \${{ needs.windows.result }} | \`windows-exe\` |
-            | Linux | \${{ needs.linux.result }} | \`linux-binary\` |
-            | macOS | \${{ needs.macos.result }} | \`macos-app\` |
-            | Web | \${{ needs.web.result }} | \`web-build\` |
+            | Stage | Status |
+            |-------|--------|
+            | Analyze & Test | \${{ needs.test.result }} |
+            | Android APK | \${{ needs.android-apk.result }} |
+            | Android AAB | \${{ needs.android-aab.result }} |
+            | Windows | \${{ needs.windows.result }} |
+            | Linux | \${{ needs.linux.result }} |
+            | macOS | \${{ needs.macos.result }} |
+            | Web | \${{ needs.web.result }} |
 
             All artifacts are available in the workflow run.`;
             github.rest.issues.createComment({

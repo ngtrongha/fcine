@@ -16,6 +16,7 @@ import '../widgets/responsive_layout.dart';
 import '../theme/app_theme.dart';
 import '../../core/toast/app_toast.dart';
 import '../../core/di/injection.dart';
+import '../../core/config/safe_mode_service.dart';
 import '../../core/database/app_database.dart';
 import '../../core/config/config_service.dart';
 import '../../core/config/master_config.dart';
@@ -37,6 +38,7 @@ class _HomePageState extends State<HomePage> {
   late int _loadedConfigVersion;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  bool _safeMode = false;
 
   @override
   void initState() {
@@ -45,6 +47,7 @@ class _HomePageState extends State<HomePage> {
     _bloc = HomeBloc()..add(const HomeInitialLoad());
     _loadedConfigVersion = _configVersion();
     _loadActiveSource();
+    _loadSafeMode();
     _scrollController.addListener(_onScroll);
     _db.watchAllHistory().listen((list) {
       if (mounted) {
@@ -65,6 +68,13 @@ class _HomePageState extends State<HomePage> {
     try {
       final id = await getIt<ConfigService>().getActiveSourceId();
       if (mounted) setState(() => _activeSourceId = id);
+    } catch (_) {}
+  }
+
+  Future<void> _loadSafeMode() async {
+    try {
+      final on = await getIt<SafeModeService>().load();
+      if (mounted) setState(() => _safeMode = on);
     } catch (_) {}
   }
 
@@ -110,14 +120,23 @@ class _HomePageState extends State<HomePage> {
     setState(() => _searchQuery = '');
   }
 
-  /// Xây dựng lưới phim với lọc tìm kiếm client-side.
+  /// Nhấn Enter trên ô tìm kiếm nhanh: lọc client-side chỉ quét được các
+  /// trang đã tải -> chuyển sang trang tìm kiếm server để tra cứu đầy đủ.
+  void _onSearchSubmitted(String keyword) {
+    final kw = keyword.trim();
+    if (kw.isEmpty) return;
+    context.go('/search?q=${Uri.encodeComponent(kw)}');
+  }
+
+  /// Xây dựng lưới phim với lọc tìm kiếm client-side + safe mode (ẩn 18+).
   Widget _buildMovieGrid(BuildContext context, HomeState state, bool isDesktop) {
-    // Lọc client-side theo từ khóa tìm kiếm
-    final filteredMovies = state.movies
-        .where((m) => m.name
-            .toLowerCase()
-            .contains(_searchQuery.toLowerCase()))
-        .toList();
+    // Lọc client-side theo từ khóa tìm kiếm + chế độ an toàn
+    final filteredMovies = SafeModeService.filter(
+      state.movies.where((m) => m.name
+          .toLowerCase()
+          .contains(_searchQuery.toLowerCase())),
+      _safeMode,
+    );
 
     // Khi đang tìm kiếm, không cần loadingMore (lọc local, không load thêm từ API)
     final showLoadingMore = _searchQuery.isEmpty &&
@@ -237,6 +256,7 @@ class _HomePageState extends State<HomePage> {
               searchController: _searchController,
               onSearchChanged: _onSearchChanged,
               onSearchCleared: _onSearchCleared,
+              onSearchSubmitted: _onSearchSubmitted,
             ),
           ),
         ),
@@ -264,6 +284,7 @@ class _HomePageState extends State<HomePage> {
                           controller: _searchController,
                           onChanged: _onSearchChanged,
                           onCleared: _onSearchCleared,
+                          onSubmitted: _onSearchSubmitted,
                           height: 44,
                         ),
                       ),
@@ -274,7 +295,7 @@ class _HomePageState extends State<HomePage> {
                       child: state.status == HomeStatus.loading && state.movies.isEmpty
                           ? Container(height: isDesktop ? 520 : 220, decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)), child: const Center(child: CircularProgressIndicator(color: AppColors.primary)))
                           : BannerCarousel(
-                              movies: state.movies,
+                              movies: SafeModeService.filter(state.movies, _safeMode),
                               onTap: (slug) {
                                 final movie = state.movies
                                     .cast<dynamic>()
