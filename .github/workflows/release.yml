@@ -79,22 +79,18 @@ jobs:
               CLEAN_KEY_PASS="$CLEAN_STORE_PASS"
             fi
             if keytool -list -keystore android/app/fcine-release.jks -storepass "$CLEAN_STORE_PASS" -alias "$CLEAN_ALIAS" >/dev/null 2>&1; then
-              cat > android/key.properties <<EOF
-storeFile=fcine-release.jks
-storePassword=$CLEAN_STORE_PASS
-keyAlias=$CLEAN_ALIAS
-keyPassword=$CLEAN_KEY_PASS
-EOF
+              echo "storeFile=fcine-release.jks" > android/key.properties
+              echo "storePassword=$CLEAN_STORE_PASS" >> android/key.properties
+              echo "keyAlias=$CLEAN_ALIAS" >> android/key.properties
+              echo "keyPassword=$CLEAN_KEY_PASS" >> android/key.properties
               echo "Keystore verified and configured successfully with alias '$CLEAN_ALIAS'."
             elif keytool -list -keystore android/app/fcine-release.jks -storepass "$CLEAN_STORE_PASS" >/dev/null 2>&1; then
               DETECTED_ALIAS=$(keytool -list -keystore android/app/fcine-release.jks -storepass "$CLEAN_STORE_PASS" | grep 'PrivateKeyEntry' | head -n1 | cut -d',' -f1)
               if [ -n "$DETECTED_ALIAS" ]; then
-                cat > android/key.properties <<EOF
-storeFile=fcine-release.jks
-storePassword=$CLEAN_STORE_PASS
-keyAlias=$DETECTED_ALIAS
-keyPassword=$CLEAN_KEY_PASS
-EOF
+                echo "storeFile=fcine-release.jks" > android/key.properties
+                echo "storePassword=$CLEAN_STORE_PASS" >> android/key.properties
+                echo "keyAlias=$DETECTED_ALIAS" >> android/key.properties
+                echo "keyPassword=$CLEAN_KEY_PASS" >> android/key.properties
                 echo "Keystore verified with detected alias: $DETECTED_ALIAS"
               else
                 echo "::warning::No PrivateKeyEntry found in keystore. Falling back to debug signing."
