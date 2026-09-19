@@ -138,11 +138,27 @@ jobs:
       - name: Create portable ZIP
         run: Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "fcine-windows.zip"
 
+      - name: Setup MSIX certificate
+        if: env.MSIX_CERTIFICATE_BASE64 != ''
+        run: |
+          try {
+            [IO.File]::WriteAllBytes("windows\fcine-msix.pfx", [Convert]::FromBase64String($env:MSIX_CERTIFICATE_BASE64.Trim()))
+            Write-Host "MSIX certificate decoded successfully."
+          } catch {
+            Write-Warning "Failed to decode MSIX_CERTIFICATE_BASE64: $_"
+          }
+
       - name: Build MSIX (signed)
         if: env.MSIX_CERTIFICATE_BASE64 != ''
         env:
           MSIX_CERTIFICATE_PASSWORD: ${{ secrets.MSIX_CERTIFICATE_PASSWORD }}
-        run: dart run msix:create -c windows\fcine-msix.pfx -p "$env:MSIX_CERTIFICATE_PASSWORD" --install-certificate false
+        run: |
+          if (Test-Path "windows\fcine-msix.pfx") {
+            dart run msix:create -c windows\fcine-msix.pfx -p "$env:MSIX_CERTIFICATE_PASSWORD" --install-certificate false
+          } else {
+            Write-Warning "windows\fcine-msix.pfx not found, falling back to test certificate."
+            dart run msix:create --install-certificate false
+          }
 
       - name: Build MSIX (test certificate fallback)
         if: env.MSIX_CERTIFICATE_BASE64 == ''
@@ -153,7 +169,10 @@ jobs:
 
       - name: Include MSIX certificate in release
         if: env.MSIX_CERTIFICATE_BASE64 != ''
-        run: Copy-Item "windows\fcine-msix.cer" "fcine-msix.cer"
+        run: |
+          if (Test-Path "windows\fcine-msix.cer") {
+            Copy-Item "windows\fcine-msix.cer" "fcine-msix.cer"
+          }
 
       - name: Extract app version
         id: appver
@@ -174,12 +193,15 @@ jobs:
       - name: Build MSIX installer (cert + msix)
         if: env.MSIX_CERTIFICATE_BASE64 != ''
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAPP_VERSION=${{ steps.appver.outputs.version }} "windows\installer\fcine-msix.iss"
+          if (Test-Path "windows\fcine-msix.cer") {
+            & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAPP_VERSION=${{ steps.appver.outputs.version }} "windows\installer\fcine-msix.iss"
+          }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-release
+          if-no-files-found: ignore
           path: |
             fcine-windows.zip
             fcine.msix
