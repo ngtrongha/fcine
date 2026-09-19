@@ -40,6 +40,7 @@ void main() {
                   flatEpisodes: episodes,
                   currentEpisode: currentEp,
                   currentServer: currentServer,
+                  movieSlug: 'test-movie',
                   onClose: () => closed = true,
                   onSelect: (ep, s) {
                     selectedEp = ep;
@@ -89,6 +90,7 @@ void main() {
                   flatEpisodes: episodes,
                   currentEpisode: currentEp,
                   currentServer: currentServer,
+                  movieSlug: 'test-movie',
                   onSelectEpisode: (ep, s) async {
                     selectedEp = ep;
                     selectedServer = s;
@@ -145,6 +147,7 @@ void main() {
                   flatEpisodes: multi,
                   currentEpisode: multi[4]['ep'],
                   currentServer: 'Vietsub #2',
+                  movieSlug: 'test-movie',
                   onSelectEpisode: (ep, s) async {
                     selectedServer = s;
                   },

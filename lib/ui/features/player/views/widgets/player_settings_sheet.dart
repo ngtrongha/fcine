@@ -20,11 +20,14 @@ class PlayerSettingsSheet extends StatelessWidget {
   final VoidCallback onExternalSubtitleTap;
   final String? externalSubtitleTitle;
   final int introEndMs;
+  final int outroStartMs;
   final VoidCallback onIntroTap;
+  final VoidCallback onOutroTap;
   final VoidCallback onCastTap;
   final VoidCallback onPipTap;
   final VoidCallback onExternalTap;
   final VoidCallback onClearIntro;
+  final VoidCallback onClearOutro;
 
   const PlayerSettingsSheet({
     super.key,
@@ -44,11 +47,14 @@ class PlayerSettingsSheet extends StatelessWidget {
     required this.onExternalSubtitleTap,
     this.externalSubtitleTitle,
     required this.introEndMs,
+    required this.outroStartMs,
     required this.onIntroTap,
+    required this.onOutroTap,
     required this.onCastTap,
     required this.onPipTap,
     required this.onExternalTap,
     required this.onClearIntro,
+    required this.onClearOutro,
   });
 
   void _popAnd(VoidCallback cb, BuildContext ctx) {
@@ -109,6 +115,12 @@ class PlayerSettingsSheet extends StatelessWidget {
               subtitle: Text(introEndMs > 0 ? 'Tự động bỏ qua intro' : 'Lưu vị trí hiện tại làm intro', style: const TextStyle(color: Colors.white54, fontSize: 11)),
               onTap: () => _popAnd(onIntroTap, context),
             ),
+            ListTile(
+              leading: Icon(Icons.skip_next_rounded, color: outroStartMs > 0 ? Colors.amber : Colors.white70),
+              title: Text(outroStartMs > 0 ? 'Skip outro: ${outroStartMs ~/ 1000}s' : 'Đặt Skip outro', style: const TextStyle(color: Colors.white)),
+              subtitle: Text(outroStartMs > 0 ? 'Tự động bỏ qua phần cuối' : 'Lưu vị trí hiện tại làm outro', style: const TextStyle(color: Colors.white54, fontSize: 11)),
+              onTap: () => _popAnd(onOutroTap, context),
+            ),
             ListTile(leading: const Icon(Icons.cast_rounded, color: Colors.white70), title: const Text('Chromecast / AirPlay', style: TextStyle(color: Colors.white)), onTap: () => _popAnd(onCastTap, context)),
             ListTile(leading: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white70), title: const Text('Picture-in-Picture', style: TextStyle(color: Colors.white)), onTap: () => _popAnd(onPipTap, context)),
             ListTile(leading: const Icon(Icons.open_in_new_rounded, color: Colors.white70), title: const Text('Mở bằng app ngoài', style: TextStyle(color: Colors.white)), onTap: () => _popAnd(onExternalTap, context)),
@@ -119,6 +131,15 @@ class PlayerSettingsSheet extends StatelessWidget {
                 onTap: () async {
                   Navigator.pop(context);
                   onClearIntro();
+                },
+              ),
+            if (outroStartMs > 0)
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                title: const Text('Xóa Skip outro', style: TextStyle(color: Colors.redAccent)),
+                onTap: () async {
+                  Navigator.pop(context);
+                  onClearOutro();
                 },
               ),
           ]),
@@ -205,6 +226,46 @@ void showIntroSheet(BuildContext ctx, int introEndMs, Duration pos, Future<void>
           ListTile(title: const Text('Intro 30s', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(ctx); onSet(30); }),
           ListTile(title: const Text('Intro 60s', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(ctx); onSet(60); }),
           ListTile(title: const Text('Intro 90s', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(ctx); onSet(90); }),
+        ]),
+      ),
+    ),
+  );
+}
+
+void showOutroSheet(BuildContext ctx, int outroStartMs, Duration pos, Duration duration, Future<void> Function(int) onSet) {
+  String fmt(Duration d) {
+    final h = d.inHours;
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return h > 0 ? '$h:$m:$s' : '$m:$s';
+  }
+
+  showModalBottomSheet(
+    context: ctx,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+    builder: (_) => Theme(
+      data: Theme.of(ctx).copyWith(splashColor: Colors.white10, highlightColor: Colors.white10, hoverColor: Colors.white10),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('Skip Outro ${outroStartMs > 0 ? "(${outroStartMs ~/ 1000}s)" : ""}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 12),
+          ListTile(leading: const Icon(Icons.my_location_rounded, color: Colors.white70), title: Text('Đặt outro tại ${fmt(pos)} (còn ${fmt(duration - pos)})', style: const TextStyle(color: Colors.white)), onTap: () { Navigator.pop(ctx); onSet(pos.inSeconds); }),
+          if (outroStartMs > 0) ListTile(leading: const Icon(Icons.clear_rounded, color: Colors.white70), title: const Text('Xóa outro', style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(ctx); onSet(0); }),
+          const Divider(color: Color(0xFF1E293B)),
+          ListTile(title: const Text('Outro: 5 phút trước cuối', style: TextStyle(color: Colors.white)), onTap: () {
+            final secs = duration.inSeconds - 300;
+            Navigator.pop(ctx); onSet(secs > 0 ? secs : 0);
+          }),
+          ListTile(title: const Text('Outro: 10 phút trước cuối', style: TextStyle(color: Colors.white)), onTap: () {
+            final secs = duration.inSeconds - 600;
+            Navigator.pop(ctx); onSet(secs > 0 ? secs : 0);
+          }),
+          ListTile(title: const Text('Outro: 15 phút trước cuối', style: TextStyle(color: Colors.white)), onTap: () {
+            final secs = duration.inSeconds - 900;
+            Navigator.pop(ctx); onSet(secs > 0 ? secs : 0);
+          }),
         ]),
       ),
     ),

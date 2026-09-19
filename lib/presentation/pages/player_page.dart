@@ -58,6 +58,7 @@ class _PlayerPageState extends State<PlayerPage> {
       showControls = true,
       _hasTriedFallback = false,
       _hasSkippedIntro = false,
+      _hasSkippedOutro = false,
       _loadingQualities = false,
       _resolvingStream = false,
       _showEpisodeDrawer = false,
@@ -95,6 +96,7 @@ class _PlayerPageState extends State<PlayerPage> {
   Tracks? _tracks;
   Track? _currentTrack;
   int _introEndMs = 0;
+  int _outroStartMs = 0;
   final Floating _floating = Floating();
   final Map<String, String> _streamCache = {};
   List get flatEpisodes {
@@ -383,6 +385,8 @@ class _PlayerPageState extends State<PlayerPage> {
   Future<void> _loadIntro() async {
     final v = await IntroService.load(widget.movie.slug);
     if (mounted) setState(() => _introEndMs = v);
+    final outro = await OutroService.load(widget.movie.slug);
+    if (mounted) setState(() => _outroStartMs = outro);
   }
 
   Future<void> _setIntroEnd(int sec) async {
@@ -398,13 +402,27 @@ class _PlayerPageState extends State<PlayerPage> {
     }
   }
 
+  Future<void> _setOutroStart(int sec) async {
+    final ms = sec * 1000;
+    await OutroService.save(widget.movie.slug, ms);
+    setState(() => _outroStartMs = ms);
+    if (mounted) {
+      AppToast.show(
+        context,
+        message: sec == 0 ? 'Đã xóa outro' : 'Đã lưu outro $sec s',
+        type: ToastType.success,
+      );
+    }
+  }
+
   void _checkSkipIntro() {
     if (!shouldSkipIntro(
       introEndMs: _introEndMs,
       hasSkipped: _hasSkippedIntro,
       pos: position,
     )) {
-      if (position.inMilliseconds > _introEndMs + 2000) {
+      // Reset skip flag only when we're well past the intro
+      if (position.inMilliseconds > _introEndMs + 5000) {
         _hasSkippedIntro = false;
       }
       return;
@@ -417,6 +435,26 @@ class _PlayerPageState extends State<PlayerPage> {
         message: 'Đã skip intro ${_introEndMs ~/ 1000}s',
         type: ToastType.success,
       );
+    }
+  }
+
+  /// Kiểm tra và skip outro (phần cuối film) nếu người dùng đã xem qua đoạn đó.
+  void _checkSkipOutro() {
+    if (_outroStartMs <= 0 || _hasSkippedOutro) return;
+    if (position.inMilliseconds >= _outroStartMs) {
+      _hasSkippedOutro = true;
+      // Có thể seek về cuối hoặc cho phát tiếp - tùy logic
+      // Ở đây ta sẽ hiển thị toast và cho người dùng quyết định
+      if (mounted) {
+        AppToast.show(
+          context,
+          message: 'Đã đến phần outro, bấm để skip',
+          type: ToastType.info,
+        );
+      }
+    } else if (position.inMilliseconds < _outroStartMs - 5000) {
+      // Reset nếu user seek về trước outro
+      _hasSkippedOutro = false;
     }
   }
 
@@ -452,9 +490,77 @@ class _PlayerPageState extends State<PlayerPage> {
       _toggleFullscreen();
       return KeyEventResult.handled;
     }
+    if (e.logicalKey == LogicalKeyboardKey.f11) {
+      _toggleFullscreen();
+      return KeyEventResult.handled;
+    }
     if (e.logicalKey == LogicalKeyboardKey.keyM) {
       setState(() => _muted = !_muted);
       player.setVolume(_muted ? 0 : _volume * 100);
+      return KeyEventResult.handled;
+    }
+    // Skip intro shortcut: I
+    if (e.logicalKey == LogicalKeyboardKey.keyI) {
+      if (_introEndMs > 0 && position.inMilliseconds < _introEndMs) {
+        _hasSkippedIntro = true;
+        player.seek(Duration(milliseconds: _introEndMs));
+        if (mounted) {
+          AppToast.show(
+            context,
+            message: 'Đã skip intro ${_introEndMs ~/ 1000}s',
+            type: ToastType.success,
+          );
+        }
+      }
+      return KeyEventResult.handled;
+    }
+    // Skip outro shortcut: O
+    if (e.logicalKey == LogicalKeyboardKey.keyO) {
+      if (_outroStartMs > 0 && position.inMilliseconds < _outroStartMs) {
+        _hasSkippedOutro = true;
+        player.seek(Duration(milliseconds: _outroStartMs));
+        if (mounted) {
+          AppToast.show(
+            context,
+            message: 'Đã skip outro',
+            type: ToastType.success,
+          );
+        }
+      }
+      return KeyEventResult.handled;
+    }
+    // Next episode: N
+    if (e.logicalKey == LogicalKeyboardKey.keyN) {
+      if (currentIndex + 1 < flatEpisodes.length) {
+        _playNext();
+      }
+      return KeyEventResult.handled;
+    }
+    // Previous episode: P
+    if (e.logicalKey == LogicalKeyboardKey.keyP) {
+      if (currentIndex > 0) {
+        final prev = flatEpisodes[currentIndex - 1];
+        _replaceWith(prev['ep'], prev['server'] as String? ?? _serverName);
+      }
+      return KeyEventResult.handled;
+    }
+    // Speed up: ]
+    if (e.logicalKey == LogicalKeyboardKey.bracketRight) {
+      _changeSpeed();
+      return KeyEventResult.handled;
+    }
+    // Speed down: [
+    if (e.logicalKey == LogicalKeyboardKey.bracketLeft) {
+      const speeds = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+      final idx = speeds.indexOf(playbackSpeed);
+      if (idx > 0) {
+        final n = speeds[idx - 1];
+        player.setRate(n);
+        setState(() => playbackSpeed = n);
+        if (mounted) {
+          AppToast.show(context, message: 'Tốc độ: ${n}x', type: ToastType.info);
+        }
+      }
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -728,6 +834,7 @@ class _PlayerPageState extends State<PlayerPage> {
         if (!mounted) return;
         setState(() => position = p);
         _checkSkipIntro();
+        _checkSkipOutro();
       }),
     );
     _playerSubs.add(
@@ -996,12 +1103,16 @@ class _PlayerPageState extends State<PlayerPage> {
       onExternalSubtitleTap: _loadExternalSubtitle,
       externalSubtitleTitle: _externalSubtitleTitle,
       introEndMs: _introEndMs,
+      outroStartMs: _outroStartMs,
       onIntroTap: () =>
           showIntroSheet(context, _introEndMs, position, _setIntroEnd),
+      onOutroTap: () =>
+          showOutroSheet(context, _outroStartMs, position, duration, _setOutroStart),
       onCastTap: _showCastPlaceholder,
       onPipTap: _enterPip,
       onExternalTap: _openExternal,
       onClearIntro: () => _setIntroEnd(0),
+      onClearOutro: () => _setOutroStart(0),
     ),
   );
   @override
@@ -1191,6 +1302,7 @@ class _PlayerPageState extends State<PlayerPage> {
                     flatEpisodes: flatEpisodes,
                     currentEpisode: _episode,
                     currentServer: _serverName,
+                    movieSlug: widget.movie.slug,
                     onClose: () {
                       setState(() => _showEpisodeDrawer = false);
                       _resetHideTimer();
@@ -1253,6 +1365,7 @@ class _PlayerPageState extends State<PlayerPage> {
       flatEpisodes: flatEpisodes,
       currentEpisode: _episode,
       currentServer: _serverName,
+      movieSlug: widget.movie.slug,
       onSelectEpisode: (ep, s) async {
         await _replaceWith(ep, s);
       },

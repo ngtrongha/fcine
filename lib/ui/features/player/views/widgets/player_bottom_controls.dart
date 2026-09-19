@@ -57,12 +57,31 @@ class PlayerBottomControls extends StatelessWidget {
                 inactiveTrackColor: Colors.white24,
                 thumbColor: Colors.white,
               ),
-              child: Slider(
-                value: position.inMilliseconds.toDouble().clamp(0, duration.inMilliseconds.toDouble()),
-                max: duration.inMilliseconds.toDouble() > 0 ? duration.inMilliseconds.toDouble() : 1,
-                onChanged: onSeek,
-                onChangeStart: (_) => onSeekStart(),
-                onChangeEnd: (_) => onSeekEnd(),
+              child: Stack(
+                children: [
+                  Slider(
+                    value: position.inMilliseconds.toDouble().clamp(0, duration.inMilliseconds.toDouble()),
+                    max: duration.inMilliseconds.toDouble() > 0 ? duration.inMilliseconds.toDouble() : 1,
+                    onChanged: onSeek,
+                    onChangeStart: (_) => onSeekStart(),
+                    onChangeEnd: (_) => onSeekEnd(),
+                  ),
+                  if (duration.inMilliseconds > 0)
+                    Positioned.fill(
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${((position.inMilliseconds / duration.inMilliseconds) * 100).round()}%',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            fontFeatures: [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),

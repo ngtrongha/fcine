@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
+import '../../../../../core/database/app_database.dart';
+import '../../../../../core/di/injection.dart';
+import '../../../../../data/repositories/history_repository.dart';
 import '../../../../../presentation/theme/app_theme.dart';
 import '../../logic/player_logic.dart';
 import 'player_error_overlay.dart';
@@ -28,6 +31,7 @@ class PlayerDesktopTheater extends StatelessWidget {
   final List flatEpisodes;
   final dynamic currentEpisode;
   final String currentServer;
+  final String movieSlug;
   final Future<void> Function(dynamic ep, String server) onSelectEpisode;
   final String title;
   final VoidCallback onCast;
@@ -60,6 +64,7 @@ class PlayerDesktopTheater extends StatelessWidget {
     required this.flatEpisodes,
     required this.currentEpisode,
     required this.currentServer,
+    required this.movieSlug,
     required this.onSelectEpisode,
     required this.title,
     required this.onCast,
@@ -275,6 +280,7 @@ class PlayerDesktopTheater extends StatelessWidget {
                     flatEpisodes: flatEpisodes,
                     currentEpisode: currentEpisode,
                     currentServer: currentServer,
+                    movieSlug: movieSlug,
                     onSelectEpisode: onSelectEpisode,
                   ),
                 ),
@@ -291,6 +297,7 @@ class DesktopEpisodeList extends StatefulWidget {
   final List flatEpisodes;
   final dynamic currentEpisode;
   final String currentServer;
+  final String movieSlug;
   final Future<void> Function(dynamic ep, String server) onSelectEpisode;
 
   const DesktopEpisodeList({
@@ -298,6 +305,7 @@ class DesktopEpisodeList extends StatefulWidget {
     required this.flatEpisodes,
     required this.currentEpisode,
     required this.currentServer,
+    required this.movieSlug,
     required this.onSelectEpisode,
   });
 
@@ -312,6 +320,9 @@ class _DesktopEpisodeListState extends State<DesktopEpisodeList> {
 
   /// Server đang xem trong tab (mặc định bám theo tập đang phát).
   late String _tab;
+
+  /// Cache progress for episodes
+  final Map<String, WatchHistoryData?> _progressCache = {};
 
   static const double _estimatedItemHeight = 56.0;
   static const double _estimatedViewportHeight = 400.0;
@@ -360,11 +371,26 @@ class _DesktopEpisodeListState extends State<DesktopEpisodeList> {
               .clamp(0.0, double.infinity);
     }
     _scrollController = ScrollController(initialScrollOffset: initialOffset);
+    _loadAllProgress();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _scrollToAndFocusCurrent();
     });
+  }
+
+  Future<void> _loadAllProgress() async {
+    try {
+      final repo = getIt<HistoryRepository>();
+      final allHistory = await repo.db.getAllHistory();
+      for (final h in allHistory) {
+        if (h.movieSlug == widget.movieSlug) {
+          final key = '${h.episodeSlug}::${h.serverName}';
+          _progressCache[key] = h;
+        }
+      }
+      if (mounted) setState(() {});
+    } catch (_) {}
   }
 
   void _scrollToAndFocusCurrent() {
@@ -480,11 +506,14 @@ class _DesktopEpisodeListState extends State<DesktopEpisodeList> {
               final item = items[i];
               final ep = item['ep'];
               final isCurrent = (i == currentIndex);
+              final progressKey = '${ep.slug}::${item['server']}';
+              final progress = _progressCache[progressKey];
               return _DesktopEpisodeTile(
                 key: isCurrent ? _currentKey : null,
                 item: item,
                 ep: ep,
                 isCurrent: isCurrent,
+                progress: progress,
                 focusNode: isCurrent ? _currentFocusNode : null,
                 onSelectEpisode: widget.onSelectEpisode,
               );
@@ -500,6 +529,7 @@ class _DesktopEpisodeTile extends StatefulWidget {
   final dynamic item;
   final dynamic ep;
   final bool isCurrent;
+  final WatchHistoryData? progress;
   final FocusNode? focusNode;
   final Future<void> Function(dynamic ep, String server) onSelectEpisode;
 
@@ -508,6 +538,7 @@ class _DesktopEpisodeTile extends StatefulWidget {
     required this.item,
     required this.ep,
     required this.isCurrent,
+    this.progress,
     this.focusNode,
     required this.onSelectEpisode,
   });
@@ -519,10 +550,28 @@ class _DesktopEpisodeTile extends StatefulWidget {
 class _DesktopEpisodeTileState extends State<_DesktopEpisodeTile> {
   bool _isFocused = false;
 
+  String _formatProgress(WatchHistoryData? p) {
+    if (p == null || p.durationMs <= 0) return '';
+    final percent = (p.positionMs / p.durationMs * 100).round();
+    if (percent >= 95) return '✓ Xem xong';
+    if (percent > 0) return '$percent%';
+    return '';
+  }
+
+  Color _getProgressColor(WatchHistoryData? p) {
+    if (p == null || p.durationMs <= 0) return Colors.white38;
+    final percent = p.positionMs / p.durationMs;
+    if (percent >= 0.95) return Colors.greenAccent;
+    if (percent > 0) return Colors.amber;
+    return Colors.white38;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isCurrent = widget.isCurrent;
     final isHighlighted = isCurrent || _isFocused;
+    final progressText = _formatProgress(widget.progress);
+    final progressColor = _getProgressColor(widget.progress);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -578,9 +627,23 @@ class _DesktopEpisodeTileState extends State<_DesktopEpisodeTile> {
               fontSize: 13,
             ),
           ),
-          subtitle: Text(
-            widget.item['server'],
-            style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.item['server'],
+                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10),
+              ),
+              if (progressText.isNotEmpty)
+                Text(
+                  progressText,
+                  style: TextStyle(
+                    color: progressColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
           ),
           trailing: isCurrent
               ? const Icon(

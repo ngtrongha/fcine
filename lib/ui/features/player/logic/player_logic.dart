@@ -113,3 +113,15 @@ class ProgressService {
     } catch (_) {}
   }
 }
+
+class OutroService {
+  static Future<int> load(String slug) async {
+    final p = await SharedPreferences.getInstance();
+    return p.getInt('outro_$slug') ?? 0;
+  }
+
+  static Future<void> save(String slug, int ms) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setInt('outro_$slug', ms);
+  }
+}

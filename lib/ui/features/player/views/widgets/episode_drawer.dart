@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/database/app_database.dart';
+import '../../../../../core/di/injection.dart';
+import '../../../../../data/repositories/history_repository.dart';
 import '../../../../../presentation/theme/app_theme.dart';
 
 /// Glassmorphism episode list drawer for mobile player.
 /// Reused in both mobile overlay and desktop theater.
 /// Shows current episode highlight with equalizer icon.
 /// Handles tap to switch episode via [onSelect].
+/// Displays watch progress for each episode.
 
 class EpisodeDrawer extends StatefulWidget {
   final List flatEpisodes;
   final dynamic currentEpisode;
   final String currentServer;
+  final String movieSlug;
   final VoidCallback onClose;
   final Function(dynamic ep, String server) onSelect;
 
@@ -19,6 +24,7 @@ class EpisodeDrawer extends StatefulWidget {
     required this.flatEpisodes,
     required this.currentEpisode,
     required this.currentServer,
+    required this.movieSlug,
     required this.onClose,
     required this.onSelect,
   });
@@ -34,6 +40,9 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
 
   /// Server đang xem trong tab (mặc định bám theo tập đang phát).
   late String _tab;
+
+  /// Cache progress for episodes
+  final Map<String, WatchHistoryData?> _progressCache = {};
 
   static const double _estimatedItemHeight = 44.0;
   static const double _estimatedViewportHeight = 160.0;
@@ -82,11 +91,26 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
               .clamp(0.0, double.infinity);
     }
     _scrollController = ScrollController(initialScrollOffset: initialOffset);
+    _loadAllProgress();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _scrollToAndFocusCurrent();
     });
+  }
+
+  Future<void> _loadAllProgress() async {
+    try {
+      final repo = getIt<HistoryRepository>();
+      final allHistory = await repo.db.getAllHistory();
+      for (final h in allHistory) {
+        if (h.movieSlug == widget.movieSlug) {
+          final key = '${h.episodeSlug}::${h.serverName}';
+          _progressCache[key] = h;
+        }
+      }
+      if (mounted) setState(() {});
+    } catch (_) {}
   }
 
   void _scrollToAndFocusCurrent() {
@@ -242,11 +266,16 @@ class _EpisodeDrawerState extends State<EpisodeDrawer> {
               itemBuilder: (context, i) {
                 final item = items[i];
                 final isCurrent = (i == currentIndex);
+                final ep = item['ep'];
+                final server = item['server'];
+                final progressKey = '${ep.slug}::$server';
+                final progress = _progressCache[progressKey];
                 return _EpisodeDrawerTile(
                   key: isCurrent ? _currentKey : null,
-                  ep: item['ep'],
-                  server: item['server'],
+                  ep: ep,
+                  server: server,
                   isCurrent: isCurrent,
+                  progress: progress,
                   focusNode: isCurrent ? _currentFocusNode : null,
                   onSelect: widget.onSelect,
                 );
@@ -263,6 +292,7 @@ class _EpisodeDrawerTile extends StatefulWidget {
   final dynamic ep;
   final String server;
   final bool isCurrent;
+  final WatchHistoryData? progress;
   final FocusNode? focusNode;
   final Function(dynamic ep, String server) onSelect;
 
@@ -271,6 +301,7 @@ class _EpisodeDrawerTile extends StatefulWidget {
     required this.ep,
     required this.server,
     required this.isCurrent,
+    this.progress,
     this.focusNode,
     required this.onSelect,
   });
@@ -282,10 +313,28 @@ class _EpisodeDrawerTile extends StatefulWidget {
 class _EpisodeDrawerTileState extends State<_EpisodeDrawerTile> {
   bool _isFocused = false;
 
+  String _formatProgress(WatchHistoryData? p) {
+    if (p == null || p.durationMs <= 0) return '';
+    final percent = (p.positionMs / p.durationMs * 100).round();
+    if (percent >= 95) return '✓ Xem xong';
+    if (percent > 0) return '$percent%';
+    return '';
+  }
+
+  Color _getProgressColor(WatchHistoryData? p) {
+    if (p == null || p.durationMs <= 0) return Colors.white38;
+    final percent = p.positionMs / p.durationMs;
+    if (percent >= 0.95) return Colors.greenAccent;
+    if (percent > 0) return Colors.amber;
+    return Colors.white38;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isCurrent = widget.isCurrent;
     final isHighlighted = isCurrent || _isFocused;
+    final progressText = _formatProgress(widget.progress);
+    final progressColor = _getProgressColor(widget.progress);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -318,17 +367,32 @@ class _EpisodeDrawerTileState extends State<_EpisodeDrawerTile> {
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  widget.ep.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isHighlighted ? AppColors.primary : Colors.white70,
-                    fontWeight: isHighlighted
-                        ? FontWeight.w700
-                        : FontWeight.w500,
-                    fontSize: 13,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.ep.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isHighlighted ? AppColors.primary : Colors.white70,
+                        fontWeight: isHighlighted
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        fontSize: 13,
+                      ),
+                    ),
+                    if (progressText.isNotEmpty)
+                      Text(
+                        progressText,
+                        style: TextStyle(
+                          color: progressColor,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                  ],
                 ),
               ),
               Icon(
