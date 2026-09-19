@@ -160,7 +160,7 @@ void main() {
     expect(content, contains('seg3.ts'));
     expect(content, isNot(contains('https://cdn.test/v/seg1.ts')));
 
-    expect(File(p.join(done.localM3u8!, '..', 'seg1.ts')).existsSync(), isTrue);
+    expect(File(p.join(p.dirname(done.localM3u8!), 'seg1.ts')).existsSync(), isTrue);
     expect(await svc.totalSizeOnDisk(), greaterThan(0));
     expect(await svc.getLocalPath('movie-a', 'tap-1', 'Vietsub'), isNotNull);
   });
