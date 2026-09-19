@@ -72,13 +72,38 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if echo "${ANDROID_KEYSTORE_BASE64}" | base64 -di > android/app/fcine-release.jks 2>/dev/null && [ -s android/app/fcine-release.jks ]; then
-            cat > android/key.properties <<EOF
-          storeFile=fcine-release.jks
-          storePassword=${ANDROID_KEYSTORE_PASSWORD}
-          keyAlias=${ANDROID_KEY_ALIAS}
-          keyPassword=${ANDROID_KEY_PASSWORD}
-          EOF
-            echo "Keystore successfully configured."
+            CLEAN_ALIAS=$(python3 -c "import os; print(os.environ.get('ANDROID_KEY_ALIAS', '').strip().lstrip('\ufeff'))")
+            CLEAN_STORE_PASS=$(python3 -c "import os; print(os.environ.get('ANDROID_KEYSTORE_PASSWORD', '').strip('\r\n').lstrip('\ufeff'))")
+            CLEAN_KEY_PASS=$(python3 -c "import os; print(os.environ.get('ANDROID_KEY_PASSWORD', '').strip('\r\n').lstrip('\ufeff'))")
+            if [ -z "$CLEAN_KEY_PASS" ]; then
+              CLEAN_KEY_PASS="$CLEAN_STORE_PASS"
+            fi
+            if keytool -list -keystore android/app/fcine-release.jks -storepass "$CLEAN_STORE_PASS" -alias "$CLEAN_ALIAS" >/dev/null 2>&1; then
+              cat > android/key.properties <<EOF
+storeFile=fcine-release.jks
+storePassword=$CLEAN_STORE_PASS
+keyAlias=$CLEAN_ALIAS
+keyPassword=$CLEAN_KEY_PASS
+EOF
+              echo "Keystore verified and configured successfully with alias '$CLEAN_ALIAS'."
+            elif keytool -list -keystore android/app/fcine-release.jks -storepass "$CLEAN_STORE_PASS" >/dev/null 2>&1; then
+              DETECTED_ALIAS=$(keytool -list -keystore android/app/fcine-release.jks -storepass "$CLEAN_STORE_PASS" | grep 'PrivateKeyEntry' | head -n1 | cut -d',' -f1)
+              if [ -n "$DETECTED_ALIAS" ]; then
+                cat > android/key.properties <<EOF
+storeFile=fcine-release.jks
+storePassword=$CLEAN_STORE_PASS
+keyAlias=$DETECTED_ALIAS
+keyPassword=$CLEAN_KEY_PASS
+EOF
+                echo "Keystore verified with detected alias: $DETECTED_ALIAS"
+              else
+                echo "::warning::No PrivateKeyEntry found in keystore. Falling back to debug signing."
+                rm -f android/app/fcine-release.jks android/key.properties
+              fi
+            else
+              echo "::warning::Keystore password verification failed. Falling back to debug signing."
+              rm -f android/app/fcine-release.jks android/key.properties
+            fi
           else
             echo "::warning::ANDROID_KEYSTORE_BASE64 is not valid base64 or failed to decode. Falling back to debug signing."
             rm -f android/app/fcine-release.jks
