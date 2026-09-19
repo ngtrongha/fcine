@@ -328,11 +328,13 @@ jobs:
       - name: List artifacts
         run: find artifacts/ -type f
 
-      - name: Generate SHA256 checksums
+      - name: Prepare release files
         run: |
-          for f in artifacts/*/*; do
-            sha256sum "$f" | awk -v f="$(basename "$f")" '{print $1 "  " f}' >> SHA256SUMS.txt
-          done
+          mkdir -p release-files
+          find artifacts/ -type f -exec cp {} release-files/ \;
+          cd release-files
+          rm -f SHA256SUMS.txt
+          sha256sum * > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Create GitHub Release
@@ -340,11 +342,7 @@ jobs:
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: "Release ${{ github.event.inputs.tag || github.ref_name }}"
-          draft: true
+          draft: false
           generate_release_notes: true
           files: |
-            artifacts/android-release/*
-            artifacts/windows-release/*
-            artifacts/linux-release/*
-            artifacts/macos-release/*
-            SHA256SUMS.txt
+            release-files/*
