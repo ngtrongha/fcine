@@ -13,6 +13,7 @@ import '../../core/config/safe_mode_service.dart';
 import '../../core/config/source_templates.dart';
 import '../../core/di/injection.dart';
 import '../../core/toast/app_toast.dart';
+import '../../core/update/git_update_service.dart';
 import '../../data/datasources/remote_datasource.dart';
 import '../../data/datasources/web_scraper_datasource.dart';
 
@@ -43,6 +44,12 @@ class _SettingsPageState extends State<SettingsPage> {
   final _aiKeyController = TextEditingController();
   final _aiModelController = TextEditingController();
   bool _savingAi = false;
+
+  // Git Update
+  bool _checkingUpdate = false;
+  GitUpdateInfo? _updateInfo;
+  final _customRepoController = TextEditingController();
+  bool _savingRepoUrl = false;
 
   @override
   void initState() {
@@ -152,6 +159,85 @@ class _SettingsPageState extends State<SettingsPage> {
             : 'Đã tắt chế độ an toàn',
         type: ToastType.success,
       );
+    }
+  }
+
+  Future<void> _checkForUpdates() async {
+    setState(() => _checkingUpdate = true);
+    try {
+      final info = await getIt<GitUpdateService>().checkForUpdates();
+      if (!mounted) return;
+      setState(() => _updateInfo = info);
+      if (info != null) {
+        if (info.hasUpdate) {
+          AppToast.show(
+            context,
+            message: 'Có phiên bản mới: v${info.latestVersion}',
+            type: ToastType.success,
+          );
+        } else {
+          AppToast.show(
+            context,
+            message: 'Đang dùng phiên bản mới nhất (v${info.currentVersion})',
+            type: ToastType.info,
+          );
+        }
+      } else {
+        AppToast.show(
+          context,
+          message: 'Không tìm thấy thông tin bản phát hành',
+          type: ToastType.warning,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        AppToast.show(context, message: 'Lỗi kiểm tra cập nhật: $e', type: ToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _checkingUpdate = false);
+    }
+  }
+
+  Future<void> _saveCustomRepoUrl() async {
+    final url = _customRepoController.text.trim();
+    if (url.isEmpty) {
+      AppToast.show(context, message: 'Vui lòng nhập URL GitHub API', type: ToastType.warning);
+      return;
+    }
+    setState(() => _savingRepoUrl = true);
+    try {
+      await getIt<GitUpdateService>().setCustomRepoUrl(url);
+      _customRepoController.clear();
+      if (mounted) {
+        AppToast.show(context, message: 'Đã lưu URL repository tùy chỉnh', type: ToastType.success);
+      }
+    } catch (e) {
+      if (mounted) {
+        AppToast.show(context, message: 'Lưu thất bại: $e', type: ToastType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _savingRepoUrl = false);
+    }
+  }
+
+  Future<void> _openReleasePage() async {
+    if (_updateInfo?.releaseUrl != null) {
+      await getIt<GitUpdateService>().openReleasePage(_updateInfo!.releaseUrl);
+    }
+  }
+
+  Future<void> _downloadAndInstallUpdate() async {
+    if (_updateInfo?.downloadUrl == null) return;
+    try {
+      AppToast.show(context, message: 'Đang tải bản cập nhật...', type: ToastType.info);
+      final path = await getIt<GitUpdateService>().downloadUpdate(_updateInfo!.downloadUrl!);
+      if (!mounted) return;
+      AppToast.show(context, message: 'Đã tải xong. Mở để cài đặt.', type: ToastType.success);
+      await getIt<GitUpdateService>().installUpdate(path);
+    } catch (e) {
+      if (mounted) {
+        AppToast.show(context, message: 'Tải cập nhật thất bại: $e', type: ToastType.error);
+      }
     }
   }
 
@@ -497,6 +583,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _aiEndpointController.dispose();
     _aiKeyController.dispose();
     _aiModelController.dispose();
+    _customRepoController.dispose();
     super.dispose();
   }
 
@@ -559,6 +646,9 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 24),
                 _sectionTitle('AI FALLBACK (TÙY CHỌN)'),
                 _addAiConfigCard(),
+                const SizedBox(height: 24),
+                _sectionTitle('CẬP NHẬT TỪ GIT'),
+                _gitUpdateCard(),
                 const SizedBox(height: 24),
                 _sectionTitle('BỘ NHỚ'),
                 _cacheCard(),
@@ -889,6 +979,114 @@ class _SettingsPageState extends State<SettingsPage> {
                 style: TextStyle(color: const Color(0xFF22C55E), fontSize: 11),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _gitUpdateCard() {
+    final info = _updateInfo;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF111622),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF1E293B)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.system_update_rounded, color: Color(0xFFE50914), size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Cập nhật ứng dụng từ Git',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+              ),
+              if (_checkingUpdate)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFE50914)),
+                )
+              else
+                TextButton(
+                  onPressed: _checkForUpdates,
+                  child: const Text('Kiểm tra', style: TextStyle(color: Color(0xFFE50914))),
+                ),
+            ],
+          ),
+          if (info != null) ...[
+            const SizedBox(height: 12),
+            if (info.hasUpdate) ...[
+              Text(
+                'Có phiên bản mới: v${info.latestVersion}',
+                style: const TextStyle(color: Color(0xFF22C55E), fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Ngày phát hành: ${info.formattedDate}',
+                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _openReleasePage,
+                    icon: const Icon(Icons.open_in_browser_rounded, size: 14),
+                    label: const Text('Xem Release', style: TextStyle(fontSize: 12)),
+                  ),
+                  if (info.downloadUrl != null) ...[
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: _downloadAndInstallUpdate,
+                      icon: const Icon(Icons.download_rounded, size: 14),
+                      label: const Text('Tải & Cài đặt', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ],
+              ),
+            ] else ...[
+              Text(
+                'Bạn đang dùng phiên bản mới nhất (v${info.currentVersion})',
+                style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12),
+              ),
+            ],
+          ],
+          const SizedBox(height: 12),
+          const Divider(color: Color(0xFF1E293B)),
+          const SizedBox(height: 8),
+          const Text(
+            'Custom GitHub API URL (tùy chọn):',
+            style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _customRepoController,
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                  decoration: const InputDecoration(
+                    hintText: 'https://api.github.com/repos/...',
+                    hintStyle: TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: _savingRepoUrl ? null : _saveCustomRepoUrl,
+                child: _savingRepoUrl
+                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('Lưu', style: TextStyle(fontSize: 12)),
+              ),
+            ],
+          ),
         ],
       ),
     );
