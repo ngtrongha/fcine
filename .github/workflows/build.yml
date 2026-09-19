@@ -241,43 +241,12 @@ jobs:
           retention-days: 14
 
   # ─────────────────────────────────────────────────────
-  #  WEB
-  # ─────────────────────────────────────────────────────
-  web:
-    name: Web
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Generate code
-        run: dart run build_runner build --delete-conflicting-outputs
-
-      - name: Build Web
-        run: flutter build web --release
-
-      - name: Upload Web artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-build
-          path: build/web/
-          retention-days: 14
-
-  # ─────────────────────────────────────────────────────
   #  SUMMARY — runs after all builds complete
   # ─────────────────────────────────────────────────────
   summary:
     name: Build Summary
     runs-on: ubuntu-latest
-    needs: [test, android-apk, android-aab, windows, linux, macos, web]
+    needs: [test, android-apk, android-aab, windows, linux, macos]
     if: always()
     steps:
       - name: Download all artifacts
@@ -311,7 +280,6 @@ jobs:
             | Windows | \${{ needs.windows.result }} |
             | Linux | \${{ needs.linux.result }} |
             | macOS | \${{ needs.macos.result }} |
-            | Web | \${{ needs.web.result }} |
 
             All artifacts are available in the workflow run.`;
             github.rest.issues.createComment({

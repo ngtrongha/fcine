@@ -288,47 +288,12 @@ jobs:
           path: fcine-macos.zip
 
   # ─────────────────────────────────────────────────────
-  #  WEB
-  # ─────────────────────────────────────────────────────
-  web:
-    name: Web Release
-    runs-on: ubuntu-latest
-    needs: verify
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.inputs.tag || github.ref_name }}
-
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-          cache: true
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      - name: Generate code
-        run: dart run build_runner build --delete-conflicting-outputs
-
-      - name: Build Web
-        run: flutter build web --release --base-href "/"
-
-      - name: Create tar.gz
-        run: tar -czf fcine-web.tar.gz -C build/web .
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-release
-          path: fcine-web.tar.gz
-
-  # ─────────────────────────────────────────────────────
   #  CREATE GITHUB RELEASE
   # ─────────────────────────────────────────────────────
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [android, windows, linux, macos, web]
+    needs: [android, windows, linux, macos]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -361,5 +326,4 @@ jobs:
             artifacts/windows-release/*
             artifacts/linux-release/*
             artifacts/macos-release/*
-            artifacts/web-release/*
             SHA256SUMS.txt

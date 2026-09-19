@@ -19,9 +19,18 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 subprojects {
-    afterEvaluate {
-        project.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.apply {
-            compileSdkVersion(36)
+    if (project.name != "app") {
+        val configureSdk = {
+            project.extensions.findByType(com.android.build.gradle.BaseExtension::class.java)?.apply {
+                compileSdkVersion(36)
+            }
+        }
+        if (project.state.executed) {
+            configureSdk()
+        } else {
+            project.afterEvaluate {
+                configureSdk()
+            }
         }
     }
 }
