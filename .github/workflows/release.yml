@@ -12,12 +12,6 @@ on:
 env:
   FLUTTER_VERSION: '3.47.4'
   JAVA_VERSION: '17'
-  # Optional Android signing — set these repository secrets to enable.
-  # If absent, release APK/AAB falls back to the debug keystore.
-  ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-  # Optional MSIX signing — set these repository secrets to enable.
-  # If absent, the MSIX is signed with a throwaway test certificate.
-  MSIX_CERTIFICATE_BASE64: ${{ secrets.MSIX_CERTIFICATE_BASE64 }}
 
 permissions:
   contents: write
@@ -53,6 +47,8 @@ jobs:
     name: Android Release
     runs-on: ubuntu-latest
     needs: verify
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -112,6 +108,8 @@ jobs:
     name: Windows Release
     runs-on: windows-latest
     needs: verify
+    env:
+      MSIX_CERTIFICATE_BASE64: ${{ secrets.MSIX_CERTIFICATE_BASE64 }}
     steps:
       - uses: actions/checkout@v4
         with:
