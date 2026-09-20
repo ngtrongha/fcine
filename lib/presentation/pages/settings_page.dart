@@ -41,6 +41,8 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _savingWeb = false;
   bool _safeMode = false;
   bool _autoSkipAds = true;
+  int _stallWaitSec = 5;
+  int _skipSeconds = 15;
   bool _aiConfigSaved = false;
   final _aiEndpointController = TextEditingController();
   final _aiKeyController = TextEditingController();
@@ -69,12 +71,18 @@ class _SettingsPageState extends State<SettingsPage> {
     } catch (_) {}
   }
 
-  /// Switch "tự bỏ qua đoạn đứng hình (ads)" của trình phát (mặc định bật).
-  /// Chung key 'auto_skip_stall' với PlayerPage.
+  /// Switch "tự bỏ qua đoạn đứng hình (ads)" của trình phát (mặc định bật,
+  /// chờ 5s, tua 15s). Chung key với PlayerPage.
   Future<void> _loadAutoSkip() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (mounted) setState(() => _autoSkipAds = prefs.getBool('auto_skip_stall') ?? true);
+      if (mounted) {
+        setState(() {
+          _autoSkipAds = prefs.getBool('auto_skip_stall') ?? true;
+          _stallWaitSec = (prefs.getInt('auto_skip_wait_sec') ?? 5).clamp(3, 20);
+          _skipSeconds = (prefs.getInt('auto_skip_seconds') ?? 15).clamp(5, 60);
+        });
+      }
     } catch (_) {}
   }
 
@@ -88,11 +96,134 @@ class _SettingsPageState extends State<SettingsPage> {
       AppToast.show(
         context,
         message: value
-            ? 'Đã bật tự bỏ qua đoạn đứng hình (+30s khi kẹt quá 10s)'
+            ? 'Đã bật tự bỏ qua đoạn đứng hình (chờ ${_stallWaitSec}s, tua +${_skipSeconds}s)'
             : 'Đã tắt tự bỏ qua đoạn đứng hình',
         type: ToastType.info,
       );
     }
+  }
+
+  Future<void> _saveStallWait(int v) async {
+    setState(() => _stallWaitSec = v);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('auto_skip_wait_sec', v);
+    } catch (_) {}
+  }
+
+  Future<void> _saveSkipSeconds(int v) async {
+    setState(() => _skipSeconds = v);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('auto_skip_seconds', v);
+    } catch (_) {}
+  }
+
+  /// Dòng chỉnh số giây (Chờ đứng hình / Mỗi lần tua): bấm mở dialog Slider.
+  Widget _secondsRow({
+    required IconData icon,
+    required String title,
+    required String valueText,
+    required VoidCallback onTap,
+  }) =>
+      InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF111622),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFF1E293B)),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: Colors.white70, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE50914).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  valueText,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Future<void> _pickSeconds({
+    required String title,
+    required int value,
+    required int min,
+    required int max,
+    required int step,
+    required ValueChanged<int> onChanged,
+  }) async {
+    int v = value;
+    await showDialog(
+      context: context,
+      builder: (dctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          backgroundColor: const Color(0xFF111622),
+          title: Text(
+            title,
+            style: const TextStyle(color: Colors.white, fontSize: 15),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$v giây',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Slider(
+                value: v.toDouble(),
+                min: min.toDouble(),
+                max: max.toDouble(),
+                divisions: (max - min) ~/ step,
+                label: '$v giây',
+                onChanged: (nv) {
+                  setD(() => v = nv.round());
+                  onChanged(v);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dctx),
+              child: const Text('Xong'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _loadAiConfig() async {
@@ -664,11 +795,41 @@ class _SettingsPageState extends State<SettingsPage> {
                   secondary: const Icon(Icons.fast_forward_rounded, color: Color(0xFFE50914)),
                   activeThumbColor: const Color(0xFFE50914),
                   title: const Text('Tự bỏ qua đoạn đứng hình', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
-                  subtitle: const Text('Đứng quá 10s lúc đang phát thì tự tua +30s; tự dừng khi nghi mạng yếu', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                  subtitle: Text('Đứng hình lúc đang phát thì tự tua +${_skipSeconds}s; tự dừng khi nghi mạng yếu', style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: const Color(0xFF1E293B))),
                   tileColor: const Color(0xFF111622),
                 ),
+                if (_autoSkipAds) ...[
+                  const SizedBox(height: 8),
+                  _secondsRow(
+                    icon: Icons.timer_outlined,
+                    title: 'Chờ đứng hình',
+                    valueText: '${_stallWaitSec}s',
+                    onTap: () => _pickSeconds(
+                      title: 'Đứng bao lâu thì tự tua',
+                      value: _stallWaitSec,
+                      min: 3,
+                      max: 20,
+                      step: 1,
+                      onChanged: (v) => _saveStallWait(v),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _secondsRow(
+                    icon: Icons.fast_forward_outlined,
+                    title: 'Mỗi lần tua',
+                    valueText: '+${_skipSeconds}s',
+                    onTap: () => _pickSeconds(
+                      title: 'Mỗi lần tự tua bao nhiêu',
+                      value: _skipSeconds,
+                      min: 5,
+                      max: 60,
+                      step: 5,
+                      onChanged: (v) => _saveSkipSeconds(v),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 _sectionTitle('NGUỒN PHIM ĐÃ LƯU (${sources.length})'),
                 if (sources.isEmpty)

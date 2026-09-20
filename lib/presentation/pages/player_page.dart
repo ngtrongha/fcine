@@ -24,6 +24,7 @@ import '../../data/repositories/history_repository.dart';
 import '../../ui/features/player/logic/player_logic.dart';
 import '../../ui/features/player/views/widgets/cast_sheet.dart';
 import '../../ui/features/player/views/widgets/episode_drawer.dart';
+import '../../ui/features/player/views/widgets/skip_outro_button.dart';
 import '../../ui/features/player/views/widgets/player_bottom_controls.dart';
 import '../../ui/features/player/views/widgets/player_center_controls.dart';
 import '../../ui/features/player/views/widgets/player_desktop_theater.dart';
@@ -76,20 +77,28 @@ class _PlayerPageState extends State<PlayerPage> {
   /// bấm lại không tắt được).
   final FocusNode _pageFocus = FocusNode();
 
-  /// Stall detection -> tự bỏ qua đoạn ads/đứng hình:
-  /// vị trí đứng yên bao lâu, mốc ms thấy cuối, lúc mở media, số lần đã
-  /// tự skip trong media này, và switch trong Settings (mặc định bật).
+  /// Stall detection -> tự bỏ qua đoạn ads/đứng hình (xem [StallWatcher]).
   /// [_autoSkipBlocked] = skip không ăn thua 2 lần liên tiếp (mạng yếu
   /// chứ không phải ads) -> dừng hẳn tự skip cho media này.
-  int _lastFrozenPosMs = 0;
-  DateTime? _frozenSince;
+  final StallWatcher _stallWatcher = StallWatcher();
   DateTime? _mediaOpenedAt;
   int _autoSkipCount = 0;
   bool _autoSkipAds = true;
   bool _autoSkipBlocked = false;
   int _skipFailStreak = 0;
   int _lastSkipLandedMs = 0;
+
+  /// Số giây đứng hình thì tự tua + số giây mỗi lần tua (user chỉnh trong
+  /// Settings, mặc định 5s / 15s).
+  int _stallWaitSec = 5;
+  int _skipSeconds = 15;
+
+  /// Watchdog cuối tập đã chạy cho media này chưa (chống chạy 2 lần).
+  /// Reset mỗi lần mở media mới.
+  bool _endFired = false;
   static const _kAutoSkipKey = 'auto_skip_stall';
+  static const _kStallWaitKey = 'auto_skip_wait_sec';
+  static const _kSkipSecondsKey = 'auto_skip_seconds';
 
   /// URL http(s) của luồng ĐANG phát (để cast lên TV) — null khi phát
   /// file offline trong máy (TV không với tới) hoặc chưa load xong.
@@ -196,11 +205,18 @@ class _PlayerPageState extends State<PlayerPage> {
     _initBrightness();
   }
 
-  /// Đọc switch "tự bỏ qua đoạn đứng hình" trong Settings (mặc định bật).
+  /// Đọc switch + thời gian "tự bỏ qua đoạn đứng hình" trong Settings
+  /// (mặc định bật, chờ 5s, tua 15s).
   Future<void> _loadAutoSkipPref() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      if (mounted) setState(() => _autoSkipAds = prefs.getBool(_kAutoSkipKey) ?? true);
+      if (!mounted) return;
+      setState(() {
+        _autoSkipAds = prefs.getBool(_kAutoSkipKey) ?? true;
+        _stallWaitSec = (prefs.getInt(_kStallWaitKey) ?? 5).clamp(3, 20);
+        _skipSeconds = (prefs.getInt(_kSkipSecondsKey) ?? 15).clamp(5, 60);
+        _stallWatcher.triggerSec = _stallWaitSec;
+      });
     } catch (_) {}
   }
 
@@ -516,13 +532,22 @@ class _PlayerPageState extends State<PlayerPage> {
   /// vị trí báo về tụt lại vào vùng intro — trước đây kích hoạt skip lần
   /// nữa khiến phim bị yank về mốc intro dù đang xem dở giữa phim, và mọi
   /// phím tua qua đoạn ads đều bị kéo ngược trở lại.
+  /// Cờ còn được chốt ngay khi vị trí vượt qua mốc (kể cả chưa từng skip —
+  /// vd resume ở phút 20): nếu không, lần đầu tụt vị trí do ads sẽ skip
+  /// oan về mốc intro (xem [IntroTick.latch]).
   void _checkSkipIntro() {
-    if (!shouldSkipIntro(
+    switch (introTickAction(
       introEndMs: _introEndMs,
       hasSkipped: _hasSkippedIntro,
-      pos: position,
+      posMs: position.inMilliseconds,
     )) {
-      return;
+      case IntroTick.none:
+        return;
+      case IntroTick.latch:
+        _hasSkippedIntro = true;
+        return;
+      case IntroTick.skip:
+        break;
     }
     _hasSkippedIntro = true;
     _seekTo(Duration(milliseconds: _introEndMs));
@@ -535,23 +560,14 @@ class _PlayerPageState extends State<PlayerPage> {
     }
   }
 
-  /// Toast outro MỘT lần cho mỗi tập — không re-arm khi vị trí tụt lại
-  /// (cùng lý do như skip intro: ads/discontinuity làm vị trí báo về).
-  /// Cờ được reset khi mở tập mới trong [_playNext].
-  void _checkSkipOutro() {
-    if (_outroStartMs <= 0 || _hasSkippedOutro) return;
-    if (position.inMilliseconds >= _outroStartMs) {
-      _hasSkippedOutro = true;
-      // Có thể seek về cuối hoặc cho phát tiếp - tùy logic
-      // Ở đây ta sẽ hiển thị toast và cho người dùng quyết định
-      if (mounted) {
-        AppToast.show(
-          context,
-          message: 'Đã đến phần outro, bấm để skip',
-          type: ToastType.info,
-        );
-      }
-    }
+  /// Bấm nút "Bỏ qua outro": chốt cờ + kết thúc tập như khi xem hết
+  /// (chốt sổ resume, chuyển tập kế). Nút hiện khi vào vùng outro —
+  /// thay cho toast "bấm để skip" cũ (toast không bấm được).
+  Future<void> _skipOutro() async {
+    if (_hasSkippedOutro || !mounted) return;
+    setState(() => _hasSkippedOutro = true);
+    AppToast.show(context, message: 'Đã bỏ qua outro', type: ToastType.info);
+    await _finishEpisodeAndNext();
   }
 
   /// Phím fullscreen toàn cục (F11/F): chạy ở tầng HardwareKeyboard nên
@@ -765,8 +781,8 @@ class _PlayerPageState extends State<PlayerPage> {
       _autoSkipCount = 0;
       _autoSkipBlocked = false;
       _skipFailStreak = 0;
-      _frozenSince = null;
-      _lastFrozenPosMs = 0;
+      _endFired = false;
+      _stallWatcher.reset();
       final resumed = await _seekToResume();
       if (mounted) _stablePos = player.state.position;
       if (resumed > 0 && mounted) {
@@ -962,7 +978,6 @@ class _PlayerPageState extends State<PlayerPage> {
         setState(() => position = p);
         _trackStreamRestart(p);
         _checkSkipIntro();
-        _checkSkipOutro();
       }),
     );
     _playerSubs.add(
@@ -1035,46 +1050,67 @@ class _PlayerPageState extends State<PlayerPage> {
     );
   }
 
-  void _checkStall() {
+  Future<void> _checkStall() async {
+    // Mọi nhánh bỏ qua đều reset watcher: mốc "nghi đứng hình" cũ không
+    // còn ý nghĩa (trước đây mốc cũ sót lại gây skip oan ngay khi hết lock).
     if (!mounted) return;
-    if (!_autoSkipAds || _autoSkipBlocked) return;
-    if (playerError != null || _resolvingStream) return;
-    if (duration.inMilliseconds <= 0) return;
+    if (!_autoSkipAds || _autoSkipBlocked) {
+      _stallWatcher.reset();
+      return;
+    }
+    if (playerError != null || _resolvingStream) {
+      _stallWatcher.reset();
+      return;
+    }
+    if (duration.inMilliseconds <= 0) {
+      _stallWatcher.reset();
+      return;
+    }
     // App không ở foreground (nghe nền/tắt màn/có cuộc gọi...): vị trí
     // đứng yên lúc này không phải kẹt ads -> không tính stall.
     if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
-      _frozenSince = null;
+      _stallWatcher.reset();
       return;
     }
     // Đang seek/open chủ động, hoặc media mới mở chưa ổn định -> bỏ qua.
-    if (DateTime.now().isBefore(_seekLockUntil)) return;
+    if (DateTime.now().isBefore(_seekLockUntil)) {
+      _stallWatcher.reset();
+      return;
+    }
     final openedAt = _mediaOpenedAt;
     if (openedAt == null ||
         DateTime.now().difference(openedAt) < const Duration(seconds: 20)) {
+      _stallWatcher.reset();
+      return;
+    }
+    // Chỉ tự skip khi đang phát THẬT. Đang pause (dù user bấm, OS cướp
+    // audio-focus hay mpv tự dừng) -> tôn trọng, không skip.
+    if (!isPlaying) {
+      _stallWatcher.reset();
       return;
     }
     final ms = player.state.position.inMilliseconds;
-    // Vị trí vẫn tiến (>1.5s so với lần soi trước) -> hết đứng hình.
-    if (ms > _lastFrozenPosMs + 1500) {
-      _lastFrozenPosMs = ms;
-      _frozenSince = null;
+    final frozenSec = _stallWatcher.tick(ms, DateTime.now());
+    // Watchdog cuối tập: còn <=8s mà đứng hình 5s khi đang phát -> stream
+    // đã hết nội dung xem được nhưng không bắn completed (playlist thiếu
+    // ENDLIST / segment cuối hỏng, đứng ở frame cuối). Coi như hết tập để
+    // tự chuyển tập, thay vì đứng im mãi.
+    final remainingMs = duration.inMilliseconds - ms;
+    if (!_endFired &&
+        remainingMs >= 0 &&
+        remainingMs <= 8000 &&
+        frozenSec >= 5) {
+      _endFired = true;
+      await _finishEpisodeAndNext();
       return;
     }
-    _lastFrozenPosMs = ms;
-    // Chỉ tự skip khi đang phát THẬT. Đang pause (dù user bấm, OS cướp
-    // audio-focus hay mpv tự dừng) -> tôn trọng, không skip. Trước đây
-    // chính nhánh này gây tự tua +30s oan khi không hề có ads.
-    if (!isPlaying) {
-      _frozenSince = null;
-      return;
-    }
-    _frozenSince ??= DateTime.now();
-    final frozenSec = DateTime.now().difference(_frozenSince!).inSeconds;
+    if (frozenSec < _stallWatcher.triggerSec) return;
     if (!shouldAutoSkipStall(
       frozenSec: frozenSec,
       posMs: ms,
       durMs: duration.inMilliseconds,
       autoSkipCount: _autoSkipCount,
+      triggerSec: _stallWaitSec,
     )) {
       return;
     }
@@ -1087,7 +1123,7 @@ class _PlayerPageState extends State<PlayerPage> {
       _skipFailStreak++;
       if (_skipFailStreak >= 2) {
         _autoSkipBlocked = true;
-        _frozenSince = null;
+        _stallWatcher.reset();
         if (mounted) {
           AppToast.show(
             context,
@@ -1103,21 +1139,21 @@ class _PlayerPageState extends State<PlayerPage> {
     _autoSkipAd();
   }
 
-  /// Tự seek +30s qua đoạn đứng hình (nghi là ads). Giới hạn số lần trong
+  /// Tự seek qua đoạn đứng hình (nghi là ads), mỗi lần [_skipSeconds] giây
+  /// (mặc định 15s, user chỉnh trong Settings). Giới hạn số lần trong
   /// [shouldAutoSkipStall] + circuit breaker trong [_checkStall]: ads
   /// thường chỉ vài chục giây; nếu skip rồi mà vẫn đứng (mạng yếu thật)
   /// thì dừng để không tua mất nội dung.
   Future<void> _autoSkipAd() async {
     _autoSkipCount++;
-    _frozenSince = null;
-    final target = position + const Duration(seconds: 30);
+    final target = position + Duration(seconds: _skipSeconds);
     final clamped = target > duration ? duration : target;
     _lastSkipLandedMs = clamped.inMilliseconds;
     await _seekTo(clamped);
     if (mounted) {
       AppToast.show(
         context,
-        message: 'Tự bỏ qua đoạn đứng hình (+30s)',
+        message: 'Tự bỏ qua đoạn đứng hình (+${_skipSeconds}s)',
         type: ToastType.info,
       );
     }
@@ -1154,6 +1190,14 @@ class _PlayerPageState extends State<PlayerPage> {
     )) {
       return;
     }
+    await _finishEpisodeAndNext();
+  }
+
+  /// Kết thúc tập hiện tại: chốt sổ resume + chuyển tập kế.
+  /// Được gọi khi hết tập thật (completed), khi user bấm "Bỏ qua outro",
+  /// hoặc khi watchdog cuối tập phát hiện stream đứng ở frame cuối mà
+  /// không bắn completed (playlist thiếu ENDLIST/segment cuối hỏng).
+  Future<void> _finishEpisodeAndNext() async {
     try {
       final repo = getIt<HistoryRepository>();
       dynamic src;
@@ -1237,8 +1281,8 @@ class _PlayerPageState extends State<PlayerPage> {
     _autoSkipCount = 0;
     _autoSkipBlocked = false;
     _skipFailStreak = 0;
-    _frozenSince = null;
-    _lastFrozenPosMs = 0;
+    _endFired = false;
+    _stallWatcher.reset();
     _seekLockUntil = DateTime.now().add(const Duration(seconds: 20));
     // Đổi state sang tập mới: resume/title/drawer/highlight sau này
     // bám đúng tập đang phát (trước đây kẹt ở tập cũ).
@@ -1273,7 +1317,7 @@ class _PlayerPageState extends State<PlayerPage> {
   Future<void> _seekTo(Duration target) async {
     _seekLockUntil = DateTime.now().add(const Duration(seconds: 8));
     // Seek chủ động -> mốc đứng hình cũ hết ý nghĩa.
-    _frozenSince = null;
+    _stallWatcher.reset();
     await player.seek(target);
     await Future.delayed(const Duration(milliseconds: 700));
     if (mounted) _stablePos = player.state.position;
@@ -1629,6 +1673,19 @@ class _PlayerPageState extends State<PlayerPage> {
                     onToggleFullscreen: _toggleFullscreen,
                   ),
                 ),
+              if (shouldShowSkipOutro(
+                    outroStartMs: _outroStartMs,
+                    handled: _hasSkippedOutro,
+                    posMs: position.inMilliseconds,
+                  ) &&
+                  playerError == null &&
+                  !_inPip &&
+                  !_showEpisodeDrawer)
+                Positioned(
+                  bottom: 96,
+                  right: 16,
+                  child: SkipOutroButton(onTap: _skipOutro),
+                ),
               if (_showEpisodeDrawer && showControls && !_inPip)
                 Positioned(
                   bottom: 100,
@@ -1709,6 +1766,12 @@ class _PlayerPageState extends State<PlayerPage> {
       onCast: _showCastSheet,
       onPip: _enterPip,
       onExternal: _openExternal,
+      showSkipOutro: shouldShowSkipOutro(
+        outroStartMs: _outroStartMs,
+        handled: _hasSkippedOutro,
+        posMs: position.inMilliseconds,
+      ),
+      onSkipOutro: _skipOutro,
       muted: _muted,
       onToggleMute: () {
         setState(() => _muted = !_muted);

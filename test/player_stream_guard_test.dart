@@ -115,6 +115,17 @@ void main() {
       );
     });
 
+    test('duration playlist bị phồng (kém tới 60s) -> vẫn hết tập', () {
+      expect(
+        isGenuineCompletion(posMs: 5340000, durMs: 5400000),
+        isTrue,
+      );
+      expect(
+        isGenuineCompletion(posMs: 5339000, durMs: 5400000),
+        isFalse,
+      );
+    });
+
     test('vị trí còn xa cuối phim (reset giữa chừng) -> bỏ qua', () {
       expect(
         isGenuineCompletion(posMs: 30000, durMs: 5400000),
@@ -141,7 +152,16 @@ void main() {
       );
     });
 
-    test('mới đứng vài giây -> chờ thêm', () {
+    test('mới đứng vài giây -> chờ thêm (mặc định chờ 5s)', () {
+      expect(
+        shouldAutoSkipStall(
+          frozenSec: 3,
+          posMs: 1200000,
+          durMs: 5400000,
+          autoSkipCount: 0,
+        ),
+        isFalse,
+      );
       expect(
         shouldAutoSkipStall(
           frozenSec: 5,
@@ -149,7 +169,7 @@ void main() {
           durMs: 5400000,
           autoSkipCount: 0,
         ),
-        isFalse,
+        isTrue,
       );
     });
 
@@ -195,6 +215,160 @@ void main() {
           autoSkipCount: 3,
         ),
         isTrue,
+      );
+    });
+  });
+
+  group('StallWatcher (không báo oan khi phát bình thường)', () {
+    test('ngưỡng mặc định 5s, chỉnh được theo Settings', () {
+      final w = StallWatcher();
+      expect(StallWatcher.kTriggerSec, 5);
+      expect(w.triggerSec, 5);
+      w.triggerSec = 8;
+      expect(w.triggerSec, 8);
+    });
+    test('phát bình thường tiến ~1s/tick -> không bao giờ nghi', () {
+      // Regression test cho bug "cứ 10s tự skip 30s dù không có ads":
+      // logic cũ đòi tiến >1.5s mỗi tick 1s nên phát bình thường cũng
+      // bị kết luận đứng hình.
+      final w = StallWatcher();
+      var t = DateTime(2026, 1, 1);
+      var ms = 60000;
+      for (int i = 0; i < 30; i++) {
+        t = t.add(const Duration(seconds: 1));
+        ms += 950 + (i % 3) * 50; // 950..1050ms mỗi tick như phát thật
+        expect(w.tick(ms, t), 0, reason: 'tick $i báo oan đứng hình');
+      }
+    });
+
+    test('đứng yên thật -> đếm giây, đủ ngưỡng thì báo', () {
+      final w = StallWatcher();
+      var t = DateTime(2026, 1, 1);
+      expect(w.tick(60000, t), 0);
+      // Tick đứng đầu tiên chỉ "bắt đầu nghi" (trả 0), các tick sau đếm lên.
+      for (int i = 1; i <= StallWatcher.kTriggerSec + 1; i++) {
+        t = t.add(const Duration(seconds: 1));
+        expect(w.tick(60000, t), i - 1);
+      }
+      // Qua ngưỡng mà vẫn đứng -> tiếp tục đếm để caller skip.
+      t = t.add(const Duration(seconds: 1));
+      expect(w.tick(60000, t), StallWatcher.kTriggerSec + 1);
+    });
+
+    test('đứng vài giây rồi phát tiếp -> hết nghi', () {
+      final w = StallWatcher();
+      var t = DateTime(2026, 1, 1);
+      w.tick(60000, t);
+      for (int i = 0; i < 5; i++) {
+        t = t.add(const Duration(seconds: 1));
+        w.tick(60000, t);
+      }
+      t = t.add(const Duration(seconds: 1));
+      expect(w.tick(65000, t), 0); // tiến 5s so baseline -> hết nghi
+      t = t.add(const Duration(seconds: 1));
+      expect(w.tick(66000, t), 0); // phát bình thường tiếp
+    });
+
+    test('reset() xóa trạng thái nghi', () {
+      final w = StallWatcher();
+      var t = DateTime(2026, 1, 1);
+      w.tick(60000, t);
+      t = t.add(const Duration(seconds: 1));
+      expect(w.tick(60000, t), 0); // bắt đầu nghi
+      w.reset();
+      t = t.add(const Duration(seconds: 1));
+      // sau reset, đứng tiếp thì tính lại từ đầu chứ không cộng dồn
+      expect(w.tick(60000, t), 0);
+      t = t.add(const Duration(seconds: 1));
+      expect(w.tick(60000, t), 1);
+    });
+  });
+
+  group('introTickAction (chống skip intro oan khi gặp ads)', () {
+    test('chưa đặt mốc hoặc đã skip -> none', () {
+      expect(
+        introTickAction(introEndMs: 0, hasSkipped: false, posMs: 30000),
+        IntroTick.none,
+      );
+      expect(
+        introTickAction(introEndMs: 90000, hasSkipped: true, posMs: 30000),
+        IntroTick.none,
+      );
+    });
+
+    test('xem từ đầu, vào vùng intro -> skip 1 lần', () {
+      expect(
+        introTickAction(introEndMs: 90000, hasSkipped: false, posMs: 5000),
+        IntroTick.skip,
+      );
+    });
+
+    test('resume giữa phim (chưa từng skip) -> latch, không skip', () {
+      // ĐÚNG kịch bản lỗi: mở lại phim ở phút 20, cờ vẫn false; gặp ads
+      // làm vị trí tụt về vùng intro cũng không được skip oan về mốc.
+      expect(
+        introTickAction(
+          introEndMs: 90000,
+          hasSkipped: false,
+          posMs: 1200000,
+        ),
+        IntroTick.latch,
+      );
+      // Sau latch, tụt vị trí vào vùng intro -> none (cờ đã chốt).
+      expect(
+        introTickAction(introEndMs: 90000, hasSkipped: true, posMs: 30000),
+        IntroTick.none,
+      );
+    });
+
+    test('đầu phim (<1s) và vùng chết trước mốc -> none', () {
+      expect(
+        introTickAction(introEndMs: 90000, hasSkipped: false, posMs: 500),
+        IntroTick.none,
+      );
+      expect(
+        introTickAction(introEndMs: 90000, hasSkipped: false, posMs: 89700),
+        IntroTick.none,
+      );
+    });
+  });
+
+  group('shouldShowSkipOutro (nút Bỏ qua outro)', () {
+    test('vào vùng outro và chưa xử lý -> hiện nút', () {
+      expect(
+        shouldShowSkipOutro(
+          outroStartMs: 5000000,
+          handled: false,
+          posMs: 5001000,
+        ),
+        isTrue,
+      );
+    });
+
+    test('chưa đặt mốc / đã xử lý / chưa tới vùng -> ẩn', () {
+      expect(
+        shouldShowSkipOutro(
+          outroStartMs: 0,
+          handled: false,
+          posMs: 5001000,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldShowSkipOutro(
+          outroStartMs: 5000000,
+          handled: true,
+          posMs: 5001000,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldShowSkipOutro(
+          outroStartMs: 5000000,
+          handled: false,
+          posMs: 1000000,
+        ),
+        isFalse,
       );
     });
   });

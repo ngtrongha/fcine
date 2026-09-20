@@ -7,6 +7,7 @@ import '../../../../../data/repositories/history_repository.dart';
 import '../../../../../presentation/theme/app_theme.dart';
 import '../../logic/player_logic.dart';
 import 'player_error_overlay.dart';
+import 'skip_outro_button.dart';
 
 class PlayerDesktopTheater extends StatelessWidget {
   final VideoController controller;
@@ -39,6 +40,8 @@ class PlayerDesktopTheater extends StatelessWidget {
   final VoidCallback onExternal;
   final bool muted;
   final VoidCallback onToggleMute;
+  final bool showSkipOutro;
+  final VoidCallback onSkipOutro;
 
   const PlayerDesktopTheater({
     super.key,
@@ -72,6 +75,8 @@ class PlayerDesktopTheater extends StatelessWidget {
     required this.onExternal,
     required this.muted,
     required this.onToggleMute,
+    required this.showSkipOutro,
+    required this.onSkipOutro,
   });
 
   @override
@@ -119,6 +124,12 @@ class PlayerDesktopTheater extends StatelessWidget {
                     onRetry: onRetry,
                     onSwitchServer: onSwitchServer,
                     onReport: onReport,
+                  ),
+                if (showSkipOutro && error == null)
+                  Positioned(
+                    bottom: 96,
+                    right: 16,
+                    child: SkipOutroButton(onTap: onSkipOutro),
                   ),
                 Positioned(
                   bottom: 0,

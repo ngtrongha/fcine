@@ -30,6 +30,36 @@ bool shouldSkipIntro({
   return ms > 1000 && ms < introEndMs && ms < introEndMs - 500;
 }
 
+/// Kết quả xử lý 1 tick vị trí cho auto-skip intro (pure, để dễ test).
+enum IntroTick {
+  /// Không làm gì.
+  none,
+
+  /// Đang trong vùng intro và chưa skip -> seek tới mốc intro.
+  skip,
+
+  /// Đã qua mốc intro -> chốt cờ, từ đây về sau không auto-skip nữa
+  /// trong phiên này (kể cả chưa từng skip — vd resume giữa phim rồi
+  /// gặp ads làm vị trí tụt lại vùng intro: trước đây skip oan về mốc).
+  latch,
+}
+
+IntroTick introTickAction({
+  required int introEndMs,
+  required bool hasSkipped,
+  required int posMs,
+}) {
+  if (introEndMs <= 0 || hasSkipped) return IntroTick.none;
+  if (posMs >= introEndMs) return IntroTick.latch;
+  return shouldSkipIntro(
+    introEndMs: introEndMs,
+    hasSkipped: false,
+    pos: Duration(milliseconds: posMs),
+  )
+      ? IntroTick.skip
+      : IntroTick.none;
+}
+
 bool shouldSaveProgress(Duration pos, Duration dur) {
   if (dur.inMilliseconds == 0) return false;
   if (pos.inMilliseconds < 5000) return false;
@@ -74,14 +104,26 @@ bool shouldSkipSaveOnRegress({
 /// Stream reset giữa chừng (ads/HLS lỗi) cũng có thể bắn completed giả —
 /// lúc đó vị trí còn xa cuối phim, phải bỏ qua để không nhảy tập bậy và
 /// không xóa tiến trình đang xem dở.
+/// Đuôi 60s (thay vì quá khắt khe): duration playlist HLS hay bị phồng
+/// (kê thêm segment ads/trailer hỏng ở cuối), mpv hết nội dung xem được
+/// và bắn completed sớm hơn duration báo vài chục giây.
 bool isGenuineCompletion({
   required int posMs,
   required int durMs,
-  int tailMs = 15000,
+  int tailMs = 60000,
 }) {
   if (durMs <= 0) return false;
   return posMs >= durMs - tailMs;
 }
+
+/// Có nên hiện nút "Bỏ qua outro" không: đã đặt mốc outro, chưa xử lý
+/// trong tập này, và vị trí đã vào vùng outro (pure, để dễ test).
+bool shouldShowSkipOutro({
+  required int outroStartMs,
+  required bool handled,
+  required int posMs,
+}) =>
+    outroStartMs > 0 && !handled && posMs >= outroStartMs;
 
 /// Lần tự skip trước có "ăn thua" không: vị trí hiện tại vẫn loanh quanh
 /// điểm đáp của lần skip trước (không tiến được) mà lại đứng tiếp ->
@@ -93,6 +135,57 @@ bool isSkipIneffective({
   int toleranceMs = 15000,
 }) =>
     (posMs - landedMs).abs() < toleranceMs;
+
+/// Bộ theo dõi đứng hình cho tính năng tự bỏ qua ads.
+///
+/// Cách dùng: gọi [tick] mỗi giây với vị trí phát hiện tại. Trả về số giây
+/// đã đứng yên; 0 nghĩa là đang phát bình thường.
+///
+/// Logic baseline (quan trọng để không báo oan khi phát bình thường):
+/// - Mỗi tick tiến >200ms so với tick trước -> đang chạy, cập nhật mốc.
+/// - Đứng yên (kể cả lùi nhẹ do jitter) -> bắt đầu nghi, chốt baseline.
+/// - Đang nghi mà tiến >2s so với baseline -> hết nghi.
+/// - Đang nghi mà vẫn đứng -> đếm giây, đủ [kTriggerSec] thì caller skip.
+///
+/// (Bug cũ: so tiến >1.5s/tick trong khi tick cách nhau 1s nên phát bình
+/// thường cũng bị kết luận đứng hình -> cứ 10s tự tua 30s một lần.)
+class StallWatcher {
+  /// Ngưỡng mặc định: đứng yên 5s thì báo (user chỉnh được trong Settings).
+  static const int kTriggerSec = 5;
+
+  /// Ngưỡng của watcher này — page đồng bộ từ Settings sau khi load pref.
+  int triggerSec = kTriggerSec;
+
+  int _lastMs = 0;
+  int _baselineMs = 0;
+  DateTime? _suspectSince;
+
+  int tick(int ms, DateTime now) {
+    final suspectSince = _suspectSince;
+    if (suspectSince == null) {
+      if (ms > _lastMs + 200) {
+        _lastMs = ms;
+        return 0;
+      }
+      _suspectSince = now;
+      _baselineMs = ms;
+      _lastMs = ms;
+      return 0;
+    }
+    if (ms > _baselineMs + 2000) {
+      reset();
+      _lastMs = ms;
+      return 0;
+    }
+    _lastMs = ms;
+    return now.difference(suspectSince).inSeconds;
+  }
+
+  void reset() {
+    _suspectSince = null;
+  }
+}
+
 /// Điều kiện: vị trí đứng yên đủ lâu + đã phát được một lúc + còn cách cuối
 /// phim một đoạn + chưa vượt số lần tự skip cho phép của media này.
 /// KHÔNG phân biệt được đứng hình do ads hay do mạng yếu ở đây — caller
@@ -103,7 +196,7 @@ bool shouldAutoSkipStall({
   required int posMs,
   required int durMs,
   required int autoSkipCount,
-  int triggerSec = 10,
+  int triggerSec = 5,
   int minPosMs = 5000,
   int minRemainingMs = 25000,
   int maxSkips = 4,
