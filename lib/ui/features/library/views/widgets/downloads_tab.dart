@@ -57,7 +57,12 @@ class DownloadsTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (items.isEmpty) return const Center(child: Text('Chưa có bản tải', style: TextStyle(color: Color(0xFF94A3B8))));
     return ListView.separated(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.fromLTRB(
+        12,
+        12,
+        12,
+        12 + MediaQuery.paddingOf(context).padding.bottom,
+      ),
       itemCount: items.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, i) {

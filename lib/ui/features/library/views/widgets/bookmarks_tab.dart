@@ -13,7 +13,12 @@ class BookmarksTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (items.isEmpty) return const Center(child: Text('Chưa có phim yêu thích', style: TextStyle(color: Color(0xFF94A3B8))));
     return GridView.builder(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.fromLTRB(
+        12,
+        12,
+        12,
+        12 + MediaQuery.paddingOf(context).padding.bottom,
+      ),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.62, crossAxisSpacing: 10, mainAxisSpacing: 10),
       itemCount: items.length,
       itemBuilder: (context, i) {

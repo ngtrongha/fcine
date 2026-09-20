@@ -37,6 +37,52 @@ bool shouldSaveProgress(Duration pos, Duration dur) {
   return true;
 }
 
+/// Có nên phục hồi stream bị reset không (pure, để dễ test).
+/// Luồng HLS có ads chèn (discontinuity/timeline riêng) hoặc segment lỗi
+/// làm mpv báo vị trí tụt sâu so với mốc ổn định -> seek về mốc đó.
+/// - seekLocked: đang seek/open chủ động (tua, đổi chất lượng/tập, resume)
+///   -> vị trí đổi là có chủ đích, không phải reset.
+/// - tụt ít hơn ngưỡng (nhiễu buffer/discontinuity nhỏ) -> bỏ qua.
+/// - quá số lần phục hồi tối đa -> thôi, tránh lặp vô hạn khi ads lỗi
+///   dai dẳng (lúc đó để user tự tua tay).
+bool shouldRecoverStream({
+  required int stableMs,
+  required int posMs,
+  required bool seekLocked,
+  required int recoverCount,
+  int dropThresholdMs = 15000,
+  int maxRecoveries = 3,
+}) {
+  if (seekLocked) return false;
+  if (posMs >= stableMs) return false;
+  if (stableMs - posMs < dropThresholdMs) return false;
+  if (recoverCount >= maxRecoveries) return false;
+  return true;
+}
+
+/// Có nên bỏ qua lượt lưu tiến trình này không: vị trí đang tụt sâu so với
+/// mốc ổn định (stream vừa reset) -> giữ tiến trình cũ, không ghi đè bằng
+/// vị trí sau reset (nếu không sẽ mất mốc resume đúng).
+bool shouldSkipSaveOnRegress({
+  required int stableMs,
+  required int posMs,
+  int dropThresholdMs = 15000,
+}) =>
+    stableMs - posMs > dropThresholdMs;
+
+/// `completed` có phải hết tập thật không: vị trí phải ở gần cuối phim.
+/// Stream reset giữa chừng (ads/HLS lỗi) cũng có thể bắn completed giả —
+/// lúc đó vị trí còn xa cuối phim, phải bỏ qua để không nhảy tập bậy và
+/// không xóa tiến trình đang xem dở.
+bool isGenuineCompletion({
+  required int posMs,
+  required int durMs,
+  int tailMs = 15000,
+}) {
+  if (durMs <= 0) return false;
+  return posMs >= durMs - tailMs;
+}
+
 class QualityService {
   static Future<List<QualityVariant>> load(String url) async {
     final parser = M3u8Parser(Dio());

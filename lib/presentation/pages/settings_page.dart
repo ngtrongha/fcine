@@ -596,7 +596,12 @@ class _SettingsPageState extends State<SettingsPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator(color: Color(0xFFE50914)))
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(
+                16,
+                16,
+                16,
+                16 + MediaQuery.paddingOf(context).padding.bottom,
+              ),
               children: [
                 _sectionTitle('CHẾ ĐỘ HIỆN TẠI'),
                 _statusCard(hasSource, sources.length),

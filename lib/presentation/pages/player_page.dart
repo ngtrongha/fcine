@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:floating/floating.dart';
@@ -82,6 +84,19 @@ class _PlayerPageState extends State<PlayerPage> {
       _brightness = 0.6;
   BoxFit fit = BoxFit.contain;
   String? playerError, _selectedQualityUrl;
+
+  /// Mốc phát ổn định gần nhất của media hiện tại — dùng để phát hiện
+  /// stream tự reset (ads/discontinuity trong HLS làm mpv báo vị trí tụt
+  /// sâu) rồi seek trở lại, thay vì coi như xem từ đầu.
+  Duration _stablePos = Duration.zero;
+
+  /// Hạn khóa guard: đang có seek/open chủ động (tua, đổi chất lượng/tập,
+  /// resume) — vị trí thay đổi trong lúc này không phải reset.
+  DateTime _seekLockUntil = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Số lần đã tự phục hồi reset trong 1 lần mở media — chặn lặp vô hạn
+  /// khi đoạn ads trong luồng lỗi dai dẳng.
+  int _recoverCount = 0;
 
   /// Swipe dọc: vị trí bắt đầu (quyết định nửa trái=sáng / phải=volume).
   Offset? _verticalDragStartPos;
@@ -258,8 +273,14 @@ class _PlayerPageState extends State<PlayerPage> {
 
   Future<void> _switchQuality(QualityVariant q) async {
     setState(() => _selectedQualityUrl = q.url);
+    // open() trong switchQuality reset vị trí về 0 rồi seek lại:
+    // khóa guard + reset lượt phục hồi, xong chốt mốc theo vị trí thực.
+    _seekLockUntil = DateTime.now().add(const Duration(seconds: 20));
+    _recoverCount = 0;
     await QualityService.switchQuality(player, q, position);
     if (!mounted) return;
+    _stablePos = player.state.position;
+    _seekLockUntil = DateTime.now().add(const Duration(seconds: 3));
     AppToast.show(
       context,
       message: 'Chất lượng: ${q.label}',
@@ -415,20 +436,21 @@ class _PlayerPageState extends State<PlayerPage> {
     }
   }
 
+  /// Auto-skip intro MỘT lần duy nhất cho mỗi lần mở media.
+  /// Không "re-arm" cờ khi đã qua intro: ads/discontinuity trong HLS làm
+  /// vị trí báo về tụt lại vào vùng intro — trước đây kích hoạt skip lần
+  /// nữa khiến phim bị yank về mốc intro dù đang xem dở giữa phim, và mọi
+  /// phím tua qua đoạn ads đều bị kéo ngược trở lại.
   void _checkSkipIntro() {
     if (!shouldSkipIntro(
       introEndMs: _introEndMs,
       hasSkipped: _hasSkippedIntro,
       pos: position,
     )) {
-      // Reset skip flag only when we're well past the intro
-      if (position.inMilliseconds > _introEndMs + 5000) {
-        _hasSkippedIntro = false;
-      }
       return;
     }
     _hasSkippedIntro = true;
-    player.seek(Duration(milliseconds: _introEndMs));
+    _seekTo(Duration(milliseconds: _introEndMs));
     if (mounted) {
       AppToast.show(
         context,
@@ -438,7 +460,9 @@ class _PlayerPageState extends State<PlayerPage> {
     }
   }
 
-  /// Kiểm tra và skip outro (phần cuối film) nếu người dùng đã xem qua đoạn đó.
+  /// Toast outro MỘT lần cho mỗi tập — không re-arm khi vị trí tụt lại
+  /// (cùng lý do như skip intro: ads/discontinuity làm vị trí báo về).
+  /// Cờ được reset khi mở tập mới trong [_playNext].
   void _checkSkipOutro() {
     if (_outroStartMs <= 0 || _hasSkippedOutro) return;
     if (position.inMilliseconds >= _outroStartMs) {
@@ -452,9 +476,6 @@ class _PlayerPageState extends State<PlayerPage> {
           type: ToastType.info,
         );
       }
-    } else if (position.inMilliseconds < _outroStartMs - 5000) {
-      // Reset nếu user seek về trước outro
-      _hasSkippedOutro = false;
     }
   }
 
@@ -503,7 +524,7 @@ class _PlayerPageState extends State<PlayerPage> {
     if (e.logicalKey == LogicalKeyboardKey.keyI) {
       if (_introEndMs > 0 && position.inMilliseconds < _introEndMs) {
         _hasSkippedIntro = true;
-        player.seek(Duration(milliseconds: _introEndMs));
+        _seekTo(Duration(milliseconds: _introEndMs));
         if (mounted) {
           AppToast.show(
             context,
@@ -518,7 +539,7 @@ class _PlayerPageState extends State<PlayerPage> {
     if (e.logicalKey == LogicalKeyboardKey.keyO) {
       if (_outroStartMs > 0 && position.inMilliseconds < _outroStartMs) {
         _hasSkippedOutro = true;
-        player.seek(Duration(milliseconds: _outroStartMs));
+        _seekTo(Duration(milliseconds: _outroStartMs));
         if (mounted) {
           AppToast.show(
             context,
@@ -641,9 +662,15 @@ class _PlayerPageState extends State<PlayerPage> {
       }
     } catch (_) {}
     try {
+      // Mở media: khóa guard phát hiện reset TRƯỚC khi open (mpv reset vị
+      // trí về 0 bất đồng bộ), rồi reset mốc ổn định/lượt phục hồi.
+      _seekLockUntil = DateTime.now().add(const Duration(seconds: 20));
       await player.open(Media(m3u8), play: true);
       _claimActivePlayer();
+      _stablePos = Duration.zero;
+      _recoverCount = 0;
       final resumed = await _seekToResume();
+      if (mounted) _stablePos = player.state.position;
       if (resumed > 0 && mounted) {
         AppToast.show(
           context,
@@ -833,6 +860,7 @@ class _PlayerPageState extends State<PlayerPage> {
       player.stream.position.listen((p) {
         if (!mounted) return;
         setState(() => position = p);
+        _trackStreamRestart(p);
         _checkSkipIntro();
         _checkSkipOutro();
       }),
@@ -896,19 +924,38 @@ class _PlayerPageState extends State<PlayerPage> {
     const Duration(seconds: 5),
     (_) => _saveProgress(),
   );
-  Future<void> _saveProgress() => ProgressService.save(
-    movie: widget.movie,
-    episode: _episode,
-    serverName: _serverName,
-    pos: position,
-    dur: duration,
-  );
+  Future<void> _saveProgress() {
+    // Stream đang ở trạng thái reset/tụt (vị trí kém mốc ổn định >15s):
+    // KHÔNG ghi đè tiến trình đã xem tốt bằng vị trí sau reset,
+    // nếu không sẽ mất mốc resume đúng (mở lại phim phải xem từ đầu).
+    if (shouldSkipSaveOnRegress(
+      stableMs: _stablePos.inMilliseconds,
+      posMs: position.inMilliseconds,
+    )) {
+      return Future<void>.value();
+    }
+    return ProgressService.save(
+      movie: widget.movie,
+      episode: _episode,
+      serverName: _serverName,
+      pos: position,
+      dur: duration,
+    );
+  }
 
   /// Tập vừa xem xong: xóa dòng resume của nó, đồng thời đánh dấu tập KẾ
   /// (vị trí 0) để rail "Tiếp tục xem" đi tới thay vì rớt về tập cũ.
   /// Tập cuối thì chỉ xóa (hết phim -> rời rail).
   Future<void> _onCompleted() async {
-    if (duration.inMilliseconds <= 0) return;
+    // completed bắn giữa chừng khi stream bị reset (ads/HLS lỗi): vị trí
+    // còn xa cuối phim -> không phải hết tập, bỏ qua để không nhảy tập
+    // bậy và không xóa tiến trình đang xem dở.
+    if (!isGenuineCompletion(
+      posMs: position.inMilliseconds,
+      durMs: duration.inMilliseconds,
+    )) {
+      return;
+    }
     try {
       final repo = getIt<HistoryRepository>();
       dynamic src;
@@ -978,14 +1025,23 @@ class _PlayerPageState extends State<PlayerPage> {
       );
       return;
     }
+    // Khóa guard TRƯỚC khi open: mpv reset vị trí về 0 bất đồng bộ,
+    // tick 0 đến trước dòng reset mốc sẽ bị hiểu nhầm là stream reset.
+    _seekLockUntil = DateTime.now().add(const Duration(seconds: 20));
     await player.open(Media(url!), play: true);
     if (!mounted) return;
+    // Tập mới = media mới: reset mốc ổn định/lượt phục hồi,
+    // reset luôn cờ skip intro/outro của tập cũ.
+    _stablePos = Duration.zero;
+    _recoverCount = 0;
+    _seekLockUntil = DateTime.now().add(const Duration(seconds: 20));
     // Đổi state sang tập mới: resume/title/drawer/highlight sau này
     // bám đúng tập đang phát (trước đây kẹt ở tập cũ).
     setState(() {
       _episode = ep;
       _serverName = next['server'] as String? ?? _serverName;
       _hasSkippedIntro = false;
+      _hasSkippedOutro = false;
       _qualities = [];
       _selectedQualityUrl = null;
       _externalSubtitleTitle = null;
@@ -994,6 +1050,7 @@ class _PlayerPageState extends State<PlayerPage> {
     if (!mounted) return;
     // Tập mới có thể đã xem dở trước đó -> resume luôn.
     final resumed = await _seekToResume();
+    if (mounted) _stablePos = player.state.position;
     if (!mounted) return;
     AppToast.show(
       context,
@@ -1004,8 +1061,50 @@ class _PlayerPageState extends State<PlayerPage> {
     );
   }
 
+  /// Seek chủ động (slider/phím/gesture/skip intro...): khóa guard phát
+  /// hiện reset trong lúc seek, rồi chốt mốc ổn định theo vị trí THỰC sau
+  /// khi mpv áp xong — tua lùi/tua qua ads của user không bị hiểu nhầm
+  /// là stream reset.
+  Future<void> _seekTo(Duration target) async {
+    _seekLockUntil = DateTime.now().add(const Duration(seconds: 8));
+    await player.seek(target);
+    await Future.delayed(const Duration(milliseconds: 700));
+    if (mounted) _stablePos = player.state.position;
+  }
+
+  /// Phát hiện stream tự reset: vị trí tụt sâu so với mốc ổn định mà không
+  /// trong lúc seek chủ động -> seek ngay về mốc ổn định thay vì để phim
+  /// chạy lại từ đầu. Tối đa 3 lần mỗi media (xem [shouldRecoverStream]).
+  void _trackStreamRestart(Duration p) {
+    final locked = DateTime.now().isBefore(_seekLockUntil);
+    final ms = p.inMilliseconds;
+    if (ms >= _stablePos.inMilliseconds) {
+      if (!locked) _stablePos = p;
+      return;
+    }
+    if (!shouldRecoverStream(
+      stableMs: _stablePos.inMilliseconds,
+      posMs: ms,
+      seekLocked: locked,
+      recoverCount: _recoverCount,
+    )) {
+      return;
+    }
+    _recoverCount++;
+    final target = _stablePos;
+    _seekLockUntil = DateTime.now().add(const Duration(seconds: 8));
+    player.seek(target);
+    if (mounted) {
+      AppToast.show(
+        context,
+        message: 'Luồng bị reset - quay lại ${formatDuration(target)}',
+        type: ToastType.info,
+      );
+    }
+  }
+
   void _seekRelative(int s) {
-    player.seek(clampSeek(position, duration, s));
+    _seekTo(clampSeek(position, duration, s));
     _resetHideTimer();
   }
 
@@ -1014,17 +1113,29 @@ class _PlayerPageState extends State<PlayerPage> {
     _resetHideTimer();
   }
 
+  static bool get _isDesktop =>
+      !kIsWeb &&
+      (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+
   void _toggleFullscreen() {
     setState(() => isFullscreen = !isFullscreen);
     if (isFullscreen) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      if (_isDesktop) {
+        windowManager.setFullScreen(true);
+      } else {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      }
     } else {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      if (_isDesktop) {
+        windowManager.setFullScreen(false);
+      } else {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      }
     }
     _resetHideTimer();
   }
@@ -1065,6 +1176,11 @@ class _PlayerPageState extends State<PlayerPage> {
     } catch (_) {}
     player.dispose();
     WakelockPlus.disable();
+    if (isFullscreen) {
+      try {
+        windowManager.setFullScreen(false);
+      } catch (_) {}
+    }
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -1266,7 +1382,7 @@ class _PlayerPageState extends State<PlayerPage> {
                     position: position,
                     duration: duration,
                     onSeek: (v) =>
-                        player.seek(Duration(milliseconds: v.toInt())),
+                        _seekTo(Duration(milliseconds: v.toInt())),
                     onSeekStart: () => hideTimer?.cancel(),
                     onSeekEnd: _resetHideTimer,
                     hasNext: currentIndex + 1 < flatEpisodes.length,
@@ -1351,7 +1467,7 @@ class _PlayerPageState extends State<PlayerPage> {
       onReport: _reportError,
       position: position,
       duration: duration,
-      onSeek: (v) => player.seek(Duration(milliseconds: v.toInt())),
+      onSeek: (v) => _seekTo(Duration(milliseconds: v.toInt())),
       isPlaying: isPlaying,
       onTogglePlay: _togglePlay,
       onSeekBack: () => _seekRelative(-10),

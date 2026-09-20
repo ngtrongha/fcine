@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'dart:math';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -11,6 +12,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../../ui/features/player/logic/playlist_media.dart';
 import '../../../core/local_media/local_media_scanner.dart';
@@ -663,17 +665,29 @@ class _LocalPlayerPageState extends State<LocalPlayerPage> {
     }
   }
 
+  static bool get _isDesktop =>
+      !kIsWeb &&
+      (Platform.isWindows || Platform.isLinux || Platform.isMacOS);
+
   void _toggleFullscreen() {
     setState(() => _isFullscreen = !_isFullscreen);
     if (_isFullscreen) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      if (_isDesktop) {
+        windowManager.setFullScreen(true);
+      } else {
+        SystemChrome.setPreferredOrientations([
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      }
     } else {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      if (_isDesktop) {
+        windowManager.setFullScreen(false);
+      } else {
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+        SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      }
     }
     _resetHideTimer();
   }
@@ -767,6 +781,11 @@ class _LocalPlayerPageState extends State<LocalPlayerPage> {
     }
     _player.dispose();
     WakelockPlus.disable();
+    if (_isFullscreen) {
+      try {
+        windowManager.setFullScreen(false);
+      } catch (_) {}
+    }
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
@@ -808,7 +827,15 @@ class _LocalPlayerPageState extends State<LocalPlayerPage> {
                       ],
                     ),
             ),
-            _buildBottomBar(),
+            // extendBody: true của scaffold ngoài đưa chiều cao dock nổi
+            // vào MediaQuery.padding.bottom — chừa đúng chỗ để hàng nút
+            // play/stop/next... không bị dock đè lên.
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).padding.bottom,
+              ),
+              child: _buildBottomBar(),
+            ),
           ],
         ),
       ),
