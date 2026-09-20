@@ -5,6 +5,7 @@ class PlayerTopBar extends StatelessWidget {
   final String serverName;
   final VoidCallback onBack;
   final VoidCallback onSettings;
+  final VoidCallback? onPip;
 
   const PlayerTopBar({
     super.key,
@@ -12,6 +13,7 @@ class PlayerTopBar extends StatelessWidget {
     required this.serverName,
     required this.onBack,
     required this.onSettings,
+    this.onPip,
   });
 
   Widget _buildBackButton() {
@@ -79,6 +81,12 @@ class PlayerTopBar extends StatelessWidget {
             icon: const Icon(Icons.lock_open_rounded, color: Colors.white70, size: 20),
             onPressed: () {},
           ),
+          if (onPip != null)
+            IconButton(
+              tooltip: 'Cửa sổ nhỏ (PiP)',
+              icon: const Icon(Icons.picture_in_picture_alt_rounded, color: Colors.white70, size: 20),
+              onPressed: onPip,
+            ),
           IconButton(
             icon: const Icon(Icons.settings_rounded, color: Colors.white70, size: 20),
             onPressed: onSettings,

@@ -83,6 +83,38 @@ bool isGenuineCompletion({
   return posMs >= durMs - tailMs;
 }
 
+/// Lần tự skip trước có "ăn thua" không: vị trí hiện tại vẫn loanh quanh
+/// điểm đáp của lần skip trước (không tiến được) mà lại đứng tiếp ->
+/// skip không giải quyết gì (mạng yếu chứ không phải ads) -> dừng hẳn.
+/// Pure để dễ test; caller tự đếm số lần liên tiếp và block.
+bool isSkipIneffective({
+  required int posMs,
+  required int landedMs,
+  int toleranceMs = 15000,
+}) =>
+    (posMs - landedMs).abs() < toleranceMs;
+/// Điều kiện: vị trí đứng yên đủ lâu + đã phát được một lúc + còn cách cuối
+/// phim một đoạn + chưa vượt số lần tự skip cho phép của media này.
+/// KHÔNG phân biệt được đứng hình do ads hay do mạng yếu ở đây — caller
+/// phải giới hạn số lần (ads thường chỉ vài chục giây, mạng yếu thì skip
+/// tiếp cũng vẫn đứng) và cho user tắt trong Settings.
+bool shouldAutoSkipStall({
+  required int frozenSec,
+  required int posMs,
+  required int durMs,
+  required int autoSkipCount,
+  int triggerSec = 10,
+  int minPosMs = 5000,
+  int minRemainingMs = 25000,
+  int maxSkips = 4,
+}) {
+  if (frozenSec < triggerSec) return false;
+  if (posMs < minPosMs) return false;
+  if (durMs - posMs < minRemainingMs) return false;
+  if (autoSkipCount >= maxSkips) return false;
+  return true;
+}
+
 class QualityService {
   static Future<List<QualityVariant>> load(String url) async {
     final parser = M3u8Parser(Dio());

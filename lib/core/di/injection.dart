@@ -6,6 +6,7 @@ import '../config/config_service.dart';
 import '../config/safe_mode_service.dart';
 import '../config/source_refresh_service.dart';
 import '../download/download_service.dart';
+import '../cast/cast_service.dart';
 import '../update/git_update_service.dart';
 import '../../data/datasources/remote_datasource.dart';
 import '../../data/datasources/web_scraper_datasource.dart';
@@ -38,6 +39,9 @@ Future<void> setupInjection() async {
 
   // Safe mode (ẩn 18+) — setting lưu SharedPreferences
   getIt.registerLazySingleton<SafeModeService>(() => SafeModeService());
+
+  // Chromecast (Android/iOS) — ngoài mobile thì service tự no-op
+  getIt.registerLazySingleton<CastService>(() => CastService());
 
   // Git Update Service
   getIt.registerLazySingleton<GitUpdateService>(() => GitUpdateService());

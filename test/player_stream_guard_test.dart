@@ -127,4 +127,99 @@ void main() {
       expect(isGenuineCompletion(posMs: 5000, durMs: 10000), isTrue);
     });
   });
+
+  group('shouldAutoSkipStall (tự bỏ qua đoạn đứng hình nghi là ads)', () {
+    test('đứng quá 10s giữa phim -> tự skip', () {
+      expect(
+        shouldAutoSkipStall(
+          frozenSec: 10,
+          posMs: 1200000,
+          durMs: 5400000,
+          autoSkipCount: 0,
+        ),
+        isTrue,
+      );
+    });
+
+    test('mới đứng vài giây -> chờ thêm', () {
+      expect(
+        shouldAutoSkipStall(
+          frozenSec: 5,
+          posMs: 1200000,
+          durMs: 5400000,
+          autoSkipCount: 0,
+        ),
+        isFalse,
+      );
+    });
+
+    test('đứng ngay đầu phim (đang load) -> không skip', () {
+      expect(
+        shouldAutoSkipStall(
+          frozenSec: 30,
+          posMs: 2000,
+          durMs: 5400000,
+          autoSkipCount: 0,
+        ),
+        isFalse,
+      );
+    });
+
+    test('đứng sát cuối phim -> không skip (kẻo tua mất đoạn kết)', () {
+      expect(
+        shouldAutoSkipStall(
+          frozenSec: 30,
+          posMs: 5390000,
+          durMs: 5400000,
+          autoSkipCount: 0,
+        ),
+        isFalse,
+      );
+    });
+
+    test('vượt 4 lần/phim -> dừng (nghi mạng yếu, không tua mất nội dung)', () {
+      expect(
+        shouldAutoSkipStall(
+          frozenSec: 30,
+          posMs: 1200000,
+          durMs: 5400000,
+          autoSkipCount: 4,
+        ),
+        isFalse,
+      );
+      expect(
+        shouldAutoSkipStall(
+          frozenSec: 30,
+          posMs: 1200000,
+          durMs: 5400000,
+          autoSkipCount: 3,
+        ),
+        isTrue,
+      );
+    });
+  });
+
+  group('isSkipIneffective (skip không ăn thua -> nghi mạng yếu)', () {
+    test('đứng tiếp loanh quanh điểm đáp -> không hiệu quả', () {
+      expect(
+        isSkipIneffective(posMs: 1230000, landedMs: 1230000),
+        isTrue,
+      );
+      expect(
+        isSkipIneffective(posMs: 1238000, landedMs: 1230000),
+        isTrue,
+      );
+    });
+
+    test('đã phát đi xa (hoặc user tua đi chỗ khác) -> hiệu quả', () {
+      expect(
+        isSkipIneffective(posMs: 1500000, landedMs: 1230000),
+        isFalse,
+      );
+      expect(
+        isSkipIneffective(posMs: 600000, landedMs: 1230000),
+        isFalse,
+      );
+    });
+  });
 }

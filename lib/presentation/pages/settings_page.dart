@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import '../../core/cache/image_cache_manager.dart';
 import '../../core/scraper/web_probe.dart';
@@ -39,6 +40,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _savingBaseUrl = false;
   bool _savingWeb = false;
   bool _safeMode = false;
+  bool _autoSkipAds = true;
   bool _aiConfigSaved = false;
   final _aiEndpointController = TextEditingController();
   final _aiKeyController = TextEditingController();
@@ -56,6 +58,7 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _reload();
     _loadSafeMode();
+    _loadAutoSkip();
     _loadAiConfig();
   }
 
@@ -64,6 +67,32 @@ class _SettingsPageState extends State<SettingsPage> {
       final on = await getIt<SafeModeService>().load();
       if (mounted) setState(() => _safeMode = on);
     } catch (_) {}
+  }
+
+  /// Switch "tự bỏ qua đoạn đứng hình (ads)" của trình phát (mặc định bật).
+  /// Chung key 'auto_skip_stall' với PlayerPage.
+  Future<void> _loadAutoSkip() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) setState(() => _autoSkipAds = prefs.getBool('auto_skip_stall') ?? true);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleAutoSkip(bool value) async {
+    setState(() => _autoSkipAds = value);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('auto_skip_stall', value);
+    } catch (_) {}
+    if (mounted) {
+      AppToast.show(
+        context,
+        message: value
+            ? 'Đã bật tự bỏ qua đoạn đứng hình (+30s khi kẹt quá 10s)'
+            : 'Đã tắt tự bỏ qua đoạn đứng hình',
+        type: ToastType.info,
+      );
+    }
   }
 
   Future<void> _loadAiConfig() async {
@@ -623,6 +652,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   activeThumbColor: const Color(0xFFE50914),
                   title: const Text('Ẩn phim 18+', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
                   subtitle: const Text('Lọc nội dung 18+ khỏi trang chủ và tìm kiếm', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: const Color(0xFF1E293B))),
+                  tileColor: const Color(0xFF111622),
+                ),
+                const SizedBox(height: 24),
+                _sectionTitle('TRÌNH PHÁT'),
+                SwitchListTile(
+                  value: _autoSkipAds,
+                  onChanged: _toggleAutoSkip,
+                  secondary: const Icon(Icons.fast_forward_rounded, color: Color(0xFFE50914)),
+                  activeThumbColor: const Color(0xFFE50914),
+                  title: const Text('Tự bỏ qua đoạn đứng hình', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+                  subtitle: const Text('Đứng quá 10s lúc đang phát thì tự tua +30s; tự dừng khi nghi mạng yếu', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 12)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: const Color(0xFF1E293B))),
                   tileColor: const Color(0xFF111622),

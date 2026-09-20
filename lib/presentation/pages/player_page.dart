@@ -22,6 +22,7 @@ import '../../data/datasources/remote_datasource.dart';
 import '../../data/datasources/web_scraper_datasource.dart';
 import '../../data/repositories/history_repository.dart';
 import '../../ui/features/player/logic/player_logic.dart';
+import '../../ui/features/player/views/widgets/cast_sheet.dart';
 import '../../ui/features/player/views/widgets/episode_drawer.dart';
 import '../../ui/features/player/views/widgets/player_bottom_controls.dart';
 import '../../ui/features/player/views/widgets/player_center_controls.dart';
@@ -66,8 +67,33 @@ class _PlayerPageState extends State<PlayerPage> {
       _showEpisodeDrawer = false,
       isPlaying = true,
       _muted = false;
-  Timer? hideTimer, saveTimer;
+  Timer? hideTimer, saveTimer, _stallTimer;
   final List<StreamSubscription> _playerSubs = [];
+
+  /// Focus node dùng chung cho cả 2 nhánh build (theater/fullscreen) —
+  /// giữ phím tắt (F11/ESC/...) sống sót sau khi đổi nhánh, thay vì trông
+  /// chờ autofocus của Focus node mới (hay hụt, khiến F11 bật được mà
+  /// bấm lại không tắt được).
+  final FocusNode _pageFocus = FocusNode();
+
+  /// Stall detection -> tự bỏ qua đoạn ads/đứng hình:
+  /// vị trí đứng yên bao lâu, mốc ms thấy cuối, lúc mở media, số lần đã
+  /// tự skip trong media này, và switch trong Settings (mặc định bật).
+  /// [_autoSkipBlocked] = skip không ăn thua 2 lần liên tiếp (mạng yếu
+  /// chứ không phải ads) -> dừng hẳn tự skip cho media này.
+  int _lastFrozenPosMs = 0;
+  DateTime? _frozenSince;
+  DateTime? _mediaOpenedAt;
+  int _autoSkipCount = 0;
+  bool _autoSkipAds = true;
+  bool _autoSkipBlocked = false;
+  int _skipFailStreak = 0;
+  int _lastSkipLandedMs = 0;
+  static const _kAutoSkipKey = 'auto_skip_stall';
+
+  /// URL http(s) của luồng ĐANG phát (để cast lên TV) — null khi phát
+  /// file offline trong máy (TV không với tới) hoặc chưa load xong.
+  String? _currentStreamUrl;
 
   /// Tập + server ĐANG phát (khác widget.episode/widget.serverName sau
   /// khi tự động chuyển tập — widget không đổi vì không push trang mới).
@@ -97,6 +123,10 @@ class _PlayerPageState extends State<PlayerPage> {
   /// Số lần đã tự phục hồi reset trong 1 lần mở media — chặn lặp vô hạn
   /// khi đoạn ads trong luồng lỗi dai dẳng.
   int _recoverCount = 0;
+
+  /// Đang ở chế độ cửa sổ nhỏ (PiP): ẩn toàn bộ controls/overlay để
+  /// cửa sổ nhỏ hiện video sạch, giữ nguyên phát tiếng + hình.
+  bool _inPip = false;
 
   /// Swipe dọc: vị trí bắt đầu (quyết định nửa trái=sáng / phải=volume).
   Offset? _verticalDragStartPos;
@@ -152,14 +182,26 @@ class _PlayerPageState extends State<PlayerPage> {
     player = Player();
     controller = VideoController(player);
     WakelockPlus.enable();
+    // Phím fullscreen toàn cục (F11/F): ăn kể cả khi Focus tree mất focus.
+    HardwareKeyboard.instance.addHandler(_globalKeyHandler);
     _restoreVolume();
+    _loadAutoSkipPref();
     _initPlayer();
     _listenPlayer();
     _startSaveTimer();
+    _startStallTimer();
     _resetHideTimer();
     _loadQualities();
     _loadIntro();
     _initBrightness();
+  }
+
+  /// Đọc switch "tự bỏ qua đoạn đứng hình" trong Settings (mặc định bật).
+  Future<void> _loadAutoSkipPref() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) setState(() => _autoSkipAds = prefs.getBool(_kAutoSkipKey) ?? true);
+    } catch (_) {}
   }
 
   /// Đọc độ sáng hiện tại của app để slider/swipe bắt đầu từ đúng mức.
@@ -342,29 +384,34 @@ class _PlayerPageState extends State<PlayerPage> {
     }
   }
 
-  void _showCastPlaceholder() => showDialog(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Row(
-        children: [
-          Icon(Icons.cast, size: 20),
-          SizedBox(width: 8),
-          Text('Chromecast / AirPlay'),
-        ],
-      ),
-      content: const Text(
-        'Tính năng đang phát triển.\nCần Google Cast SDK / AirPlay. m3u8 có thể cast qua URL nhưng cần receiver custom.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('Đóng'),
-        ),
-      ],
-    ),
-  );
-  Future<void> _enterPip() async {
-    if (!await _floating.isPipAvailable) {
+  /// Mở sheet Chromecast: tìm TV cùng WiFi, đẩy phim đang xem lên TV,
+  /// điều khiển phát/dừng/tua/ngắt ngay trong sheet.
+  void _showCastSheet() {
+    showCastSheet(
+      context,
+      videoUrl: _currentStreamUrl ?? '',
+      title: '${widget.movie.name} • ${_episode.name}',
+      subtitle: _serverName,
+      startPosition: position,
+      onCastingStarted: () {
+        // TV đã nhận phim: tạm dừng máy. Local đang pause (isPlaying=false)
+        // nên stall detection tự bỏ qua, không lo tự tua.
+        player.pause();
+        if (mounted) {
+          AppToast.show(
+            context,
+            message: 'Đang phát trên TV - máy đã tạm dừng',
+            type: ToastType.success,
+          );
+        }
+      },
+      onCastingStopped: () {},
+    );
+  }
+  /// Nút PiP trên top bar chỉ hiện ở Android (floating chỉ hỗ trợ Android).
+  static bool get _showPipButton => !kIsWeb && Platform.isAndroid;
+
+  Future<void> _enterPip() async {    if (!await _floating.isPipAvailable) {
       if (mounted) {
         AppToast.show(
           context,
@@ -374,16 +421,44 @@ class _PlayerPageState extends State<PlayerPage> {
       }
       return;
     }
+    // Ẩn controls trước để cửa sổ nhỏ chụp khung hình sạch (không dính UI).
+    hideTimer?.cancel();
+    if (mounted) setState(() => showControls = false);
     final s = await _floating.enable(
       const ImmediatePiP(aspectRatio: Rational(16, 9)),
     );
-    if (s == PiPStatus.enabled && mounted) {
+    if (!mounted) return;
+    if (s == PiPStatus.enabled) {
       AppToast.show(
         context,
         message: 'Đã vào chế độ PiP',
         type: ToastType.success,
       );
+    } else {
+      AppToast.show(
+        context,
+        message: 'Không vào được PiP - kiểm tra quyền trong cài đặt máy',
+        type: ToastType.warning,
+      );
     }
+  }
+
+  /// Theo dõi trạng thái PiP hệ thống: vào PiP -> ẩn controls; thoát PiP
+  /// (bấm X trên cửa sổ nhỏ) -> hiện lại controls để xem tiếp.
+  void _onPipStatus(PiPStatus s) {
+    if (!mounted) return;
+    final inPip = s == PiPStatus.enabled || s == PiPStatus.automatic;
+    if (inPip == _inPip) return;
+    setState(() {
+      _inPip = inPip;
+      if (inPip) {
+        showControls = false;
+        _showEpisodeDrawer = false;
+      } else {
+        showControls = true;
+      }
+    });
+    if (!inPip) _resetHideTimer();
   }
 
   Future<void> _openExternal() async {
@@ -479,6 +554,21 @@ class _PlayerPageState extends State<PlayerPage> {
     }
   }
 
+  /// Phím fullscreen toàn cục (F11/F): chạy ở tầng HardwareKeyboard nên
+  /// vẫn ăn kể cả khi Focus tree mất focus sau khi chuyển fullscreen.
+  /// Trả về true để sự kiện không rơi tiếp xuống Focus bên dưới
+  /// (tránh toggle 2 lần thành không đổi gì).
+  bool _globalKeyHandler(KeyEvent e) {
+    if (e is! KeyDownEvent) return false;
+    if (e.logicalKey == LogicalKeyboardKey.f11 ||
+        e.logicalKey == LogicalKeyboardKey.keyF) {
+      if (!mounted) return false;
+      _toggleFullscreen();
+      return true;
+    }
+    return false;
+  }
+
   KeyEventResult _handleKey(KeyEvent e) {
     if (e is! KeyDownEvent) return KeyEventResult.ignored;
     if (e.logicalKey == LogicalKeyboardKey.space) {
@@ -507,11 +597,9 @@ class _PlayerPageState extends State<PlayerPage> {
       _persistVolume(v);
       return KeyEventResult.handled;
     }
-    if (e.logicalKey == LogicalKeyboardKey.keyF) {
-      _toggleFullscreen();
-      return KeyEventResult.handled;
-    }
-    if (e.logicalKey == LogicalKeyboardKey.f11) {
+    // F11/F xử lý ở global handler (không phụ thuộc focus).
+    // ESC thoát fullscreen (chuẩn desktop).
+    if (e.logicalKey == LogicalKeyboardKey.escape && isFullscreen) {
       _toggleFullscreen();
       return KeyEventResult.handled;
     }
@@ -661,6 +749,9 @@ class _PlayerPageState extends State<PlayerPage> {
         }
       }
     } catch (_) {}
+    // Giữ lại URL đang phát để cast lên TV (file:// thì sheet sẽ báo
+    // không cast được).
+    _currentStreamUrl = m3u8;
     try {
       // Mở media: khóa guard phát hiện reset TRƯỚC khi open (mpv reset vị
       // trí về 0 bất đồng bộ), rồi reset mốc ổn định/lượt phục hồi.
@@ -669,6 +760,13 @@ class _PlayerPageState extends State<PlayerPage> {
       _claimActivePlayer();
       _stablePos = Duration.zero;
       _recoverCount = 0;
+      // Media mới: reset bộ đếm stall/auto-skip.
+      _mediaOpenedAt = DateTime.now();
+      _autoSkipCount = 0;
+      _autoSkipBlocked = false;
+      _skipFailStreak = 0;
+      _frozenSince = null;
+      _lastFrozenPosMs = 0;
       final resumed = await _seekToResume();
       if (mounted) _stablePos = player.state.position;
       if (resumed > 0 && mounted) {
@@ -854,6 +952,8 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   void _listenPlayer() {
+    // Theo dõi PiP hệ thống để ẩn/hiện controls (xem _onPipStatus).
+    _playerSubs.add(_floating.pipStatusStream.listen(_onPipStatus));
     // Giữ subscriptions để cancel ở dispose: media_kit vẫn bắn event
     // sau khi trang đóng (đổi tập/back) gây setState after dispose.
     _playerSubs.add(
@@ -924,6 +1024,104 @@ class _PlayerPageState extends State<PlayerPage> {
     const Duration(seconds: 5),
     (_) => _saveProgress(),
   );
+
+  /// Timer 1s soi vị trí phát: đứng yên quá lâu giữa phim (điển hình là kẹt
+  /// ở đoạn ads chèn trong HLS) -> tự seek qua thay vì bắt user tua tay.
+  void _startStallTimer() {
+    _stallTimer?.cancel();
+    _stallTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _checkStall(),
+    );
+  }
+
+  void _checkStall() {
+    if (!mounted) return;
+    if (!_autoSkipAds || _autoSkipBlocked) return;
+    if (playerError != null || _resolvingStream) return;
+    if (duration.inMilliseconds <= 0) return;
+    // App không ở foreground (nghe nền/tắt màn/có cuộc gọi...): vị trí
+    // đứng yên lúc này không phải kẹt ads -> không tính stall.
+    if (WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+      _frozenSince = null;
+      return;
+    }
+    // Đang seek/open chủ động, hoặc media mới mở chưa ổn định -> bỏ qua.
+    if (DateTime.now().isBefore(_seekLockUntil)) return;
+    final openedAt = _mediaOpenedAt;
+    if (openedAt == null ||
+        DateTime.now().difference(openedAt) < const Duration(seconds: 20)) {
+      return;
+    }
+    final ms = player.state.position.inMilliseconds;
+    // Vị trí vẫn tiến (>1.5s so với lần soi trước) -> hết đứng hình.
+    if (ms > _lastFrozenPosMs + 1500) {
+      _lastFrozenPosMs = ms;
+      _frozenSince = null;
+      return;
+    }
+    _lastFrozenPosMs = ms;
+    // Chỉ tự skip khi đang phát THẬT. Đang pause (dù user bấm, OS cướp
+    // audio-focus hay mpv tự dừng) -> tôn trọng, không skip. Trước đây
+    // chính nhánh này gây tự tua +30s oan khi không hề có ads.
+    if (!isPlaying) {
+      _frozenSince = null;
+      return;
+    }
+    _frozenSince ??= DateTime.now();
+    final frozenSec = DateTime.now().difference(_frozenSince!).inSeconds;
+    if (!shouldAutoSkipStall(
+      frozenSec: frozenSec,
+      posMs: ms,
+      durMs: duration.inMilliseconds,
+      autoSkipCount: _autoSkipCount,
+    )) {
+      return;
+    }
+    // Circuit breaker: lần skip trước đáp xuống mà vị trí hầu như không
+    // tiến được rồi lại đứng -> skip không giải quyết gì (mạng yếu chứ
+    // không phải ads). 2 lần liên tiếp như vậy thì dừng hẳn tự skip cho
+    // media này để khỏi tua mất nội dung.
+    if (_autoSkipCount > 0 &&
+        isSkipIneffective(posMs: ms, landedMs: _lastSkipLandedMs)) {
+      _skipFailStreak++;
+      if (_skipFailStreak >= 2) {
+        _autoSkipBlocked = true;
+        _frozenSince = null;
+        if (mounted) {
+          AppToast.show(
+            context,
+            message: 'Mạng yếu - đã tắt tự bỏ qua cho tập này',
+            type: ToastType.warning,
+          );
+        }
+        return;
+      }
+    } else {
+      _skipFailStreak = 0;
+    }
+    _autoSkipAd();
+  }
+
+  /// Tự seek +30s qua đoạn đứng hình (nghi là ads). Giới hạn số lần trong
+  /// [shouldAutoSkipStall] + circuit breaker trong [_checkStall]: ads
+  /// thường chỉ vài chục giây; nếu skip rồi mà vẫn đứng (mạng yếu thật)
+  /// thì dừng để không tua mất nội dung.
+  Future<void> _autoSkipAd() async {
+    _autoSkipCount++;
+    _frozenSince = null;
+    final target = position + const Duration(seconds: 30);
+    final clamped = target > duration ? duration : target;
+    _lastSkipLandedMs = clamped.inMilliseconds;
+    await _seekTo(clamped);
+    if (mounted) {
+      AppToast.show(
+        context,
+        message: 'Tự bỏ qua đoạn đứng hình (+30s)',
+        type: ToastType.info,
+      );
+    }
+  }
   Future<void> _saveProgress() {
     // Stream đang ở trạng thái reset/tụt (vị trí kém mốc ổn định >15s):
     // KHÔNG ghi đè tiến trình đã xem tốt bằng vị trí sau reset,
@@ -1025,6 +1223,7 @@ class _PlayerPageState extends State<PlayerPage> {
       );
       return;
     }
+    _currentStreamUrl = url;
     // Khóa guard TRƯỚC khi open: mpv reset vị trí về 0 bất đồng bộ,
     // tick 0 đến trước dòng reset mốc sẽ bị hiểu nhầm là stream reset.
     _seekLockUntil = DateTime.now().add(const Duration(seconds: 20));
@@ -1034,6 +1233,12 @@ class _PlayerPageState extends State<PlayerPage> {
     // reset luôn cờ skip intro/outro của tập cũ.
     _stablePos = Duration.zero;
     _recoverCount = 0;
+    _mediaOpenedAt = DateTime.now();
+    _autoSkipCount = 0;
+    _autoSkipBlocked = false;
+    _skipFailStreak = 0;
+    _frozenSince = null;
+    _lastFrozenPosMs = 0;
     _seekLockUntil = DateTime.now().add(const Duration(seconds: 20));
     // Đổi state sang tập mới: resume/title/drawer/highlight sau này
     // bám đúng tập đang phát (trước đây kẹt ở tập cũ).
@@ -1067,6 +1272,8 @@ class _PlayerPageState extends State<PlayerPage> {
   /// là stream reset.
   Future<void> _seekTo(Duration target) async {
     _seekLockUntil = DateTime.now().add(const Duration(seconds: 8));
+    // Seek chủ động -> mốc đứng hình cũ hết ý nghĩa.
+    _frozenSince = null;
     await player.seek(target);
     await Future.delayed(const Duration(milliseconds: 700));
     if (mounted) _stablePos = player.state.position;
@@ -1138,6 +1345,11 @@ class _PlayerPageState extends State<PlayerPage> {
       }
     }
     _resetHideTimer();
+    // Đổi nhánh build (theater <-> fullscreen) thay Focus node mới —
+    // giữ focus tường minh để phím tắt không chết sau lần F11 đầu.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_pageFocus.hasFocus) _pageFocus.requestFocus();
+    });
   }
 
   Future<void> _changeSpeed() async {
@@ -1161,6 +1373,9 @@ class _PlayerPageState extends State<PlayerPage> {
   void dispose() {
     hideTimer?.cancel();
     saveTimer?.cancel();
+    _stallTimer?.cancel();
+    HardwareKeyboard.instance.removeHandler(_globalKeyHandler);
+    _pageFocus.dispose();
     for (final s in _playerSubs) {
       s.cancel();
     }
@@ -1224,7 +1439,7 @@ class _PlayerPageState extends State<PlayerPage> {
           showIntroSheet(context, _introEndMs, position, _setIntroEnd),
       onOutroTap: () =>
           showOutroSheet(context, _outroStartMs, position, duration, _setOutroStart),
-      onCastTap: _showCastPlaceholder,
+      onCastTap: _showCastSheet,
       onPipTap: _enterPip,
       onExternalTap: _openExternal,
       onClearIntro: () => _setIntroEnd(0),
@@ -1235,6 +1450,7 @@ class _PlayerPageState extends State<PlayerPage> {
   Widget build(BuildContext c) {
     if (c.isDesktop && !isFullscreen) return _buildDesktop();
     return Focus(
+      focusNode: _pageFocus,
       autofocus: true,
       onKeyEvent: (n, e) => _handleKey(e),
       child: Scaffold(
@@ -1277,7 +1493,9 @@ class _PlayerPageState extends State<PlayerPage> {
                   child: Container(color: Colors.transparent),
                 ),
               ),
-              if (_gestureOverlayText != null && playerError == null)
+              if (_gestureOverlayText != null &&
+                  playerError == null &&
+                  !_inPip)
                 Center(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
@@ -1342,7 +1560,7 @@ class _PlayerPageState extends State<PlayerPage> {
                     ),
                   ),
                 ),
-              if (showControls && playerError == null)
+              if (showControls && playerError == null && !_inPip)
                 Positioned(
                   top: 0,
                   left: 0,
@@ -1352,9 +1570,10 @@ class _PlayerPageState extends State<PlayerPage> {
                     serverName: _serverName,
                     onBack: () => Navigator.pop(context),
                     onSettings: _showSettingsSheet,
+                    onPip: _showPipButton ? _enterPip : null,
                   ),
                 ),
-              if (showControls && playerError == null)
+              if (showControls && playerError == null && !_inPip)
                 Center(
                   child: PlayerCenterControls(
                     brightness: _brightness,
@@ -1373,7 +1592,7 @@ class _PlayerPageState extends State<PlayerPage> {
                     },
                   ),
                 ),
-              if (showControls && playerError == null)
+              if (showControls && playerError == null && !_inPip)
                 Positioned(
                   bottom: 0,
                   left: 0,
@@ -1410,7 +1629,7 @@ class _PlayerPageState extends State<PlayerPage> {
                     onToggleFullscreen: _toggleFullscreen,
                   ),
                 ),
-              if (_showEpisodeDrawer && showControls)
+              if (_showEpisodeDrawer && showControls && !_inPip)
                 Positioned(
                   bottom: 100,
                   right: 16,
@@ -1456,6 +1675,7 @@ class _PlayerPageState extends State<PlayerPage> {
   }
 
   Widget _buildDesktop() => Focus(
+    focusNode: _pageFocus,
     autofocus: true,
     onKeyEvent: (n, e) => _handleKey(e),
     child: PlayerDesktopTheater(
@@ -1486,7 +1706,7 @@ class _PlayerPageState extends State<PlayerPage> {
         await _replaceWith(ep, s);
       },
       title: _playerTitle(),
-      onCast: _showCastPlaceholder,
+      onCast: _showCastSheet,
       onPip: _enterPip,
       onExternal: _openExternal,
       muted: _muted,
