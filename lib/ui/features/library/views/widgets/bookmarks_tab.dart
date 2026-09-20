@@ -17,7 +17,7 @@ class BookmarksTab extends StatelessWidget {
         12,
         12,
         12,
-        12 + MediaQuery.paddingOf(context).padding.bottom,
+        12 + MediaQuery.paddingOf(context).bottom,
       ),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 3, childAspectRatio: 0.62, crossAxisSpacing: 10, mainAxisSpacing: 10),
       itemCount: items.length,

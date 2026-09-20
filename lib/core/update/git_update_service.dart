@@ -112,7 +112,7 @@ class GitUpdateService {
 
   Future<String> _getCurrentVersion() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_kCurrentVersionKey) ?? '1.0.0';
+    return prefs.getString(_kCurrentVersionKey) ?? '1.0.1';
   }
 
   Future<void> _saveCurrentVersion(String version) async {

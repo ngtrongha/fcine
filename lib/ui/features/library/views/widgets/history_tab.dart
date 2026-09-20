@@ -25,7 +25,7 @@ class HistoryTab extends StatelessWidget {
         12,
         12,
         12,
-        12 + MediaQuery.paddingOf(context).padding.bottom,
+        12 + MediaQuery.paddingOf(context).bottom,
       ),
       itemCount: items.length,
       separatorBuilder: (_, _) => const SizedBox(height: 10),

@@ -600,7 +600,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 16,
                 16,
                 16,
-                16 + MediaQuery.paddingOf(context).padding.bottom,
+                16 + MediaQuery.paddingOf(context).bottom,
               ),
               children: [
                 _sectionTitle('CHẾ ĐỘ HIỆN TẠI'),
@@ -659,7 +659,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 _cacheCard(),
                 const SizedBox(height: 12),
                 const Text(
-                  'F-Cine v1.0.0 • Không còn URL nguồn mặc định — user tự quản lý',
+                  'F-Cine v1.0.1 • Không còn URL nguồn mặc định — user tự quản lý',
                   style: TextStyle(color: Color(0xFF64748B), fontSize: 11),
                   textAlign: TextAlign.center,
                 ),

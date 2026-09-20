@@ -4,7 +4,7 @@
 ; Build: ISCC /DAPP_VERSION=1.0.0 windows\installer\fcine-msix.iss
 
 #ifndef APP_VERSION
-  #define APP_VERSION "1.0.0"
+  #define APP_VERSION "1.0.1"
 #endif
 
 [Setup]

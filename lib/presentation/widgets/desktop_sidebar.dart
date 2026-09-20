@@ -124,7 +124,7 @@ class DesktopSidebar extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 14),
             child: Text(
-              'F-Cine v1.0.0',
+              'F-Cine v1.0.1',
               textAlign: TextAlign.center,
               style: TextStyle(color: Color(0xFF475569), fontSize: 11),
             ),
